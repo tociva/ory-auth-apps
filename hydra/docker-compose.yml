@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  hydra:
+    image: oryd/hydra:v2.2
+    ports:
+      - "4444:4444"
+      - "4445:4445"
+    environment:
+      - DSN=postgres://hydrau:Kj7Qrt8XnFEEwpGz2hL@host.docker.internal:5432/hydra?sslmode=disable
+      - URLS_SELF_ISSUER=http://localhost:4444/
+      - URLS_CONSENT=http://localhost:3000/consent
+      - URLS_LOGIN=http://localhost:3000/login
+      - SECRETS_SYSTEM=youreallyneedtochangethis
+    command: serve all --dev
