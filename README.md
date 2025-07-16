@@ -152,3 +152,5 @@ docker run --rm -e DSN="postgres://kratosu:<My Password>@host.docker.internal:54
 cd hydra
 docker compose up
 ```
+
+* After starting above applications, open `http://localhost:4433/self-service/login/browser` to verify locally.

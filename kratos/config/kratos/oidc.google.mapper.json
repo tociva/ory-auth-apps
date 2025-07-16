@@ -1,0 +1,7 @@
+{
+    "id": "{{ .Claims.sub }}",
+    "traits": {
+      "email": "{{ .Claims.email }}"
+    }
+  }
+  

@@ -13,8 +13,8 @@ services:
       - COOKIE_SECRET=changeme
       - CSRF_COOKIE_NAME=ory_csrf_ui
       - CSRF_COOKIE_SECRET=changeme
-      - SERVE_PUBLIC_BASE_URL=http://localhost:4433/
-      - SERVE_ADMIN_BASE_URL=http://localhost:4434/
+      - SERVE_PUBLIC_BASE_URL=http://127.0.0.1:4433/
+      - SERVE_ADMIN_BASE_URL=http://127.0.0.1:4434/
     command: serve -c /etc/config/kratos.yml --watch-courier
     volumes:
       - ./config:/etc/config
@@ -28,7 +28,7 @@ services:
     environment:
       - PORT=4455
       - KRATOS_PUBLIC_URL=http://kratos:4433/
-      - KRATOS_BROWSER_URL=http://localhost:4433/
+      - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
       - COOKIE_SECRET=changeme
       - CSRF_COOKIE_NAME=ory_csrf_ui
       - CSRF_COOKIE_SECRET=changeme

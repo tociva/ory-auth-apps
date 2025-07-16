@@ -19,7 +19,7 @@ selfservice:
 
   methods:
     password:
-      enabled: true
+      enabled: false
     totp:
       config:
         issuer: Kratos
@@ -30,6 +30,19 @@ selfservice:
       enabled: true
     code:
       enabled: true
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: google
+            provider: google
+            client_id: vvvv
+            client_secret: aaaa
+            mapper_url: file:///etc/config/kratos/oidc.google.mapper.json
+            # scopes:
+            #   - openid
+            #   - profile
+            #   - email
 
   flows:
     error:
@@ -61,6 +74,7 @@ selfservice:
       lifespan: 10m
 
     registration:
+      enabled: false
       lifespan: 10m
       ui_url: http://127.0.0.1:4455/registration
       after:
