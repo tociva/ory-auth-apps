@@ -36,8 +36,8 @@ selfservice:
         providers:
           - id: google
             provider: google
-            client_id: vvvv
-            client_secret: aaaa
+            client_id: 1009120049605-vk7pj26auuer3mgrgf08avaqfhb6oeo6.apps.googleusercontent.com
+            client_secret: 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
             mapper_url: file:///etc/config/kratos/oidc.google.mapper.json
             # scopes:
             #   - openid

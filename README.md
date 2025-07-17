@@ -31,13 +31,19 @@ No local username/password registrations are supported.
 
 ---
 
-### 3. Consent App (Express)
+### 3. Consent App (Next.JS)
 
-- A simple Node.js (Express) application is used as the **Consent App**.
+- A simple Next.js (Express) application is used as the **Consent App**.
 - This app:
   - Presents the login/consent UI to users when requested by Hydra
   - Integrates with ORY Kratos to authenticate users via their chosen social provider
   - Collects user consent for application scopes and claims
+
+```sh
+yarn dev
+yarn build
+yarn start
+```
 
 ---
 
