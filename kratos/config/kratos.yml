@@ -1,6 +1,6 @@
 version: v0.13.0
 
-dsn: postgres://kratosu:nFEEwpKj7Qrt8XGz2hL@host.docker.internal:5432/kratos?sslmode=disable
+dsn: postgres://:@host.docker.internal:5432/kratos?sslmode=disable
 
 serve:
   public:
@@ -36,8 +36,8 @@ selfservice:
         providers:
           - id: google
             provider: google
-            client_id: 1009120049605-vk7pj26auuer3mgrgf08avaqfhb6oeo6.apps.googleusercontent.com
-            client_secret: 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
+            client_id: 
+            client_secret: 
             mapper_url: file:///etc/config/kratos/oidc.google.mapper.json
             # scopes:
             #   - openid
