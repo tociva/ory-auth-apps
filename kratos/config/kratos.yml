@@ -1,21 +1,36 @@
 version: v0.13.0
 
-dsn: postgres://:@host.docker.internal:5432/kratos?sslmode=disable
+dsn: postgres://
 
 serve:
   public:
     base_url: http://127.0.0.1:4433/
     cors:
       enabled: true
+      allowed_origins:
+        - http://localhost:3000
+      allowed_methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - Cookie
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+      allow_credentials: true
   admin:
     base_url: http://kratos:4434/
 
 selfservice:
   default_browser_return_url: http://127.0.0.1:4455/welcome
   allowed_return_urls:
-    - http://127.0.0.1:4455
-    - http://localhost:19006/Callback
-    - exp://localhost:8081/--/Callback
+    - http://localhost:3000/login
 
   methods:
     password:

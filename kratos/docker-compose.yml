@@ -8,7 +8,7 @@ services:
       - '4434:4434' # admin
     restart: unless-stopped
     environment:
-      - DSN=postgres://kratosu:secret@host.docker.internal:5432/kratos?sslmode=disable
+      - DSN=
       - LOG_LEVEL=trace
       - COOKIE_SECRET=changeme
       - CSRF_COOKIE_NAME=ory_csrf_ui
