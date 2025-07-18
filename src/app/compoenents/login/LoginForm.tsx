@@ -50,7 +50,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
 
  
-  const [error, setError] = useState("");
+  const [, setError] = useState("");
 
   useEffect(() => {
     const flow = searchParams.get("flow");

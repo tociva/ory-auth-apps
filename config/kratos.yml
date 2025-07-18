@@ -1,6 +1,6 @@
 version: v0.13.0
 
-dsn: postgres://
+dsn: ${KRATOS_DSN}
 
 serve:
   public:
@@ -28,7 +28,7 @@ serve:
     base_url: http://kratos:4434/
 
 selfservice:
-  default_browser_return_url: http://127.0.0.1:4455/welcome
+  default_browser_return_url: http://127.0.0.1:3000/welcome
   allowed_return_urls:
     - http://localhost:3000/login
 
@@ -51,8 +51,8 @@ selfservice:
         providers:
           - id: google
             provider: google
-            client_id: 
-            client_secret: 
+            client_id: ${GOOGLE_CLIENT_ID}
+            client_secret: ${GOOGLE_CLIENT_SECRET}
             mapper_url: file:///etc/config/kratos/oidc.google.mapper.json
             # scopes:
             #   - openid
@@ -61,37 +61,37 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://127.0.0.1:4455/error
+      ui_url: http://127.0.0.1:3000/error
 
     settings:
-      ui_url: http://127.0.0.1:4455/settings
+      ui_url: http://127.0.0.1:3000/settings
       privileged_session_max_age: 15m
       required_aal: highest_available
 
     recovery:
       enabled: true
-      ui_url: http://127.0.0.1:4455/recovery
+      ui_url: http://127.0.0.1:3000/recovery
       use: code
 
     verification:
       enabled: true
-      ui_url: http://127.0.0.1:4455/verification
+      ui_url: http://127.0.0.1:3000/verification
       use: code
       after:
-        default_browser_return_url: http://127.0.0.1:4455/welcome
+        default_browser_return_url: http://127.0.0.1:3000/welcome
 
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:4455/login
+        default_browser_return_url: http://127.0.0.1:3000/login
 
     login:
-      ui_url: http://127.0.0.1:4455/login
+      ui_url: http://127.0.0.1:3000/login
       lifespan: 10m
 
     registration:
       enabled: false
       lifespan: 10m
-      ui_url: http://127.0.0.1:4455/registration
+      ui_url: http://127.0.0.1:3000/registration
       after:
         password:
           hooks:
@@ -102,12 +102,12 @@ log:
   level: debug
   format: text
   leak_sensitive_values: true
-
+  
 secrets:
   cookie:
-    - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
+    - ${COOKIE_SECRET}
   cipher:
-    - 32-LONG-SECRET-NOT-SECURE-AT-ALL
+    - ${KRATOS_CIPHER_SECRET}
 
 ciphers:
   algorithm: xchacha20-poly1305
