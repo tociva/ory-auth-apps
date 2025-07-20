@@ -1,13 +1,12 @@
 version: v0.13.0
 
-dsn: ${KRATOS_DSN}
-
 serve:
   public:
     base_url: http://127.0.0.1:4433/
     cors:
       enabled: true
       allowed_origins:
+        - http://127.0.0.1:3000
         - http://localhost:3000
       allowed_methods:
         - GET
@@ -30,7 +29,7 @@ serve:
 selfservice:
   default_browser_return_url: http://127.0.0.1:3000/welcome
   allowed_return_urls:
-    - http://localhost:3000/login
+    - http://127.0.0.1:3000/login
 
   methods:
     password:
@@ -47,17 +46,7 @@ selfservice:
       enabled: true
     oidc:
       enabled: true
-      config:
-        providers:
-          - id: google
-            provider: google
-            client_id: ${GOOGLE_CLIENT_ID}
-            client_secret: ${GOOGLE_CLIENT_SECRET}
-            mapper_url: file:///etc/config/kratos/oidc.google.mapper.json
-            # scopes:
-            #   - openid
-            #   - profile
-            #   - email
+      config: {}
 
   flows:
     error:
@@ -89,7 +78,7 @@ selfservice:
       lifespan: 10m
 
     registration:
-      enabled: false
+      enabled: true
       lifespan: 10m
       ui_url: http://127.0.0.1:3000/registration
       after:
@@ -105,9 +94,9 @@ log:
   
 secrets:
   cookie:
-    - ${COOKIE_SECRET}
+    - K3tQfZ6hNVybQMRl5GL7Kc6YJp47BLcfvm4MBx7g2B6vB5mfb3zDwtR71wtJ7q5D
   cipher:
-    - ${KRATOS_CIPHER_SECRET}
+    - gA25svEwR3aLR47v0Lm9FjQStEL1UGGk
 
 ciphers:
   algorithm: xchacha20-poly1305

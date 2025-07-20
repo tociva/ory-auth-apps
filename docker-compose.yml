@@ -20,7 +20,7 @@ services:
       - ory-network
 
   ory-kratos:
-    image: oryd/kratos:v1.1
+    image: oryd/kratos:v1.3.1
     container_name: ory-kratos
     ports:
       - '4433:4433'
@@ -37,8 +37,7 @@ services:
       - KRATOS_CIPHER_SECRET=${KRATOS_CIPHER_SECRET}
       - SERVE_PUBLIC_BASE_URL=${KRATOS_SERVE_PUBLIC_BASE_URL}
       - SERVE_ADMIN_BASE_URL=${KRATOS_SERVE_ADMIN_BASE_URL}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS=${KRATOS_OIDC_PROVIDERS}
     command: serve -c /etc/config/kratos.yml --watch-courier
     volumes:
       - ./config:/etc/config

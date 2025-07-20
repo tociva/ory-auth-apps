@@ -160,3 +160,10 @@ docker compose up
 ```
 
 * After starting above applications, open `http://localhost:4433/self-service/login/browser` to verify locally.
+
+### Debug ###
+```
+curl -X DELETE http://localhost:4434/admin/identities/e75312cf-6798-4d7c-be97-7adf6305e919
+curl -s http://localhost:4434/admin/identities | jq .
+docker exec -it ory-kratos cat /etc/config/kratos.yml 
+```
