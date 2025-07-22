@@ -167,3 +167,7 @@ curl -X DELETE http://localhost:4434/admin/identities/e75312cf-6798-4d7c-be97-7a
 curl -s http://localhost:4434/admin/identities | jq .
 docker exec -it ory-kratos cat /etc/config/kratos.yml 
 ```
+
+* Installed nginx locally
+* configred subdomains hydra.daybook.com etc in nginx with port 443
+* updated /etc/hosts
