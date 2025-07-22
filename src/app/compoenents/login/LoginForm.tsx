@@ -42,7 +42,7 @@ const PROVIDERS = [
   },
 ];
 
-const KRATOS_URL = process.env.KRATOS_URL ?? "http://localhost:4433";
+const KRATOS_URL = process.env.KRATOS_URL ?? "https://kratos.daybook.com";
 
 
 export default function LoginForm() {
@@ -54,7 +54,7 @@ export default function LoginForm() {
 
   useEffect(() => {
     const flow = searchParams.get("flow");
-    const returnUrl = searchParams.get("return_url") || window.location.origin;
+    const returnUrl = "https://login.daybook.com/welcome";
 
     if (!flow) {
       // Use Kratos API endpoint for custom UI
@@ -76,6 +76,7 @@ export default function LoginForm() {
             return;
           }
           const data = await res.json();
+          console.log('data', data);
           if (data.id) {
             router.replace(`/login?flow=${data.id}&return_url=${encodeURIComponent(returnUrl)}`);
           } else {

@@ -2,12 +2,11 @@ version: v0.13.0
 
 serve:
   public:
-    base_url: http://127.0.0.1:4433/
+    base_url: replaced from env
     cors:
       enabled: true
       allowed_origins:
-        - http://127.0.0.1:3000
-        - http://localhost:3000
+        - https://login.daybook.com
       allowed_methods:
         - GET
         - POST
@@ -26,10 +25,14 @@ serve:
   admin:
     base_url: http://kratos:4434/
 
+cookies:
+  same_site: None
+
+
 selfservice:
-  default_browser_return_url: http://127.0.0.1:3000/welcome
+  default_browser_return_url: https://login.daybook.com/welcome
   allowed_return_urls:
-    - http://127.0.0.1:3000/login
+    - https://login.daybook.com/welcome
 
   methods:
     password:
@@ -50,37 +53,37 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://127.0.0.1:3000/error
+      ui_url: https://login.daybook.com/error
 
     settings:
-      ui_url: http://127.0.0.1:3000/settings
+      ui_url: https://login.daybook.com/settings
       privileged_session_max_age: 15m
       required_aal: highest_available
 
     recovery:
       enabled: true
-      ui_url: http://127.0.0.1:3000/recovery
+      ui_url: https://login.daybook.com/recovery
       use: code
 
     verification:
       enabled: true
-      ui_url: http://127.0.0.1:3000/verification
+      ui_url: https://login.daybook.com/verification
       use: code
       after:
-        default_browser_return_url: http://127.0.0.1:3000/welcome
+        default_browser_return_url: https://login.daybook.com/welcome
 
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:3000/login
+        default_browser_return_url: https://login.daybook.com/login
 
     login:
-      ui_url: http://127.0.0.1:3000/login
+      ui_url: https://login.daybook.com/login
       lifespan: 10m
 
     registration:
       enabled: true
       lifespan: 10m
-      ui_url: http://127.0.0.1:3000/registration
+      ui_url: https://login.daybook.com/registration
       after:
         password:
           hooks:
@@ -88,15 +91,15 @@ selfservice:
             - hook: show_verification_ui
 
 log:
-  level: debug
+  level: repalced from env
   format: text
   leak_sensitive_values: true
   
 secrets:
   cookie:
-    - K3tQfZ6hNVybQMRl5GL7Kc6YJp47BLcfvm4MBx7g2B6vB5mfb3zDwtR71wtJ7q5D
+    - replaced from env
   cipher:
-    - gA25svEwR3aLR47v0Lm9FjQStEL1UGGk
+    - replaced from env
 
 ciphers:
   algorithm: xchacha20-poly1305
