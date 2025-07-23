@@ -1,13 +1,13 @@
 'use client';
 
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import GoogleIcon from "../icons/GoogleIcon";
-import LinkedInIcon from "./LinkedInIcon";
-import TwitterIcon from "./TwitterIcon";
+import AppleIcon from "./AppleIcon";
 import FacebookIcon from "./FacebookIcon";
 import GitHubIcon from "./GitHubIcon";
-import AppleIcon from "./AppleIcon";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import LinkedInIcon from "./LinkedInIcon";
+import TwitterIcon from "./TwitterIcon";
 
 const PROVIDERS = [
   { provider: 'Google', icon: <GoogleIcon className="h-6 w-6" />, text: 'text-primary' },
@@ -18,25 +18,26 @@ const PROVIDERS = [
   { provider: 'GitHub', icon: <GitHubIcon className="h-6 w-6" />, text: 'text-primary' },
 ];
 
-const KRATOS_URL = process.env.KRATOS_URL ?? "https://kratos.daybook.com";
-const RETURN_TO = "https://login.daybook.com/welcome"; // Or read from env/config if needed
+const KRATOS_URL = process.env.NEXT_PUBLIC_KRATOS_URL;
+const RETURN_TO = process.env.NEXT_PUBLIC_KRATOS_RETURN_TO;
 
 export default function LoginForm() {
-  const router = useRouter();
+  console.log('KRATOS_URL', KRATOS_URL);
+  console.log('RETURN_TO', RETURN_TO);
   const searchParams = useSearchParams();
   const [, setError] = useState("");
 
   // Always ensure flow exists, or redirect to create a new one
   useEffect(() => {
     const flow = searchParams.get("flow");
-    const callbackUrl = searchParams.get("callback_url");
-    const returnUrl = `${RETURN_TO}?callback_url=${callbackUrl}`;
+    const loginChallenge = searchParams.get("login_challenge");
+    if (!loginChallenge) {
+      setError("Missing login_challenge! You must start this flow from Hydra.");
+      return;
+    }
     if (!flow) {
-      // Create a new browser login flow with return_to
-      // Use the browser flow so cookies are set correctly for OIDC
-      window.location.replace(
-        `${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnUrl)}`
-      );
+      const returnUrl = `${RETURN_TO}?login_challenge=${encodeURIComponent(loginChallenge)}`;
+      window.location.replace(`${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnUrl)}`);
     }
   }, [searchParams]);
 

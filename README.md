@@ -171,3 +171,4 @@ docker exec -it ory-kratos cat /etc/config/kratos.yml
 * Installed nginx locally
 * configred subdomains hydra.daybook.com etc in nginx with port 443
 * updated /etc/hosts
+* mkcert app.daybook.com hydra.daybook.com hydra-admin.daybook.com login.daybook.com kratos.daybook.com

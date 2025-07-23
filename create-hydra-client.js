@@ -1,15 +1,34 @@
-// Requires Node.js 18+ for built-in fetch. For older Node, use node-fetch.
+// Requires Node.js 18+ for built-in fetch.
 const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL || 'http://localhost:4445';
+const CLIENT_ID = "spa-client";
 const CLIENT_PAYLOAD = {
-  client_id: "spa-client",
+  client_id: CLIENT_ID,
   grant_types: ["authorization_code", "refresh_token"],
   response_types: ["code"],
   scope: "openid profile email offline",
   redirect_uris: ["https://app.daybook.com/auth/callback"],
-  post_logout_redirect_uris: ["https://app.daybook.com/"],
+  post_logout_redirect_uris: ["https://app.daybook.com/auth/logout"],
   token_endpoint_auth_method: "none",
   client_name: "Daybook SPA"
 };
+
+async function deleteHydraClient() {
+  try {
+    const res = await fetch(`${HYDRA_ADMIN_URL}/clients/${encodeURIComponent(CLIENT_ID)}`, {
+      method: 'DELETE'
+    });
+    if (res.ok) {
+      console.log(`Client "${CLIENT_ID}" deleted (if it existed).`);
+    } else if (res.status === 404) {
+      console.log(`Client "${CLIENT_ID}" does not exist (nothing to delete).`);
+    } else {
+      const error = await res.text();
+      throw new Error(`Failed to delete client: ${res.status} ${res.statusText}\n${error}`);
+    }
+  } catch (err) {
+    console.error("Error deleting client:", err.message);
+  }
+}
 
 async function createHydraClient() {
   try {
@@ -31,4 +50,7 @@ async function createHydraClient() {
   }
 }
 
-createHydraClient();
+(async () => {
+  await deleteHydraClient();
+  await createHydraClient();
+})();

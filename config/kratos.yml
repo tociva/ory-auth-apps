@@ -30,9 +30,9 @@ cookies:
 
 
 selfservice:
-  default_browser_return_url: https://login.daybook.com/welcome
+  default_browser_return_url: https://login.daybook.com/handle-login-return
   allowed_return_urls:
-    - https://login.daybook.com/welcome
+    - https://login.daybook.com/handle-login-return
 
   methods:
     password:
@@ -70,7 +70,7 @@ selfservice:
       ui_url: https://login.daybook.com/verification
       use: code
       after:
-        default_browser_return_url: https://login.daybook.com/welcome
+        default_browser_return_url: https://login.daybook.com/handle-login-return
 
     logout:
       after:
