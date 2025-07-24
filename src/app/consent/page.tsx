@@ -61,8 +61,8 @@ export default function ConsentPage() {
       });
       const data = await res.json();
       window.location.href = data.redirect_to;
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "An unknown error occurred" );
       setLoading(false);
     }
   };
@@ -77,8 +77,8 @@ export default function ConsentPage() {
       });
       const data = await res.json();
       window.location.href = data.redirect_to;
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "An unknown error occurred");
       setLoading(false);
     }
   };
