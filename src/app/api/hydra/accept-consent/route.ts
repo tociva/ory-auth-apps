@@ -32,7 +32,7 @@ const user = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        grant_scope: ["openid", "email", "profile"], // Or use the requested scopes dynamically
+        grant_scope: ["openid", "email", "profile", "offline"], // Or use the requested scopes dynamically
         remember: true,
         remember_for: 3600,
         session: { id_token: {user}, access_token: {user} }
