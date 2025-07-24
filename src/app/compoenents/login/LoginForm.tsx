@@ -22,8 +22,6 @@ const KRATOS_URL = process.env.NEXT_PUBLIC_KRATOS_URL;
 const RETURN_TO = process.env.NEXT_PUBLIC_KRATOS_RETURN_TO;
 
 export default function LoginForm() {
-  console.log('KRATOS_URL', KRATOS_URL);
-  console.log('RETURN_TO', RETURN_TO);
   const searchParams = useSearchParams();
   const [, setError] = useState("");
 

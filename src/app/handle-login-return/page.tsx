@@ -49,7 +49,6 @@ export default function HandleLoginReturnPage() {
         });
         if (!res.ok) throw new Error("Failed to accept login challenge");
         const { redirect_to } = await res.json();
-        console.log('redirect_to', redirect_to);
         window.location.href = redirect_to;
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "An unknown error occurred");
