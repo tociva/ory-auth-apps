@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   hydra:
-    image: oryd/hydra:v2.2
+    image: oryd/hydra:v2.3.0
     container_name: ory-hydra
     ports:
       - "4444:4444"
@@ -29,6 +29,11 @@ services:
       # Session settings
       - WEBFINGER_OIDC_DISCOVERY_SUPPORTED_SCOPES=openid,profile,email
       - WEBFINGER_OIDC_DISCOVERY_SUPPORTED_CLAIMS=sub,name,email
+      # --- JWT token and TTL settings ---
+      - STRATEGIES_ACCESS_TOKEN=jwt
+      - TTL_ACCESS_TOKEN=5m
+      - TTL_REFRESH_TOKEN=720h
+
     command: serve all --dev
     networks:
       - ory-network

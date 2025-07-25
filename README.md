@@ -110,7 +110,7 @@ How to run
 ## Run ORY Hydra ##
 * Run the migration before starting the hydra
 ```sh
-docker run --rm -e DSN="postgres://hydrau:<My Password>@host.docker.internal:5432/hydra?sslmode=disable" oryd/hydra:v2.2 migrate sql -e --yes
+docker run --rm -e DSN="postgres://hydrau:<My Password>@host.docker.internal:5432/hydra?sslmode=disable" oryd/hydra:v2.3.0 migrate sql -e --yes
 ```
 * Run Hydra
 ```sh
