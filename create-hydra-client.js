@@ -7,7 +7,7 @@ const CLIENT_PAYLOAD = {
   response_types: ["code"],
   scope: "openid profile email offline",
   redirect_uris: ["https://app.daybook.com/auth/callback"],
-  post_logout_redirect_uris: ["https://app.daybook.com/auth/hydra-logout"],
+  post_logout_redirect_uris: ["https://app.daybook.com/auth/logout"],
   token_endpoint_auth_method: "none",
   client_name: "Daybook SPA"
 };

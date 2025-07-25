@@ -26,6 +26,7 @@ serve:
 
 cookies:
   same_site: None
+  domain: .daybook.com
 
 
 selfservice:
