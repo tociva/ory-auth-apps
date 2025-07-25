@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const HYDRA_ADMIN_URL = process.env.NEXT_PUBLIC_HYDRA_ADMIN_URL;
+const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL;
 
 export async function POST(req: NextRequest) {
   const { consent_challenge } = await req.json();

@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing logout_challenge" }, { status: 400 });
   }
 
-  const HYDRA_ADMIN_URL = process.env.NEXT_PUBLIC_HYDRA_ADMIN_URL;
+  const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL;
 
   try {
     const hydraRes = await fetch(
