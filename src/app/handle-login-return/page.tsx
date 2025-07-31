@@ -10,9 +10,13 @@ export default function HandleLoginReturnPage() {
   const searchParams = useSearchParams();
   const [user, setUser] = useState<KratosUser>();
   const [error, setError] = useState<string>("");
+  const [loginChallenge, setLoginChallenge] = useState<string | null>(null);
   const [, setLoading] = useState(true);
 
   useEffect(() => {
+    const challenge = searchParams.get("login_challenge");
+    setLoginChallenge(challenge);
+
     let retries = 0;
     const maxRetries = 5;
 
@@ -27,15 +31,8 @@ export default function HandleLoginReturnPage() {
             retries++;
             return setTimeout(fetchWhoamiWithRetry, 500);
           } else {
-            const loginChallenge = searchParams.get("login_challenge");
-            if (loginChallenge) {
-              // work around for hydra not setting the cookie
-              const returnUrl = `${RETURN_TO}?login_challenge=${encodeURIComponent(loginChallenge)}`;
-              window.location.replace(`${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnUrl)}`);
-            } else {
-              setError("No login challenge found");
-              setLoading(false);
-            }
+            setError("We couldn't confirm your login. Please click below to try again.");
+            setLoading(false);
             return;
           }
         }
@@ -88,14 +85,31 @@ export default function HandleLoginReturnPage() {
     acceptLogin();
   }, [user, searchParams]);
 
+  const handleRetry = () => {
+    if (!loginChallenge) return;
+    const returnUrl = `${RETURN_TO}?login_challenge=${encodeURIComponent(loginChallenge)}`;
+    const kratosLoginUrl = `${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnUrl)}`;
+    window.location.href = kratosLoginUrl;
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 transition-all duration-300 ease-in-out">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
         {error ? (
-          <div className="text-red-700 bg-red-100 border border-red-300 rounded-lg p-4 animate-fade-in">
-            <div className="text-xl font-semibold mb-2">Authentication Error</div>
-            <p className="text-sm">{error}</p>
-          </div>
+          <>
+            <div className="text-red-700 bg-red-100 border border-red-300 rounded-lg p-4 animate-fade-in">
+              <div className="text-xl font-semibold mb-2">Authentication Issue</div>
+              <p className="text-sm mb-4">{error}</p>
+              {loginChallenge && (
+                <button
+                  onClick={handleRetry}
+                  className="mt-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition duration-200 cursor-pointer"
+                >
+                  🔁 Retry Login
+                </button>
+              )}
+            </div>
+          </>
         ) : (
           <>
             <div className="flex justify-center mb-4">

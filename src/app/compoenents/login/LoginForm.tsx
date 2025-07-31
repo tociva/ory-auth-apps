@@ -23,35 +23,37 @@ const RETURN_TO = process.env.NEXT_PUBLIC_KRATOS_RETURN_TO;
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
-  const [, setError] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [flowReady, setFlowReady] = useState(false);
 
-  // Always ensure flow exists, or redirect to create a new one
   useEffect(() => {
     const flow = searchParams.get("flow");
     const loginChallenge = searchParams.get("login_challenge");
-    if (!loginChallenge) {
-      setError("Missing login_challenge! You must start this flow from Hydra.");
-      return;
-    }
+
     if (!flow) {
-      const returnUrl = `${RETURN_TO}?login_challenge=${encodeURIComponent(loginChallenge)}`;
-      window.location.replace(`${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnUrl)}`);
+      const returnTo = loginChallenge
+        ? `${RETURN_TO}?login_challenge=${encodeURIComponent(loginChallenge)}`
+        : RETURN_TO;
+
+      window.location.replace(`${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnTo)}`);
+    } else {
+      setFlowReady(true);
+      setLoading(false);
     }
   }, [searchParams]);
 
-  // OIDC provider login (submits form to Kratos)
   const handleOidcLogin = (provider: string) => {
     const flow = searchParams.get("flow");
     if (!flow) {
       setError("No flow found. Please refresh the page.");
       return;
     }
-    // Submit a form POST so that cookies are included and Kratos handles the OIDC redirect
+
     const form = document.createElement("form");
     form.method = "POST";
     form.action = `${KRATOS_URL}/self-service/login?flow=${flow}`;
 
-    // Provider input
     const providerInput = document.createElement("input");
     providerInput.type = "hidden";
     providerInput.name = "provider";
@@ -61,6 +63,39 @@ export default function LoginForm() {
     document.body.appendChild(form);
     form.submit();
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
+        <div className="flex justify-center mb-4">
+          <svg className="animate-spin h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+        </div>
+        <h1 className="text-lg font-medium text-gray-800 mb-2 animate-pulse">Checking session...</h1>
+        <p className="text-sm text-gray-500">Preparing secure login flow, please wait.</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
+        <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded-xl mb-4">
+          {error}
+        </div>
+        <button
+          onClick={() => window.location.href = '/'}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Go to Home
+        </button>
+      </div>
+    );
+  }
+
+  if (!flowReady) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary/10 to-white">
@@ -85,15 +120,12 @@ export default function LoginForm() {
               onClick={() => handleOidcLogin(p.provider)}
               type="button"
             >
-              {/* Left Spacer */}
-              <div className="basis-[20%] flex-shrink-0"></div>
-              {/* Centered, left-aligned icon+text */}
+              <div className="basis-[20%] flex-shrink-0" />
               <div className="basis-[60%] flex items-center justify-start">
                 <span className="flex items-center justify-center w-8 h-6">{p.icon}</span>
                 <span className="ml-2">{`Sign in with ${p.provider}`}</span>
               </div>
-              {/* Right Spacer */}
-              <div className="basis-[20%] flex-shrink-0"></div>
+              <div className="basis-[20%] flex-shrink-0" />
             </button>
           ))}
         </div>

@@ -13,7 +13,6 @@ if (!consentRequestRes.ok) {
   throw new Error(`Failed to fetch consent request: ${consentRequestRes.statusText}`);
 }
 const consentRequest = await consentRequestRes.json();
-
 const subject = consentRequest.subject; // This is the user's Kratos ID
 const kratosUserRes = await fetch(`${KRATOS_ADMIN_URL}/identities/${subject}`);
 if (!kratosUserRes.ok) {
@@ -32,7 +31,8 @@ const user = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        grant_scope: ["openid", "email", "profile", "offline"], // Or use the requested scopes dynamically
+        grant_scope: ["openid", "email", "profile", "offline"],
+        grant_access_token_audience: ['daybook.cloud-users'],
         remember: true,
         remember_for: 3600,
         session: { id_token: {user}, access_token: {user} }

@@ -4,8 +4,8 @@ serve:
     cors:
       enabled: true
       allowed_origins:
-        - https://login.daybook.com
-        - https://app.daybook.com
+        - https://auth-local.daybook.cloud
+        - https://app-local.daybook.cloud
       allowed_methods:
         - GET
         - POST
@@ -26,13 +26,13 @@ serve:
 
 cookies:
   same_site: None
-  domain: .daybook.com
+  domain: .daybook.cloud
 
 
 selfservice:
-  default_browser_return_url: https://login.daybook.com/handle-login-return
+  default_browser_return_url: https://auth-local.daybook.cloud/handle-login-return
   allowed_return_urls:
-    - https://login.daybook.com/handle-login-return
+    - https://auth-local.daybook.cloud/handle-login-return
 
   methods:
     password:
@@ -53,37 +53,37 @@ selfservice:
 
   flows:
     error:
-      ui_url: https://login.daybook.com/error
+      ui_url: https://auth-local.daybook.cloud/error
 
     settings:
-      ui_url: https://login.daybook.com/settings
+      ui_url: https://auth-local.daybook.cloud/settings
       privileged_session_max_age: 15m
       required_aal: highest_available
 
     recovery:
       enabled: true
-      ui_url: https://login.daybook.com/recovery
+      ui_url: https://auth-local.daybook.cloud/recovery
       use: code
 
     verification:
       enabled: true
-      ui_url: https://login.daybook.com/verification
+      ui_url: https://auth-local.daybook.cloud/verification
       use: code
       after:
-        default_browser_return_url: https://login.daybook.com/handle-login-return
+        default_browser_return_url: https://auth-local.daybook.cloud/handle-login-return
 
     logout:
       after:
-        default_browser_return_url: https://login.daybook.com/login
+        default_browser_return_url: https://auth-local.daybook.cloud/login
 
     login:
-      ui_url: https://login.daybook.com/login
+      ui_url: https://auth-local.daybook.cloud/login
       lifespan: 10m
 
     registration:
       enabled: true
       lifespan: 10m
-      ui_url: https://login.daybook.com/registration
+      ui_url: https://auth-local.daybook.cloud/registration
       after:
         password:
           hooks:

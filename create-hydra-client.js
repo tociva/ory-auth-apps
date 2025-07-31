@@ -1,15 +1,16 @@
 // Requires Node.js 18+ for built-in fetch.
 const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL || 'http://localhost:4445';
-const CLIENT_ID = "spa-client";
+const CLIENT_ID = "local.daybook.cloud-user-client";
 const CLIENT_PAYLOAD = {
   client_id: CLIENT_ID,
   grant_types: ["authorization_code", "refresh_token"],
   response_types: ["code"],
   scope: "openid profile email offline",
-  redirect_uris: ["https://app.daybook.com/auth/callback"],
-  post_logout_redirect_uris: ["https://app.daybook.com/auth/logout"],
+  redirect_uris: ["https://app-local.daybook.cloud/auth/callback"],
+  post_logout_redirect_uris: ["https://app-local.daybook.cloud/auth/logout"],
   token_endpoint_auth_method: "none",
-  client_name: "Daybook SPA"
+  client_name: "LocalDaybook User Client",
+  audience: ["daybook.cloud-users"]
 };
 
 async function deleteHydraClient() {

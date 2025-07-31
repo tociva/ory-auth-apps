@@ -169,6 +169,16 @@ docker exec -it ory-kratos cat /etc/config/kratos.yml
 ```
 
 * Installed nginx locally
-* configred subdomains hydra.daybook.com etc in nginx with port 443
+* configred subdomains hydra.daybook.cloud etc in nginx with port 443
 * updated /etc/hosts
-* mkcert app.daybook.com hydra.daybook.com hydra-admin.daybook.com login.daybook.com kratos.daybook.com
+* Create certificate 
+```sh
+mkcert -cert-file local.daybook.cloud.pem -key-file local.daybook.cloud-key.pem \
+  hydra-local.daybook.cloud \
+  auth-local.daybook.cloud \
+  kratos-local.daybook.cloud \
+  api-local.daybook.cloud \
+  app-local.daybook.cloud
+sudo cp * /opt/homebrew/etc/nginx/ssl/
+sudo brew services restart nginx
+```
