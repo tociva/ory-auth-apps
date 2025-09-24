@@ -36,7 +36,7 @@ export default function LoginForm() {
         ? `${RETURN_TO}?login_challenge=${encodeURIComponent(loginChallenge)}`
         : RETURN_TO;
 
-      window.location.replace(`${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnTo)}`);
+      window.location.replace(`${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnTo ?? '')}`);
     } else {
       setFlowReady(true);
       setLoading(false);
