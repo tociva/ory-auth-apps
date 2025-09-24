@@ -1,14 +1,32 @@
 version: '3.9'
 
 services:
+  postgres:
+    image: postgres:16
+    container_name: ory-postgres
+    env_file: [.env]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks: [ory-network]
+
   hydra:
     image: oryd/hydra:v2.3.0
     container_name: ory-hydra
     ports:
-      - "4444:4444"
-      - "4445:4445"
-    env_file:
-      - .env
+      - "4444:4444"             # public
+      - "4445:4445"             # admin
+    env_file: [.env]
     environment:
       - DSN=${HYDRA_DSN}
       - URLS_SELF_ISSUER=${HYDRA_URLS_SELF_ISSUER}
@@ -21,25 +39,20 @@ services:
       - CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
       - CORS_ALLOWED_HEADERS=Authorization,Content-Type,Accept
       - CORS_ALLOW_CREDENTIALS=true
-      # Cookie settings for CSRF protection
       - SERVE_COOKIES_SAME_SITE_MODE=Lax
       - SERVE_COOKIES_SAME_SITE_LEGACY_WORKAROUND=false
-      - SERVE_COOKIES_SECURE=true  # Set to false if not using HTTPS in dev
-      - SERVE_COOKIES_DOMAIN=${KRATOS_COOKIES_DOMAIN}  # Allow sharing across subdomains
-      # Session settings
+      - SERVE_COOKIES_SECURE=true
+      - SERVE_COOKIES_DOMAIN=${KRATOS_COOKIES_DOMAIN}
       - WEBFINGER_OIDC_DISCOVERY_SUPPORTED_SCOPES=openid,profile,email
       - WEBFINGER_OIDC_DISCOVERY_SUPPORTED_CLAIMS=sub,name,email
-      # --- JWT token and TTL settings ---
       - STRATEGIES_ACCESS_TOKEN=jwt
       - TTL_ACCESS_TOKEN=5m
       - TTL_REFRESH_TOKEN=720h
       - LOG_LEAK_SENSITIVE_VALUES=false
       - LOG_LEVEL=error
-
-
     command: serve all --dev
-    networks:
-      - ory-network
+    restart: unless-stopped
+    networks: [ory-network]
 
   ory-kratos:
     build:
@@ -48,19 +61,19 @@ services:
     image: ory-kratos-envsubst:v1.3.1
     container_name: ory-kratos
     ports:
-      - "4433:4433"
-      - "4434:4434"
+      - "4433:4433"             # public
+      - "4434:4434"             # admin
     restart: unless-stopped
-    env_file:
-      - .env
+    env_file: [.env]
     volumes:
       - ./config:/etc/config
     entrypoint: >
       sh -c "envsubst < /etc/config/kratos.tpl.yml > /etc/config/kratos.yml
       && exec kratos serve -c /etc/config/kratos.yml --watch-courier"
-    networks:
-      - ory-network
+    networks: [ory-network]
 
+volumes:
+  pgdata:
 
 networks:
   ory-network:
