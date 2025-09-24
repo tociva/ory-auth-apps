@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   hydra:
     image: oryd/hydra:v2.3.0
@@ -12,6 +10,7 @@ services:
     env_file:
       - .env
     environment:
+      - LOG_LEVEL=debug  
       - DSN=${HYDRA_DSN}
       - URLS_SELF_ISSUER=${HYDRA_URLS_SELF_ISSUER}
       - URLS_CONSENT=${HYDRA_URLS_CONSENT}
@@ -36,7 +35,6 @@ services:
       - TTL_ACCESS_TOKEN=5m
       - TTL_REFRESH_TOKEN=720h
       - LOG_LEAK_SENSITIVE_VALUES=false
-      - LOG_LEVEL=error
 
 
     command: serve all --dev
