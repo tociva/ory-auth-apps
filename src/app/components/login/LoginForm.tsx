@@ -1,64 +1,75 @@
 'use client';
 
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import GoogleIcon from "../icons/GoogleIcon";
-import AppleIcon from "./AppleIcon";
-import FacebookIcon from "./FacebookIcon";
-import GitHubIcon from "./GitHubIcon";
-import LinkedInIcon from "./LinkedInIcon";
-import TwitterIcon from "./TwitterIcon";
+import { useEffect, useState } from 'react';
+import GoogleIcon from '../icons/GoogleIcon';
+import AppleIcon from './AppleIcon';
+import FacebookIcon from './FacebookIcon';
+import GitHubIcon from './GitHubIcon';
+import LinkedInIcon from './LinkedInIcon';
+import TwitterIcon from './TwitterIcon';
+
+type LoginFormProps = {
+  flow: string | null;
+  loginChallenge: string | null;
+  returnTo: string;       // defaulted in wrapper
+  loginHint?: string;     // optional, if you use it
+};
 
 const PROVIDERS = [
-  { provider: 'Google', icon: <GoogleIcon className="h-6 w-6" />, text: 'text-primary' },
-  { provider: 'Apple', icon: <AppleIcon className="h-6 w-6" />, text: 'text-primary' },
+  { provider: 'Google',   icon: <GoogleIcon className="h-6 w-6" />,   text: 'text-primary' },
+  { provider: 'Apple',    icon: <AppleIcon className="h-6 w-6" />,    text: 'text-primary' },
   { provider: 'Facebook', icon: <FacebookIcon className="h-6 w-6" />, text: 'text-primary' },
-  { provider: 'Twitter', icon: <TwitterIcon className="h-6 w-6" />, text: 'text-primary' },
+  { provider: 'Twitter',  icon: <TwitterIcon className="h-6 w-6" />,  text: 'text-primary' },
   { provider: 'LinkedIn', icon: <LinkedInIcon className="h-6 w-6" />, text: 'text-primary' },
-  { provider: 'GitHub', icon: <GitHubIcon className="h-6 w-6" />, text: 'text-primary' },
+  { provider: 'GitHub',   icon: <GitHubIcon className="h-6 w-6" />,   text: 'text-primary' },
 ];
 
-const KRATOS_URL = process.env.NEXT_PUBLIC_KRATOS_URL;
-const RETURN_TO = process.env.NEXT_PUBLIC_KRATOS_RETURN_TO;
+const KRATOS_URL = process.env.NEXT_PUBLIC_KRATOS_URL!;
+const RETURN_TO  = process.env.NEXT_PUBLIC_KRATOS_RETURN_TO ?? '/';
 
-export default function LoginForm() {
-  const searchParams = useSearchParams();
-  const [error, setError] = useState("");
+export default function LoginForm({ flow, loginChallenge, returnTo, loginHint }: LoginFormProps) {
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [flowReady, setFlowReady] = useState(false);
 
   useEffect(() => {
-    const flow = searchParams.get("flow");
-    const loginChallenge = searchParams.get("login_challenge");
-
+    // If no flow, kick off Kratos login flow and send back to us
     if (!flow) {
-      const returnTo = loginChallenge
+      const rt = loginChallenge
         ? `${RETURN_TO}?login_challenge=${encodeURIComponent(loginChallenge)}`
         : RETURN_TO;
 
-      window.location.replace(`${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(returnTo ?? '')}`);
+      const url = `${KRATOS_URL}/self-service/login/browser?return_to=${encodeURIComponent(rt || returnTo)}`;
+      window.location.replace(url);
     } else {
       setFlowReady(true);
       setLoading(false);
     }
-  }, [searchParams]);
+  }, [flow, loginChallenge, returnTo]);
 
   const handleOidcLogin = (provider: string) => {
-    const flow = searchParams.get("flow");
     if (!flow) {
-      setError("No flow found. Please refresh the page.");
+      setError('No flow found. Please refresh the page.');
       return;
     }
 
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = `${KRATOS_URL}/self-service/login?flow=${flow}`;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `${KRATOS_URL}/self-service/login?flow=${encodeURIComponent(flow)}`;
 
-    const providerInput = document.createElement("input");
-    providerInput.type = "hidden";
-    providerInput.name = "provider";
+    const providerInput = document.createElement('input');
+    providerInput.type = 'hidden';
+    providerInput.name = 'provider';
     providerInput.value = provider.toLowerCase();
     form.appendChild(providerInput);
+
+    if (loginHint) {
+      const hint = document.createElement('input');
+      hint.type = 'hidden';
+      hint.name = 'login_hint';
+      hint.value = loginHint;
+      form.appendChild(hint);
+    }
 
     document.body.appendChild(form);
     form.submit();
@@ -86,7 +97,7 @@ export default function LoginForm() {
           {error}
         </div>
         <button
-          onClick={() => window.location.href = '/'}
+          onClick={() => (window.location.href = '/')}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Go to Home
@@ -103,32 +114,31 @@ export default function LoginForm() {
         <div className="flex flex-col items-center mb-8">
           <h1 className="text-2xl font-bold text-[#367588] mb-1">Daybook.Cloud</h1>
         </div>
+
         <div className="space-y-3">
           {PROVIDERS.map((p) => (
             <button
               key={p.provider}
               className={`
-                w-full py-3 rounded-xl
-                bg-white ${p.text}
-                border-[#367588] hover:bg-[#367588]
-                hover:text-white
+                w-full py-3 rounded-xl bg-white ${p.text}
+                border-[#367588] hover:bg-[#367588] hover:text-white
                 font-medium shadow-sm transition cursor-pointer border
-                flex items-center
-                transition-all duration-200
+                flex items-center transition-all duration-200
               `}
               style={{ borderWidth: 2 }}
               onClick={() => handleOidcLogin(p.provider)}
               type="button"
             >
-              <div className="basis-[20%] flex-shrink-0" />
+              <div className="basis-[20%]" />
               <div className="basis-[60%] flex items-center justify-start">
                 <span className="flex items-center justify-center w-8 h-6">{p.icon}</span>
                 <span className="ml-2">{`Sign in with ${p.provider}`}</span>
               </div>
-              <div className="basis-[20%] flex-shrink-0" />
+              <div className="basis-[20%]" />
             </button>
           ))}
         </div>
+
         <div className="text-center text-sm text-gray-400 mt-6">
           By signing in, you agree to our
           <a href="/terms" className="text-primary underline mx-1 hover:text-primary/70">Terms &amp; Conditions</a>
