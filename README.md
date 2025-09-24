@@ -182,3 +182,8 @@ mkcert -cert-file local.daybook.cloud.pem -key-file local.daybook.cloud-key.pem 
 sudo cp * /opt/homebrew/etc/nginx/ssl/
 sudo brew services restart nginx
 ```
+
+```
+docker-compose down --remove-orphans
+docker compose up -d
+```

@@ -1,0 +1,8 @@
+FROM oryd/kratos:v1.3.1
+
+# Install gettext (provides `envsubst`) for both Alpine or Debian variants
+USER root
+RUN (apk add --no-cache gettext 2>/dev/null) || \
+    (apt-get update && apt-get install -y --no-install-recommends gettext-base && rm -rf /var/lib/apt/lists/*)
+# (optional) drop privileges if the base image uses a non-root user; omit if unsure
+# USER 10000
