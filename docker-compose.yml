@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
     environment:
-      - LOG_LEVEL=debug  
+      - LOG_LEVEL=error #debug  
       - DSN=${HYDRA_DSN}
       - URLS_SELF_ISSUER=${HYDRA_URLS_SELF_ISSUER}
       - URLS_CONSENT=${HYDRA_URLS_CONSENT}
@@ -18,7 +18,7 @@ services:
       - URLS_LOGOUT=${AUTH_URL}/logout
       - SECRETS_SYSTEM=${HYDRA_SECRETS_SYSTEM}
       - CORS_ENABLED=true
-      - CORS_ALLOWED_ORIGINS=${AUTH_URL},${APP_URL}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
       - CORS_ALLOWED_HEADERS=Authorization,Content-Type,Accept
       - CORS_ALLOW_CREDENTIALS=true

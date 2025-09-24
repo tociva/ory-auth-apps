@@ -5,9 +5,7 @@ serve:
     base_url: ${KRATOS_SERVE_PUBLIC_BASE_URL}
     cors:
       enabled: true
-      allowed_origins:
-        - ${AUTH_URL}
-        - ${APP_URL}
+      allowed_origins: [${CORS_ALLOWED_ORIGINS}]
       allowed_methods:
         - GET
         - POST
