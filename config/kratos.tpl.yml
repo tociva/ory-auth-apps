@@ -32,6 +32,7 @@ selfservice:
   default_browser_return_url: ${AUTH_URL}/handle-login-return
   allowed_return_urls:
     - ${AUTH_URL}/handle-login-return
+    - ${KRATOS_URLS_LOGOUT}
 
   methods:
     password:
@@ -86,7 +87,7 @@ selfservice:
 
     logout:
       after:
-        default_browser_return_url: ${AUTH_URL}/login
+        default_browser_return_url: ${KRATOS_URLS_LOGOUT}
 
     login:
       ui_url: ${AUTH_URL}/login

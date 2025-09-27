@@ -31,7 +31,7 @@ const user = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        grant_scope: ["openid", "email", "profile", "offline"],
+        grant_scope: ["openid", "email", "profile", "offline_access"],
         grant_access_token_audience: ['daybook.cloud-users'],
         remember: true,
         remember_for: 3600,

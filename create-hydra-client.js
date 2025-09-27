@@ -5,7 +5,7 @@ const CLIENT_PAYLOAD = {
   client_id: CLIENT_ID,
   grant_types: ["authorization_code", "refresh_token"],
   response_types: ["code"],
-  scope: "openid profile email offline",
+  scope: "openid profile email offline_access",
   redirect_uris: ["https://app-local.daybook.cloud/auth/callback"],
   post_logout_redirect_uris: ["https://app-local.daybook.cloud/auth/logout"],
   token_endpoint_auth_method: "none",
