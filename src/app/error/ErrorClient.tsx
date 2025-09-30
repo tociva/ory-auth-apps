@@ -37,7 +37,6 @@ export default function ErrorClient() {
 
     // Include all query params to help debugging
     const all: Record<string, string> = {};
-    // @ts-ignore: searchParams is iterable
     for (const [k, v] of searchParams) all[k] = v;
 
     return {
@@ -159,10 +158,10 @@ function getHumanHint(err: unknown): string | null {
   return null;
 }
 
-function isOAuthError(v: any): v is OAuthError {
-  return !!v && typeof v === 'object' && typeof v.error === 'string' && ('error_description' in v || 'query' in v);
+function isOAuthError(v: unknown): v is OAuthError {
+  return !!v && typeof v === 'object' && typeof (v as OAuthError).error === 'string' && ('error_description' in v || 'query' in v);
 }
 
-function isKratosError(v: any): v is KratosError {
+function isKratosError(v: unknown): v is KratosError {
   return !!v && typeof v === 'object' && ('error' in v || 'id' in v);
 }
