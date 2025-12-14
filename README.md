@@ -92,7 +92,7 @@ yarn start
 psql -U postgres -h localhost -p 5432 -d postgres
 
 -- 1. Create the user for hydra with a strong password
-CREATE USER hydrau WITH PASSWORD '<My Password>';
+CREATE USER hydrau WITH PASSWORD 'J7m2Q9v4T1k6R8y3H5c2N7w4';
 
 -- 2. Create the hydra database owned by the hydrau user
 CREATE DATABASE hydra OWNER hydrau;
@@ -110,8 +110,16 @@ How to run
 ## Run ORY Hydra ##
 * Run the migration before starting the hydra
 ```sh
-docker run --rm -e DSN="postgres://hydrau:<My Password>@host.docker.internal:5432/hydra?sslmode=disable" oryd/hydra:v2.3.0 migrate sql -e --yes
+docker run --rm -e DSN="postgres://hydrau:J7m2Q9v4T1k6R8y3H5c2N7w4@host.docker.internal:5432/hydra?sslmode=disable" oryd/hydra:v2.3.0 migrate sql -e --yes
+or
+docker run --rm \
+  --network host \
+  -e DSN='postgres://hydrau:J7m2Q9v4T1k6R8y3H5c2N7w4@127.0.0.1:5432/hydra?sslmode=disable' \
+  oryd/hydra:v2.3.0 \
+  migrate sql up -e --yes
+
 ```
+
 * Run Hydra
 ```sh
 cd hydra
@@ -135,7 +143,7 @@ pm2 stop ory-consent
 psql -U postgres -h localhost -p 5432 -d postgres
 
 -- 1. Create the user for kratos with a strong password
-CREATE USER kratosu WITH PASSWORD '<My Password>';
+CREATE USER kratosu WITH PASSWORD 'T9wC7pZ3mR8xS5qV2nD4';
 
 -- 2. Create the hydra database owned by the hydrau user
 CREATE DATABASE kratos OWNER kratosu;
@@ -151,7 +159,17 @@ ALTER DATABASE kratos OWNER TO kratosu;
 ## Run ORY Kratos ##
 * Run the migration before starting the kratos
 ```sh
-docker run --rm -e DSN="postgres://kratosu:<My Password>@host.docker.internal:5432/kratos?sslmode=disable" -v $PWD/kratos-config:/etc/config oryd/kratos:v1.1 migrate sql -e --yes
+docker run --rm -e DSN="postgres://kratosu:T9wC7pZ3mR8xS5qV2nD4@host.docker.internal:5432/kratos?sslmode=disable" -v $PWD/kratos-config:/etc/config oryd/kratos:v1.1 migrate sql -e --yes
+
+or
+
+docker run --rm \
+  --network host \
+  -e DSN='postgres://kratosu:T9wC7pZ3mR8xS5qV2nD4@127.0.0.1:5432/kratos?sslmode=disable' \
+  -v "$PWD/kratos-config:/etc/config" \
+  oryd/kratos:v1.1 \
+  migrate sql -e --yes
+
 ```
 * Run Hydra
 ```sh
@@ -178,12 +196,26 @@ mkcert -cert-file local.daybook.cloud.pem -key-file local.daybook.cloud-key.pem 
   auth-local.daybook.cloud \
   kratos-local.daybook.cloud \
   api-local.daybook.cloud \
-  app-local.daybook.cloud
+  app-local.daybook.cloud \
+  app-dev.daybook.cloud
 sudo cp * /opt/homebrew/etc/nginx/ssl/
 sudo brew services restart nginx
 ```
 
-```
-docker-compose down --remove-orphans
+```sh
+docker compose down --remove-orphans
 docker compose up -d
+docker logs ory-kratos
+
 ```
+```sh
+yarn install
+yarn build
+pm2 start "yarn next start" --name ory-auth-app
+
+
+```
+
+### Google Setup ###
+* got to `console.cloud.google.com/apis/credentials`
+* Select the app and add new ory kratos url like : `https://kratos-dev.daybook.cloud/self-service/methods/oidc/callback/google`
