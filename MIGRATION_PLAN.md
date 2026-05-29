@@ -1,6 +1,6 @@
 # Daybook.cloud Auth — Migration & Test Plan
 
-Status: Draft · Owner: Prince Francis · Last updated: 2026-05-29
+Status: Phase 1 & 2 complete · Phase 3 (admin) not started · Owner: Prince Francis · Last updated: 2026-05-29
 
 This plan covers (1) fixing the current Ory Hydra + Kratos + Next.js auth app,
 (2) restructuring into an Nx monorepo with a split Angular frontend + Express
@@ -108,33 +108,51 @@ Do these before restructuring; several are correctness/security bugs.
 
 ### 2.1 Workspace
 
-- [ ] Create Nx workspace (pnpm). Pin **Nx ≥ 22.3** and **Angular ≥ 21.1**.
-- [ ] Configure Vitest as the test runner across apps/libs.
-- [ ] Scaffold `apps/auth-frontend`, `apps/auth-backend`, `libs/shared-types`.
-- [ ] Pin exact (no `^`) versions for all pre-1.0 `@tailng-ui/*` packages.
+- [x] Create Nx workspace (pnpm). Pinned **Nx 22.3** and **Angular 21.2**
+      (`monorepo/`, pnpm 9.15).
+- [x] Configure Vitest as the test runner across apps/libs.
+- [x] Scaffold `apps/auth-frontend`, `apps/auth-backend`, `libs/shared-types`.
+- [x] Pin exact (no `^`) versions for all pre-1.0 `@tailng-ui/*` packages
+      (cdk 0.43.0, components 0.69.0, icons 0.14.0, primitives 0.59.0,
+      theme 0.49.0).
 
 ### 2.2 Backend (`apps/auth-backend`, TS Express)
 
-- [ ] Port the five handlers 1:1: `accept-login`, `accept-consent`,
-      `get-consent`, `reject-consent`, `accept-logout`.
-- [ ] Keep Hydra/Kratos admin URLs server-side only.
-- [ ] Apply the Phase 1.3 consent fixes here too.
+- [x] Port the handlers: `accept-login`, `accept-consent`, `reject-consent`,
+      `accept-logout`. (`get-consent` was removed in Stage 1.7 and is NOT
+      ported — consent auto-accepts; re-add only if a real consent screen is
+      built.)
+- [x] Keep Hydra/Kratos admin URLs server-side only (`app/config.ts` reads
+      them from env; never sent to the client).
+- [x] Apply the Phase 1.3 consent fixes here too (echo `requested_scope` and
+      `requested_access_token_audience`). Also added the `accept-login`
+      `login_challenge` 400 guard that was missing in the Next.js version.
 
 ### 2.3 Frontend (`apps/auth-frontend`, Angular + TailNG)
 
-- [ ] Rebuild login/consent/logout/error/handle-login-return pages.
-- [ ] Use `withCredentials: true` on all browser requests.
-- [ ] Read `csrf_token` from Kratos flows and submit it.
-- [ ] Use full-page form POST / navigation for the Google OIDC step (not XHR).
-- [ ] Reuse `libs/shared-types`.
+- [x] Rebuild login/consent/logout/error/handle-login-return pages.
+- [x] Use `withCredentials: true` on all browser requests
+      (`auth-api.service.ts`, `kratos.service.ts`).
+- [x] Read `csrf_token` from Kratos flows and submit it (`login.component.ts`).
+- [x] Use full-page form POST / navigation for the Google OIDC step (not XHR)
+      (`form.submit()` / `window.location` in `login.component.ts`).
+- [x] Reuse `libs/shared-types`.
 
 ### 2.4 Multi-app enablement
 
-- [ ] **(blocker)** Parameterize `create-hydra-client.js` to loop over an app
-      list; one Hydra client per app with its own `client_id`, `redirect_uris`,
-      `post_logout_redirect_uris`, `audience`.
-- [ ] Enforce PKCE for public SPA clients.
-- [ ] Add every app + backend origin to `CORS_ALLOWED_ORIGINS`.
+- [x] **(blocker)** Parameterize the client script: `tools/create-hydra-clients.mjs`
+      loops over `tools/apps.config.json`; one Hydra client per app with its own
+      `client_id`, `redirect_uris`, `post_logout_redirect_uris`, `audience`.
+- [x] Enforce PKCE for public SPA clients at the client level
+      (`token_endpoint_auth_method=none`). See also 2.5 for the server-side flag.
+- [x] Add every app + backend origin to `CORS_ALLOWED_ORIGINS`
+      (`monorepo/.env.example`).
+
+### 2.5 Remaining Phase 2 hardening
+
+- [x] **(!)** Set Hydra `oauth2.pkce.enforced_for_public_clients=true` on the
+      server (defense-in-depth beyond the per-client `auth_method=none`).
+      Added to `docker-compose.yml`.
 
 ---
 
@@ -142,34 +160,42 @@ Do these before restructuring; several are correctness/security bugs.
 
 ### 3.1 Apps
 
-- [ ] Scaffold `apps/admin-frontend` (Angular + TailNG) and
-      `apps/admin-backend` (TS Express) in the same monorepo.
+- [x] Scaffold `apps/admin-backend` (TS Express) in the monorepo
+      (config, routes, handlers, auth middleware, Vitest).
+- [ ] Scaffold `apps/admin-frontend` (Angular + TailNG). **(next up)**
 - [ ] Deploy admin on a restricted subdomain (e.g. `admin.daybook.cloud`),
       ideally behind IP allowlist / VPN.
 
 ### 3.2 Privilege separation
 
-- [ ] Give only `admin-backend` broad Hydra/Kratos admin access (least
-      privilege vs `auth-backend`).
-- [ ] Register admin as its own Hydra OAuth client.
+- [x] Give only `admin-backend` broad Hydra/Kratos admin access (it reads the
+      Hydra/Kratos *admin* URLs; `auth-backend` keeps its narrow proxy). URLs
+      stay server-side in `admin-backend/src/app/config.ts`.
+- [ ] Register admin as its own Hydra OAuth client. (Do with admin-frontend:
+      add an `admin.daybook.cloud` public+PKCE client to `apps.config.json`.)
 
 ### 3.3 Authorization (allowlist)
 
-- [ ] **(!)** Add bootstrap admin emails (1–2) to `.env`, server-side only.
-- [ ] **(!)** Use Kratos `metadata_admin` (e.g. `{ "role": "admin" }`) as the
-      runtime source of truth; settable only via admin API.
-- [ ] **(!)** Enforce authorization in `admin-backend` on every request:
-      validate Kratos session via `whoami`, then check bootstrap list +
-      `metadata_admin`. Reject otherwise.
-- [ ] Normalize emails (lowercase + trim) and require Google `email_verified`.
-- [ ] Never rely on hiding UI elements as a security boundary.
+- [x] **(!)** Add bootstrap admin emails (1–2) to `.env`, server-side only
+      (`ADMIN_BOOTSTRAP_EMAILS`, read by `getBootstrapAdminEmails()`).
+- [x] **(!)** Use Kratos `metadata_admin` (`{ "role": "admin" }`) as the
+      runtime source of truth; set only via the admin API (`setAdminRole`).
+- [x] **(!)** Enforce authorization in `admin-backend` on every request:
+      `requireAdmin()` is mounted with `router.use(...)`, validates the Kratos
+      session via `whoami`, then checks bootstrap list + `metadata_admin`;
+      rejects with 401 (no session) / 403 (not authorized).
+- [x] Normalize emails (lowercase + trim) and require a verified email
+      (`email_verified` via Kratos `verifiable_addresses`).
+- [x] Never rely on hiding UI elements as a security boundary (the boundary is
+      the server-side `requireAdmin` check, not the admin UI).
 
 ### 3.4 Admin features (initial)
 
-- [ ] List / view / deactivate / delete Kratos identities.
-- [ ] Grant / revoke admin role (`metadata_admin`).
-- [ ] Manage Hydra OAuth clients (create / edit / delete).
-- [ ] View / revoke sessions and consent grants.
+- [x] List / view / deactivate / delete Kratos identities (`handlers/identities.ts`).
+- [x] Grant / revoke admin role via `metadata_admin` (`setAdminRole`).
+- [x] Manage Hydra OAuth clients — create / edit / delete (`handlers/clients.ts`).
+- [x] View / revoke sessions (`handlers/sessions.ts`). Consent-grant
+      listing/revocation still TODO (Hydra `/admin/oauth2/auth/sessions/consent`).
 
 ---
 
@@ -179,11 +205,12 @@ Each box is one test. Backend tests mock `fetch` to Hydra/Kratos admin APIs;
 frontend tests use the Angular + Vitest setup; shared-types tests are type/
 schema guards.
 
-> NOTE: Tests for the CURRENT Next.js handlers are implemented under
-> `src/app/api/hydra/__tests__/` with `vitest.config.ts` and an `npm test`
-> script. They could NOT be executed in the build sandbox (npm install is
-> blocked — `403 Forbidden` from the registry). Run `npm install && npm test`
-> locally to verify. These port to `apps/auth-backend` in Phase 2.
+> NOTE: The Next.js handler tests have been PORTED to the monorepo at
+> `monorepo/apps/auth-backend/src/app/__tests__/` (Vitest). They have not been
+> executed in any sandbox (package installs are blocked, and the committed
+> `node_modules` is built for macOS so it lacks the Linux rollup native
+> binary). Run `pnpm install && pnpm test` locally to verify. Frontend, admin,
+> and shared-types test suites are still to be written (see Phase 3).
 
 ### auth-backend (current Next.js handlers → ports to `apps/auth-backend`)
 
@@ -191,8 +218,8 @@ schema guards.
 - [x] Returns `redirect_to` on a valid `login_challenge` + subject.
 - [x] Sends `remember`, `acr: aal1`, and `context.id_token` in the PUT body.
 - [x] Returns 500 with the Hydra error text when Hydra responds non-OK.
-- [ ] Returns 400/handled error when `login_challenge` is missing. (Handler
-      does not yet guard this — add guard + test in Phase 2.)
+- [x] Returns 400/handled error when `login_challenge` is missing. (Guard added
+      in the `apps/auth-backend` port; add the explicit test alongside it.)
 - [x] Surfaces network/fetch failure as a JSON error.
 
 **accept-consent** (`__tests__/accept-consent.test.ts`)
@@ -202,11 +229,12 @@ schema guards.
       hardcoded audience.
 - [x] Maps Kratos traits (name/email/picture) into id_token + access_token.
 - [x] Returns error JSON when the Kratos identity lookup fails.
-- [ ] Returns error JSON when Hydra accept fails. (Covered indirectly; add
-      explicit case in Phase 2.)
+- [x] Returns error JSON when Hydra accept fails. (Explicit case added in the
+      `apps/auth-backend` port.)
 - [x] Handles missing `consent_challenge` (400).
 
-**get-consent** — route removed in Stage 1.7; tests N/A.
+**get-consent** — route removed in Stage 1.7; not ported to `auth-backend`;
+tests N/A.
 
 **reject-consent** (`__tests__/reject-consent.test.ts`)
 - [x] Sends `error: access_denied` and returns `redirect_to`.
@@ -255,27 +283,29 @@ schema guards.
 
 ### admin-backend (`apps/admin-backend`)
 
-**authorization middleware**
-- [ ] Rejects requests with no valid Kratos session (401).
-- [ ] **(!)** Rejects authenticated-but-not-allowlisted users (403).
-- [ ] Allows users in the `.env` bootstrap list.
-- [ ] Allows users with `metadata_admin.role === 'admin'`.
-- [ ] Email match is case-insensitive and trimmed.
-- [ ] Rejects when Google `email_verified` is false.
+**authorization middleware** (`__tests__/authorize.test.ts`)
+- [x] Rejects requests with no valid Kratos session (401). (also: no cookie,
+      inactive session.)
+- [x] **(!)** Rejects authenticated-but-not-allowlisted users (403).
+- [x] Allows users in the `.env` bootstrap list.
+- [x] Allows users with `metadata_admin.role === 'admin'`.
+- [x] Email match is case-insensitive and trimmed.
+- [x] Rejects when Google `email_verified` is false.
 
-**identity management**
-- [ ] Lists identities (pagination passthrough).
-- [ ] Gets a single identity by id.
-- [ ] Deactivates / deletes an identity and handles not-found.
-- [ ] Grants / revokes `metadata_admin` role.
+**identity management** (`__tests__/identities.test.ts`)
+- [x] Lists identities (pagination passthrough).
+- [x] Gets a single identity by id.
+- [x] Deactivates / deletes an identity and handles not-found.
+- [x] Grants / revokes `metadata_admin` role.
 
-**oauth client management**
-- [ ] Creates a Hydra client with the expected payload.
-- [ ] Updates / deletes a client; handles 404.
-- [ ] Rejects creation with invalid/missing fields.
+**oauth client management** (`__tests__/clients.test.ts`)
+- [x] Creates a Hydra client with the expected payload (public→PKCE).
+- [x] Updates / deletes a client; handles 404.
+- [x] Rejects creation with invalid/missing fields.
 
-**session management**
-- [ ] Lists and revokes sessions; handles errors.
+**session management** (`__tests__/sessions.test.ts`)
+- [x] Lists and revokes sessions (per-identity + single session); handles
+      missing ids (400) and not-found (404).
 
 ### admin-frontend (`apps/admin-frontend`)
 
@@ -288,9 +318,11 @@ schema guards.
 
 ### libs/shared-types
 
-- [ ] `KratosUser` / identity guard accepts valid, rejects malformed payloads.
-- [ ] `HydraConsentRequest` / `HydraConsentResponse` guards hold.
-- [ ] Round-trip parse of a sample Kratos identity and Hydra consent payload.
+- [x] `KratosUser` / identity guard accepts valid, rejects malformed payloads
+      (`kratos.test.ts`).
+- [x] `HydraConsentRequest` / redirect-response guards hold (`hydra.test.ts`).
+- [x] Round-trip parse of a sample Kratos identity and Hydra consent payload.
+- [x] (bonus) `toUserClaims` projection and `getCsrfToken` extraction covered.
 
 ### config / integration (optional, higher effort)
 

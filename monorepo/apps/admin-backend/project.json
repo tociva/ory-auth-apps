@@ -1,0 +1,35 @@
+{
+  "name": "admin-backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/admin-backend/src",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx watch apps/admin-backend/src/main.ts"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/apps/admin-backend"],
+      "options": {
+        "command": "esbuild apps/admin-backend/src/main.ts --bundle --platform=node --target=node20 --outfile=dist/apps/admin-backend/main.cjs"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/admin-backend/tsconfig.app.json --noEmit"
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": { "configFile": "apps/admin-backend/vitest.config.ts" }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  },
+  "tags": ["scope:admin", "type:app"]
+}

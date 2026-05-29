@@ -36,6 +36,10 @@ services:
       - TTL_ACCESS_TOKEN=5m
       - TTL_REFRESH_TOKEN=720h
       - LOG_LEAK_SENSITIVE_VALUES=false
+      # Require PKCE for all public (no-secret) SPA clients. Defense-in-depth
+      # beyond the per-client token_endpoint_auth_method=none set by
+      # tools/create-hydra-clients.mjs. (config key: oauth2.pkce.enforced_for_public_clients)
+      - OAUTH2_PKCE_ENFORCED_FOR_PUBLIC_CLIENTS=true
 
 
     command: serve all --dev

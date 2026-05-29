@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/apps/admin-backend-spec",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node", "vitest/globals"],
+    "declaration": false
+  },
+  "include": ["src/**/*.test.ts", "src/**/__tests__/**/*.ts", "src/**/*.ts"]
+}
