@@ -162,7 +162,11 @@ Do these before restructuring; several are correctness/security bugs.
 
 - [x] Scaffold `apps/admin-backend` (TS Express) in the monorepo
       (config, routes, handlers, auth middleware, Vitest).
-- [ ] Scaffold `apps/admin-frontend` (Angular + TailNG). **(next up)**
+- [x] Scaffold `apps/admin-frontend` (Angular + TailNG, serve :4201). Uses only
+      `@tailng-ui/components` for UI. Pages: identities list, identity detail
+      (role toggle / deactivate / delete / sessions), OAuth clients
+      (list + create/edit form + delete), forbidden. Route-guarded via
+      `GET /api/admin/me`. Added that probe route to `admin-backend`.
 - [ ] Deploy admin on a restricted subdomain (e.g. `admin.daybook.cloud`),
       ideally behind IP allowlist / VPN.
 
@@ -171,8 +175,9 @@ Do these before restructuring; several are correctness/security bugs.
 - [x] Give only `admin-backend` broad Hydra/Kratos admin access (it reads the
       Hydra/Kratos *admin* URLs; `auth-backend` keeps its narrow proxy). URLs
       stay server-side in `admin-backend/src/app/config.ts`.
-- [ ] Register admin as its own Hydra OAuth client. (Do with admin-frontend:
-      add an `admin.daybook.cloud` public+PKCE client to `apps.config.json`.)
+- [x] Register admin as its own Hydra OAuth client — added the
+      `dev.daybook.cloud-admin-client` (public + PKCE) entry to
+      `tools/apps.config.json`; provision with `pnpm hydra:clients`.
 
 ### 3.3 Authorization (allowlist)
 

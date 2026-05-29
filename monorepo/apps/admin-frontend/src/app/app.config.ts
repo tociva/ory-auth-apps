@@ -3,7 +3,7 @@ import { provideRouter } from "@angular/router";
 import { provideHttpClient, withFetch } from "@angular/common/http";
 import { createTheme, defaultThemePreset, provideTailngTheme } from "@tailng-ui/theme";
 import { routes } from "./app.routes";
-import { APP_CONFIG, type AppConfig } from "./core/app-config";
+import { ADMIN_CONFIG, type AdminConfig } from "./core/admin-config";
 
 const idnestTheme = createTheme(defaultThemePreset, {
   tokens: {
@@ -20,12 +20,12 @@ const idnestTheme = createTheme(defaultThemePreset, {
 });
 
 /** Build the application config with the runtime config loaded in `main.ts`. */
-export function createAppConfig(config: AppConfig): ApplicationConfig {
+export function createAppConfig(config: AdminConfig): ApplicationConfig {
   return {
     providers: [
       provideRouter(routes),
       provideHttpClient(withFetch()),
-      { provide: APP_CONFIG, useValue: config },
+      { provide: ADMIN_CONFIG, useValue: config },
       provideTailngTheme({ theme: idnestTheme }),
     ],
   };

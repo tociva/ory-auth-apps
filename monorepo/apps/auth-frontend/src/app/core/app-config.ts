@@ -4,9 +4,9 @@ import { InjectionToken } from "@angular/core";
  * Browser-public auth configuration. These are the only URLs the SPA needs;
  * the privileged Hydra/Kratos *admin* URLs live exclusively in auth-backend.
  *
- * Values come from the `NG_APP_*` deploy-time variables (see `.env.example`)
- * which a deploy step writes into `globalThis.__DAYBOOK_AUTH_CONFIG__`. When
- * absent, the dev defaults below are used.
+ * Loaded at runtime from `public/config.json` (see `main.ts`) so a single
+ * build can be deployed to many environments — the deploy just swaps the
+ * `config.json` file. Values are merged over DEFAULT_AUTH_CONFIG.
  */
 export interface AppConfig {
   /** Kratos public endpoint, e.g. https://auth.daybook.cloud/kratos */
@@ -19,15 +19,9 @@ export interface AppConfig {
 
 export const APP_CONFIG = new InjectionToken<AppConfig>("APP_CONFIG");
 
-const DEFAULTS: AppConfig = {
+/** Dev fallback used when `config.json` is missing or unreadable. */
+export const DEFAULT_AUTH_CONFIG: AppConfig = {
   kratosPublicUrl: "http://localhost:4433",
   kratosReturnTo: "http://localhost:4200/handle-login-return",
   authBackendUrl: "http://localhost:4000/api",
 };
-
-export function loadAppConfig(): AppConfig {
-  const override = (globalThis as Record<string, unknown>)["__DAYBOOK_AUTH_CONFIG__"] as
-    | Partial<AppConfig>
-    | undefined;
-  return { ...DEFAULTS, ...(override ?? {}) };
-}

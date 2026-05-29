@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/apps/admin-frontend",
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "declaration": false,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "angularCompilerOptions": {
+    "strictTemplates": true,
+    "strictInjectionParameters": true
+  },
+  "files": ["src/main.ts"],
+  "include": ["src/**/*.ts"]
+}

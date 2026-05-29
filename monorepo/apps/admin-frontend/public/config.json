@@ -1,0 +1,4 @@
+{
+  "adminBackendUrl": "https://admin.daybook.cloud/api",
+  "authLoginUrl": "https://auth.daybook.cloud/login"
+}

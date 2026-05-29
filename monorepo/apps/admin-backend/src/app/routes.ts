@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { requireAdmin } from "./auth/middleware";
+import { requireAdmin, type AuthedRequest } from "./auth/middleware";
 import {
   createClient,
   deactivateIdentity,
@@ -36,6 +36,11 @@ const idFromParams = (req: Request) => ({ id: req.params.id });
 export function createAdminRouter(): Router {
   const router = Router();
   router.use(requireAdmin());
+
+  // --- Authorization probe (reaching here means requireAdmin passed) ---
+  router.get("/me", (req: AuthedRequest, res: Response) => {
+    res.json({ email: req.adminEmail, identity: req.adminIdentity });
+  });
 
   // --- Identities ---
   router.get(

@@ -229,9 +229,14 @@ HYDRA_ADMIN_URL=http://localhost:4445 pnpm hydra:clients
 
 - **Infra** (`./.env`) — DSNs, Hydra/Kratos URLs and secrets, Google
   credentials. Consumed by `docker-compose.yml`.
-- **Apps** (`monorepo/.env`, from `monorepo/.env.example`) — browser-public
-  `NG_APP_*` config plus the backend's `HYDRA_ADMIN_URL`, `KRATOS_ADMIN_URL`,
-  `AUTH_BACKEND_PORT`, and `CORS_ALLOWED_ORIGINS`.
+- **Apps** (`monorepo/.env`, from `monorepo/.env.example`) — the backends'
+  `HYDRA_ADMIN_URL`, `KRATOS_ADMIN_URL`, `KRATOS_PUBLIC_URL`, ports, and
+  `CORS_ALLOWED_ORIGINS`.
+- **Frontends** — browser-public config is loaded at runtime from each app's
+  `public/config.json` (build-once / deploy-many), so a single build can target
+  any environment by swapping that file at deploy time:
+  - `apps/auth-frontend/public/config.json`
+  - `apps/admin-frontend/public/config.json`
 
 The Hydra/Kratos **admin** URLs are read server-side only and are never shipped
 to the browser.

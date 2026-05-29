@@ -1,0 +1,5 @@
+{
+  "kratosPublicUrl": "https://auth.daybook.cloud/kratos",
+  "kratosReturnTo": "https://auth.daybook.cloud/handle-login-return",
+  "authBackendUrl": "https://auth.daybook.cloud/api"
+}
