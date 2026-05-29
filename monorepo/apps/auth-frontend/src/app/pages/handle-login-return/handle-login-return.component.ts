@@ -2,17 +2,21 @@ import { HttpErrorResponse } from "@angular/common/http";
 import { Component, inject, type OnDestroy, type OnInit } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import type { KratosUser } from "@idnest/shared-types";
+import {
+  TngCardComponent,
+  TngCardContentComponent,
+  TngProgressSpinnerComponent,
+} from "@tailng-ui/components";
 import { APP_CONFIG } from "../../core/app-config";
 import { AuthApiService } from "../../core/auth-api.service";
 import { KratosService } from "../../core/kratos.service";
-import { SpinnerComponent } from "../../core/spinner.component";
 
 const MAX_RETRIES = 5;
 
 @Component({
   selector: "app-handle-login-return",
   standalone: true,
-  imports: [SpinnerComponent],
+  imports: [TngCardComponent, TngCardContentComponent, TngProgressSpinnerComponent],
   templateUrl: "./handle-login-return.component.html",
   styleUrl: "./handle-login-return.component.css",
 })

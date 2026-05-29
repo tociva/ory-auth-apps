@@ -1,13 +1,18 @@
 import { HttpErrorResponse } from "@angular/common/http";
 import { Component, inject, type OnInit } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
+import {
+  TngCardComponent,
+  TngCardContentComponent,
+  TngCardFooterComponent,
+  TngProgressSpinnerComponent,
+} from "@tailng-ui/components";
 import { AuthApiService } from "../../core/auth-api.service";
-import { SpinnerComponent } from "../../core/spinner.component";
 
 @Component({
   selector: "app-consent",
   standalone: true,
-  imports: [SpinnerComponent],
+  imports: [TngCardComponent, TngCardContentComponent, TngCardFooterComponent, TngProgressSpinnerComponent],
   templateUrl: "./consent.component.html",
   styleUrl: "./consent.component.css",
 })

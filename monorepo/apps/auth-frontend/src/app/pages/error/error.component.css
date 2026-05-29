@@ -1,0 +1,47 @@
+.page-bg-error {
+  background: #fef2f2;
+  align-items: flex-start;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.error-card {
+  width: 100%;
+  max-width: 38rem;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--tng-semantic-accent-danger, #dc2626);
+  margin: 0;
+}
+
+.hint-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.hint-body {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.details-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.error-pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.8125rem;
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+  color: var(--tng-semantic-foreground-primary, #1f2937);
+  background: var(--tng-semantic-background-canvas, #e3edf8);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin: 0;
+}

@@ -1,0 +1,56 @@
+.logout-bg {
+  background: var(--tng-semantic-accent-brand, #367588);
+}
+
+.logout-card {
+  width: 100%;
+  max-width: 32rem;
+  /* Override TailNG surface/border tokens locally so the ghost card fits the colored bg */
+  --tng-semantic-background-surface: rgba(255, 255, 255, 0.05);
+  --tng-semantic-border-strong: rgba(255, 255, 255, 0.1);
+  --tng-semantic-foreground-primary: #fff;
+  --tng-semantic-foreground-muted: rgba(255, 255, 255, 0.7);
+}
+
+.logout-loading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.logout-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.logout-heading--error {
+  color: #fecaca;
+}
+
+.logout-heading--success {
+  font-size: 1.5rem;
+  color: #bbf7d0;
+}
+
+.logout-subtext {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0.25rem 0 0;
+}
+
+.logout-error {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0.5rem 0 0;
+  word-break: break-word;
+}
+
+.logout-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}

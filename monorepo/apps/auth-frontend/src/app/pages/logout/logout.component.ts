@@ -1,13 +1,18 @@
 import { Component, inject, type OnInit } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
+import {
+  TngCardActionsComponent,
+  TngCardComponent,
+  TngCardContentComponent,
+  TngProgressSpinnerComponent,
+} from "@tailng-ui/components";
 import { AuthApiService } from "../../core/auth-api.service";
 import { KratosService } from "../../core/kratos.service";
-import { SpinnerComponent } from "../../core/spinner.component";
 
 @Component({
   selector: "app-logout",
   standalone: true,
-  imports: [SpinnerComponent],
+  imports: [TngCardComponent, TngCardContentComponent, TngCardActionsComponent, TngProgressSpinnerComponent],
   templateUrl: "./logout.component.html",
   styleUrl: "./logout.component.css",
 })

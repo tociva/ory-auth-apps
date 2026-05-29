@@ -1,12 +1,19 @@
 import { Component, inject, type OnInit } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
+import {
+  TngCardComponent,
+  TngCardContentComponent,
+  TngCardFooterComponent,
+  TngCardHeaderComponent,
+  TngLabelComponent,
+} from "@tailng-ui/components";
 import { KratosService } from "../../core/kratos.service";
 import { getHumanHint, pickSafeDetails, type OAuthError } from "./error-utils";
 
 @Component({
   selector: "app-error",
   standalone: true,
-  imports: [],
+  imports: [TngCardComponent, TngCardHeaderComponent, TngCardContentComponent, TngCardFooterComponent, TngLabelComponent],
   templateUrl: "./error.component.html",
   styleUrl: "./error.component.css",
 })

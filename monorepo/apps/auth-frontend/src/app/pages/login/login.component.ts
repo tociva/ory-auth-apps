@@ -2,26 +2,24 @@ import { Component, inject, type OnInit } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import { getCsrfToken } from "@idnest/shared-types";
 import {
-  TngCard,
-  TngCardContent,
-  TngCardFooter,
-  TngCardHeader,
-  TngCardTitle,
-} from "@tailng-ui/primitives";
+  TngCardComponent,
+  TngCardContentComponent,
+  TngCardFooterComponent,
+  TngCardHeaderComponent,
+  TngProgressSpinnerComponent,
+} from "@tailng-ui/components";
 import { APP_CONFIG } from "../../core/app-config";
 import { KratosService } from "../../core/kratos.service";
-import { SpinnerComponent } from "../../core/spinner.component";
 
 @Component({
   selector: "app-login",
   standalone: true,
   imports: [
-    SpinnerComponent,
-    TngCard,
-    TngCardHeader,
-    TngCardTitle,
-    TngCardContent,
-    TngCardFooter,
+    TngProgressSpinnerComponent,
+    TngCardComponent,
+    TngCardHeaderComponent,
+    TngCardContentComponent,
+    TngCardFooterComponent,
   ],
   templateUrl: "./login.component.html",
   styleUrl: "./login.component.css",
