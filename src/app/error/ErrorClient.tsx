@@ -81,9 +81,10 @@ export default function ErrorClient() {
     setError({ error: { reason: 'No error details found in the URL.' } });
   }, [errorId, oauthError]);
 
+  const safeDetails = pickSafeDetails(error);
+
   const handleCopy = () => {
-    if (!error) return;
-    navigator.clipboard.writeText(JSON.stringify(error, null, 2));
+    navigator.clipboard.writeText(JSON.stringify(safeDetails, null, 2));
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
   };
@@ -119,7 +120,7 @@ export default function ErrorClient() {
 
         <div className="text-gray-700">
             <pre className="whitespace-pre-wrap break-all text-sm">
-              {JSON.stringify(error, null, 2)}
+              {JSON.stringify(safeDetails, null, 2)}
             </pre>
         </div>
 
@@ -129,6 +130,29 @@ export default function ErrorClient() {
       </div>
     </div>
   );
+}
+
+/**
+ * Whitelist only the fields that are safe to show the end user. Kratos/Hydra
+ * error payloads can carry internal detail (stack traces, debug data, identity
+ * internals); we never render or copy the raw object.
+ */
+function pickSafeDetails(err: unknown): Record<string, unknown> {
+  if (!err || typeof err !== 'object') return { message: 'No error details available.' };
+  const e = err as Record<string, unknown>;
+  const nested = (e.error && typeof e.error === 'object' ? e.error : {}) as Record<string, unknown>;
+
+  const out: Record<string, unknown> = {};
+  const code = typeof e.error === 'string' ? e.error : nested.code ?? nested.status;
+  if (code !== undefined) out.error = code;
+  const description = e.error_description ?? nested.message ?? nested.reason;
+  if (description !== undefined) out.description = description;
+  if (e.error_hint !== undefined) out.hint = e.error_hint;
+  // A correlation id helps support without leaking content.
+  const id = e.id ?? nested.id;
+  if (id !== undefined) out.reference = id;
+
+  return Object.keys(out).length ? out : { message: 'An error occurred. Please try again.' };
 }
 
 /**

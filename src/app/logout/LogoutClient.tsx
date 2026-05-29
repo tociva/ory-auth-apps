@@ -23,14 +23,35 @@ export default function LogoutClient() {
         const KRATOS_URL = process.env.NEXT_PUBLIC_KRATOS_URL!;
         if (!KRATOS_URL) throw new Error('NEXT_PUBLIC_KRATOS_URL missing');
 
-        const returnTo = window.location.href;
-        const endpoint = `${KRATOS_URL}/self-service/logout/browser?return_to=${encodeURIComponent(returnTo)}`;
+        // Terminate the Kratos identity session. NOTE: hitting
+        // /self-service/logout/browser only *initiates* the flow and returns
+        // { logout_token, logout_url } — it does NOT log the user out. We must
+        // then call the returned logout_url (or /self-service/logout?token=...)
+        // to actually destroy the session. Otherwise the Kratos session
+        // survives and the user is silently signed back in on the next OAuth
+        // flow.
+        const initRes = await fetch(
+          `${KRATOS_URL}/self-service/logout/browser`,
+          { method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } }
+        );
 
-        await fetch(endpoint, {
-          method: 'GET',
-          credentials: 'include',
-          redirect: 'follow',
-        }).catch(() => {});
+        if (initRes.ok) {
+          const { logout_token, logout_url } = (await initRes
+            .json()
+            .catch(() => ({}))) as { logout_token?: string; logout_url?: string };
+
+          const performUrl =
+            logout_url ??
+            (logout_token
+              ? `${KRATOS_URL}/self-service/logout?token=${encodeURIComponent(logout_token)}`
+              : null);
+
+          if (performUrl) {
+            await fetch(performUrl, { method: 'GET', credentials: 'include' }).catch(() => {});
+          }
+        }
+        // If there is no active Kratos session, init returns 401 — that's fine,
+        // there is nothing to terminate; continue to the Hydra logout.
 
         const hydraRes = await fetch('/api/hydra/accept-logout', {
           method: 'POST',

@@ -2,11 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import GoogleIcon from '../icons/GoogleIcon';
-import AppleIcon from './AppleIcon';
-import FacebookIcon from './FacebookIcon';
-import GitHubIcon from './GitHubIcon';
-import LinkedInIcon from './LinkedInIcon';
-import TwitterIcon from './TwitterIcon';
 
 type LoginFormProps = {
   flow: string | null;
@@ -15,13 +10,12 @@ type LoginFormProps = {
   loginHint?: string;     // optional, if you use it
 };
 
+// Google is the only configured Kratos OIDC provider. Other providers were
+// removed to match the Google-only auth decision; clicking them would fail the
+// OIDC flow. Re-add an entry here (and configure the provider in Kratos) to
+// offer more.
 const PROVIDERS = [
-  { provider: 'Google',   icon: <GoogleIcon className="h-6 w-6" />,   text: 'text-primary' },
-  { provider: 'Apple',    icon: <AppleIcon className="h-6 w-6" />,    text: 'text-primary' },
-  { provider: 'Facebook', icon: <FacebookIcon className="h-6 w-6" />, text: 'text-primary' },
-  { provider: 'Twitter',  icon: <TwitterIcon className="h-6 w-6" />,  text: 'text-primary' },
-  { provider: 'LinkedIn', icon: <LinkedInIcon className="h-6 w-6" />, text: 'text-primary' },
-  { provider: 'GitHub',   icon: <GitHubIcon className="h-6 w-6" />,   text: 'text-primary' },
+  { provider: 'Google', icon: <GoogleIcon className="h-6 w-6" />, text: 'text-primary' },
 ];
 
 const KRATOS_URL = process.env.NEXT_PUBLIC_KRATOS_URL!;

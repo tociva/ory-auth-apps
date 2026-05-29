@@ -73,13 +73,16 @@ selfservice:
       privileged_session_max_age: 15m
       required_aal: highest_available
 
+    # Recovery/verification are email-based flows. With Google-only OIDC there
+    # is no UI for them and no real SMTP configured, so they are disabled.
+    # Re-enable and build the UI + configure SMTP if email flows are needed.
     recovery:
-      enabled: true
+      enabled: false
       ui_url: ${AUTH_URL}/recovery
       use: code
 
     verification:
-      enabled: true
+      enabled: false
       ui_url: ${AUTH_URL}/verification
       use: code
       after:
@@ -98,15 +101,16 @@ selfservice:
       lifespan: 10m
       ui_url: ${AUTH_URL}/registration
       after:
-        password:
+        # Google sign-up goes through the OIDC flow. Without this session hook
+        # a first-time user is created but NOT logged in, forcing a "retry".
+        oidc:
           hooks:
             - hook: session
-            - hook: show_verification_ui
 
 log:
   level: ${KRATOS_LOG_LEVEL}
   format: text
-  leak_sensitive_values: true
+  leak_sensitive_values: false
 
 secrets:
   cookie:
