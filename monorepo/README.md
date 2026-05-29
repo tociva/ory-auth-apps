@@ -1,4 +1,4 @@
-# Daybook.cloud Auth — Nx Monorepo
+# idnest.dev Auth — Nx Monorepo
 
 This workspace is the Phase 2/3 restructure described in
 `../MIGRATION_PLAN.md`. It splits the old single Next.js app into:

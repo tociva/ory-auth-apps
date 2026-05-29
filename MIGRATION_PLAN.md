@@ -1,4 +1,4 @@
-# Daybook.cloud Auth — Migration & Test Plan
+# idnest.dev Auth — Migration & Test Plan
 
 Status: Phase 1 & 2 complete · Phase 3 (admin) not started · Owner: Prince Francis · Last updated: 2026-05-29
 
@@ -19,7 +19,7 @@ Legend: `- [ ]` = to do · `- [x]` = done · **(!)** = security-sensitive ·
 - Identity: Google OIDC only (username/password intentionally removed).
 - Hydra v2.3.0 + Kratos v1.3.1 run as Docker images; PostgreSQL backing store
   (separate `hydra` and `kratos` databases).
-- Cookie domain `.daybook.cloud` gives SSO across subdomains.
+- Cookie domain `.idnest.dev` gives SSO across subdomains.
 
 ## Target Architecture
 
@@ -167,7 +167,7 @@ Do these before restructuring; several are correctness/security bugs.
       (role toggle / deactivate / delete / sessions), OAuth clients
       (list + create/edit form + delete), forbidden. Route-guarded via
       `GET /api/admin/me`. Added that probe route to `admin-backend`.
-- [ ] Deploy admin on a restricted subdomain (e.g. `admin.daybook.cloud`),
+- [ ] Deploy admin on a restricted subdomain (e.g. `admin.idnest.dev`),
       ideally behind IP allowlist / VPN.
 
 ### 3.2 Privilege separation
@@ -176,7 +176,7 @@ Do these before restructuring; several are correctness/security bugs.
       Hydra/Kratos *admin* URLs; `auth-backend` keeps its narrow proxy). URLs
       stay server-side in `admin-backend/src/app/config.ts`.
 - [x] Register admin as its own Hydra OAuth client — added the
-      `dev.daybook.cloud-admin-client` (public + PKCE) entry to
+      `dev.idnest.dev-admin-client` (public + PKCE) entry to
       `tools/apps.config.json`; provision with `pnpm hydra:clients`.
 
 ### 3.3 Authorization (allowlist)

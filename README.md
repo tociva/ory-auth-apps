@@ -1,6 +1,6 @@
-# Daybook.cloud Auth (ORY Hydra + Kratos)
+# idnest.dev Auth (ORY Hydra + Kratos)
 
-Authentication and authorization for Daybook.cloud, built on the **ORY**
+Authentication and authorization for idnest.dev, built on the **ORY**
 ecosystem. Identity is **Google OIDC only** (no local username/password). The
 login / consent / logout UI and its privileged admin proxy have been split out
 of the original Next.js app into an Nx monorepo: an **Angular** frontend and a
@@ -24,7 +24,7 @@ roadmap (Phase 1 fixes, Phase 2 restructure, Phase 3 admin UI).
 
 `auth-backend` and `auth-frontend` live in [`monorepo/`](monorepo/). Hydra +
 Kratos stay as Docker images orchestrated by [`docker-compose.yml`](docker-compose.yml).
-Cookie domain `.daybook.cloud` provides SSO across subdomains.
+Cookie domain `.idnest.dev` provides SSO across subdomains.
 
 ### Repository layout
 

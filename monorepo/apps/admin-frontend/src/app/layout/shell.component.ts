@@ -12,7 +12,7 @@ import { ADMIN_CONFIG } from "../core/admin-config";
     <div class="admin-shell">
       <header class="admin-header">
         <div class="row">
-          <span class="admin-brand">Daybook Admin</span>
+          <span class="admin-brand">idnest.dev Admin</span>
           <nav class="admin-nav">
             <a routerLink="/identities" routerLinkActive="active">Identities</a>
             <a routerLink="/clients" routerLinkActive="active">OAuth Clients</a>
