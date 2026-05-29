@@ -7,37 +7,8 @@ import { getHumanHint, pickSafeDetails, type OAuthError } from "./error-utils";
   selector: "app-error",
   standalone: true,
   imports: [],
-  template: `
-    <div class="min-h-screen flex flex-col items-center justify-center bg-red-50 px-4">
-      <div class="bg-white shadow-lg rounded-xl p-8 max-w-lg w-full">
-        <h1 class="text-2xl font-bold text-red-600 mb-4">Oops, something went wrong</h1>
-
-        @if (readableHint) {
-          <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900 text-sm">
-            <div class="font-semibold mb-1">What this usually means</div>
-            <p class="leading-relaxed">{{ readableHint }}</p>
-          </div>
-        }
-
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-gray-700 font-semibold">Error details</span>
-          <button
-            type="button"
-            class="text-sm px-3 py-1 rounded border border-gray-300 bg-gray-50 hover:bg-gray-100 transition"
-            (click)="copy()"
-          >
-            {{ copied ? "Copied!" : "Copy" }}
-          </button>
-        </div>
-
-        <div class="text-gray-700">
-          <pre class="whitespace-pre-wrap break-all text-sm">{{ safeDetailsJson }}</pre>
-        </div>
-
-        <a href="/" class="mt-6 inline-block text-[#367588] underline">Go back home</a>
-      </div>
-    </div>
-  `,
+  templateUrl: "./error.component.html",
+  styleUrl: "./error.component.css",
 })
 export class ErrorComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

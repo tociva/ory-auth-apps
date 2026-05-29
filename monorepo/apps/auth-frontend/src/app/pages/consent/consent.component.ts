@@ -8,24 +8,8 @@ import { SpinnerComponent } from "../../core/spinner.component";
   selector: "app-consent",
   standalone: true,
   imports: [SpinnerComponent],
-  template: `
-    <div class="min-h-screen flex flex-col items-center justify-center text-center px-4 gap-4">
-      @if (error) {
-        <div class="bg-red-100 border border-red-300 text-red-700 p-4 rounded-xl">Error: {{ error }}</div>
-        <button
-          type="button"
-          class="px-4 py-2 bg-[#367588] text-white rounded hover:bg-[#2c606f]"
-          (click)="goToLogin()"
-        >
-          Go to Login
-        </button>
-      } @else {
-        <app-spinner label="Processing consent" />
-        <h1 class="text-lg font-medium text-gray-800 animate-pulse">Processing consent…</h1>
-        <p class="text-sm text-gray-500">Verifying and redirecting you to the app.</p>
-      }
-    </div>
-  `,
+  templateUrl: "./consent.component.html",
+  styleUrl: "./consent.component.css",
 })
 export class ConsentComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
