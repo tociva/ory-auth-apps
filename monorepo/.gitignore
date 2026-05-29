@@ -1,0 +1,10 @@
+node_modules
+dist
+tmp
+.nx/cache
+.nx/workspace-data
+coverage
+*.log
+.env
+.env.*
+!.env.example

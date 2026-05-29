@@ -1,0 +1,20 @@
+{
+  "$comment": "One entry per product app that consumes auth via its own Hydra OAuth client. `public: true` marks browser SPAs (no client secret) which use token_endpoint_auth_method=none and therefore require PKCE.",
+  "apps": [
+    {
+      "client_id": "dev.daybook.cloud-user-client",
+      "client_name": "Dev Daybook User Client",
+      "public": true,
+      "scope": "openid profile email offline_access",
+      "redirect_uris": [
+        "https://app-dev.daybook.cloud/auth/callback",
+        "https://app-local.daybook.cloud/auth/callback"
+      ],
+      "post_logout_redirect_uris": [
+        "https://app-dev.daybook.cloud/auth/logout",
+        "https://app-local.daybook.cloud/auth/logout"
+      ],
+      "audience": ["daybook.cloud-users"]
+    }
+  ]
+}

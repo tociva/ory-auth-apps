@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+:root {
+  --brand: #367588;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}

@@ -1,0 +1,35 @@
+{
+  "name": "auth-backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/auth-backend/src",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx watch apps/auth-backend/src/main.ts"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/apps/auth-backend"],
+      "options": {
+        "command": "esbuild apps/auth-backend/src/main.ts --bundle --platform=node --target=node20 --outfile=dist/apps/auth-backend/main.cjs"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/auth-backend/tsconfig.app.json --noEmit"
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": { "configFile": "apps/auth-backend/vitest.config.ts" }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  },
+  "tags": ["scope:auth", "type:app"]
+}
