@@ -93,7 +93,7 @@ const splitList = (value: string): string[] =>
         <div class="field-grid">
           <tng-form-field>
             <tng-label>Client ID</tng-label>
-            <tng-input name="client_id" [(ngModel)]="form.client_id" [readonly]="editing" placeholder="dev.daybook.cloud-user-client" />
+            <tng-input name="client_id" [(ngModel)]="form.client_id" [readonly]="editing" placeholder="daybook-user-client" />
           </tng-form-field>
           <tng-form-field>
             <tng-label>Client name</tng-label>

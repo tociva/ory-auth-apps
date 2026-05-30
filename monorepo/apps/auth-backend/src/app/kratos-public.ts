@@ -4,7 +4,7 @@
  * In the old SPA these calls ran in the browser with `withCredentials: true`.
  * Server-side we reproduce that by forwarding the incoming request's `Cookie`
  * header (which carries `ory_kratos_session` + the CSRF cookie) on every call.
- * This works because auth-backend is served on the `.idnest.dev` cookie domain,
+ * This works because auth-backend is served on the `.daybook.cloud` cookie domain,
  * so the browser already sends those cookies to us.
  */
 import type { Request } from "express";
