@@ -3,13 +3,12 @@
 This workspace is the Phase 2/3 restructure described in
 `../MIGRATION_PLAN.md`. It splits the old single Next.js app into:
 
-| Project                | Type                     | Purpose                                            |
-| ---------------------- | ------------------------ | -------------------------------------------------- |
-| `apps/auth-backend`    | TypeScript Express       | Narrow Hydra/Kratos proxy for the login/consent UI |
-| `apps/auth-frontend`   | Angular 21 + TailNG      | Public login / consent / logout / error UI         |
-| `apps/admin-backend`   | TypeScript Express       | Privileged admin API (identities, clients, roles)  |
-| `apps/admin-frontend`  | Angular 21 + TailNG      | Staff-only admin console                           |
-| `libs/shared-types`    | TS library               | Kratos/Hydra interfaces + runtime guards           |
+| Project                | Type                     | Purpose                                                        |
+| ---------------------- | ------------------------ | ------------------------------------------------------------- |
+| `apps/auth-backend`    | TypeScript Express       | Hydra/Kratos proxy **and** server-rendered login/consent/logout/error pages |
+| `apps/admin-backend`   | TypeScript Express       | Privileged admin API (identities, clients, roles)             |
+| `apps/admin-frontend`  | Angular 21 + TailNG      | Staff-only admin console                                      |
+| `libs/shared-types`    | TS library               | Kratos/Hydra interfaces + runtime guards                      |
 
 Ory Hydra + Kratos stay as Docker images; PostgreSQL is unchanged.
 
@@ -35,9 +34,9 @@ pnpm install
 ```bash
 pnpm test                 # run vitest across all projects
 pnpm typecheck            # tsc --noEmit across all projects
-pnpm auth-backend:serve   # start the auth API on :4000
+pnpm auth-backend:serve   # start the auth API + server-rendered pages on :4000
 pnpm admin-backend:serve  # start the admin API on :4100
-pnpm auth-frontend:serve  # start the auth UI dev server
+pnpm admin-frontend:serve # start the admin UI dev server
 pnpm hydra:clients        # register/refresh Hydra OAuth clients (tools/apps.config.json)
 ```
 

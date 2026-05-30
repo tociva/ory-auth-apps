@@ -3,8 +3,9 @@
 Authentication and authorization for idnest.dev, built on the **ORY**
 ecosystem. Identity is **Google OIDC only** (no local username/password). The
 login / consent / logout UI and its privileged admin proxy have been split out
-of the original Next.js app into an Nx monorepo: an **Angular** frontend and a
-**TypeScript Express** backend.
+of the original Next.js app into an Nx monorepo. The public auth pages are
+**server-rendered by the `auth-backend` Express service** (the former Angular
+`auth-frontend` SPA was removed); a separate Angular admin console remains.
 
 See [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) for the full migration history and
 roadmap (Phase 1 fixes, Phase 2 restructure, Phase 3 admin UI).
@@ -17,12 +18,11 @@ roadmap (Phase 1 fixes, Phase 2 restructure, Phase 3 admin UI).
 | --------------------- | -------------------------- | ----------------------------------------------------------------- |
 | ORY Hydra `v2.3.0`    | Docker image               | OAuth2 / OpenID Connect server: issues tokens, owns login/consent/logout challenges |
 | ORY Kratos `v1.3.1`   | Docker image               | Identity provider: runs the Google OIDC login flow, stores identities, sessions |
-| `auth-backend`        | TypeScript + Express       | Narrow Hydra/Kratos **admin** proxy for accept-login/consent/logout (admin URLs stay server-side) |
-| `auth-frontend`       | Angular 21 + TailNG        | Public login / consent / logout / error UI                        |
+| `auth-backend`        | TypeScript + Express       | Hydra/Kratos **admin** proxy **and** server-rendered login/consent/logout/error pages (admin URLs stay server-side) |
 | `shared-types`        | TypeScript library         | Shared Kratos/Hydra interfaces + runtime guards                   |
 | PostgreSQL            | external                   | Separate `hydra` and `kratos` databases                           |
 
-`auth-backend` and `auth-frontend` live in [`monorepo/`](monorepo/). Hydra +
+`auth-backend` lives in [`monorepo/`](monorepo/). Hydra +
 Kratos stay as Docker images orchestrated by [`docker-compose.yml`](docker-compose.yml).
 Cookie domain `.idnest.dev` provides SSO across subdomains.
 
@@ -38,8 +38,14 @@ Cookie domain `.idnest.dev` provides SSO across subdomains.
 ├── setup-ory.sh             # Ory bootstrap helper
 └── monorepo/                # Nx workspace (pnpm)
     ├── apps/
-    │   ├── auth-backend/    # Express API (Hydra/Kratos admin proxy)
-    │   └── auth-frontend/   # Angular + TailNG UI
+    │   ├── auth-backend/    # Express: admin proxy + server-rendered auth pages
+    │   │   └── src/app/
+    │   │       ├── handlers/   # Hydra/Kratos admin calls (accept-login/consent/logout)
+    │   │       ├── views/      # login + error HTML templates (+ inlined CSS)
+    │   │       ├── kratos-public.ts  # cookie-forwarding Kratos public client
+    │   │       └── pages.ts    # GET /login, /login/return, /consent, /logout, /error
+    │   ├── admin-backend/   # Express privileged admin API
+    │   └── admin-frontend/  # Angular + TailNG admin console
     ├── libs/shared-types/   # Shared types + runtime guards
     ├── tools/               # create-hydra-clients.mjs + apps.config.json
     └── .env.example         # App config (copy to monorepo/.env)
@@ -50,13 +56,15 @@ Cookie domain `.idnest.dev` provides SSO across subdomains.
 ## Auth flow
 
 1. A product app sends the user to Hydra's authorize endpoint.
-2. Hydra redirects to the `auth-frontend` **login** page with a `login_challenge`.
-3. The login page starts the Kratos browser login flow and submits the
-   `csrf_token` with a full-page POST to Google (OIDC).
-4. After Google returns, `handle-login-return` polls Kratos `whoami`, then calls
-   `auth-backend` → Hydra **accept-login**.
-5. Hydra redirects to the **consent** page, which calls `auth-backend` → Hydra
-   **accept-consent**, granting exactly the requested scope/audience.
+2. Hydra redirects to `auth-backend`'s **`/login`** route with a `login_challenge`.
+3. `/login` starts the Kratos browser login flow; Kratos bounces back to
+   `/login?flow=…`, which server-side reads the `csrf_token` and renders the
+   "Sign in with Google" button (a full-page form POST to Kratos → Google OIDC).
+4. After Google returns, Kratos redirects to **`/login/return`**, which resolves
+   the session server-side (Kratos `whoami`, forwarding the cookie — no browser
+   polling) and calls Hydra **accept-login**.
+5. Hydra redirects to **`/consent`**, which calls Hydra **accept-consent**,
+   granting exactly the requested scope/audience.
 6. Hydra issues tokens and redirects back to the product app.
 7. **Logout** terminates both the Kratos session and the Hydra session.
 
@@ -175,17 +183,15 @@ All commands below are run from `monorepo/`.
 
 | App            | Command                     | URL / how to open                                                  |
 | -------------- | --------------------------- | ------------------------------------------------------------------ |
-| `auth-backend` | `pnpm auth-backend:serve`   | API on `http://localhost:4000` — health check: `curl http://localhost:4000/health` |
-| `auth-frontend`| `pnpm auth-frontend:serve`  | open `http://localhost:4200` in a browser (it redirects to `/login`) |
+| `auth-backend` | `pnpm auth-backend:serve`   | API + auth pages on `http://localhost:4000` — health: `curl http://localhost:4000/health`, UI: `http://localhost:4000/login` |
 
 ```bash
-pnpm auth-backend:serve      # Express API on :4000 (tsx watch, auto-reload)
-pnpm auth-frontend:serve     # Angular dev server on :4200 (open in browser)
+pnpm auth-backend:serve      # Express API + server-rendered pages on :4000 (tsx watch)
 ```
 
-> The frontend's login flow needs Hydra + Kratos running (steps 4–5) and a
-> `login_challenge`, so start them via a product app's OAuth redirect. You can
-> still open `http://localhost:4200/login` directly to load the UI.
+> The login flow needs Hydra + Kratos running (steps 4–5) and a real
+> `login_challenge`, so exercise it via a product app's OAuth redirect. Opening
+> `http://localhost:4000/login` directly will redirect into the Kratos flow.
 
 ### Test
 
@@ -200,12 +206,12 @@ pnpm exec nx watch --all -- nx test  # optional: watch mode via Nx
 
 ESLint uses flat config in TypeScript (`eslint.config.ts` per project, extending
 the workspace `eslint.config.ts`). Rules: `typescript-eslint` recommended,
-`angular-eslint` for the frontend (TS + inline templates), and the Nx
+`angular-eslint` for the admin frontend (TS + inline templates), and the Nx
 module-boundary rule (apps may depend on `shared-types`, not on each other).
 
 ```bash
 pnpm lint                    # lint all projects
-pnpm exec nx lint auth-frontend          # a single project
+pnpm exec nx lint auth-backend           # a single project
 pnpm exec nx lint auth-backend --fix     # auto-fix where possible
 ```
 
@@ -213,8 +219,8 @@ pnpm exec nx lint auth-backend --fix     # auto-fix where possible
 
 ```bash
 pnpm typecheck               # tsc --noEmit across all projects
-pnpm build                   # build every project (backend bundle + Angular app)
-pnpm exec nx build auth-frontend         # a single project
+pnpm build                   # build every project (backend bundles + admin app)
+pnpm exec nx build auth-backend          # a single project
 ```
 
 ### Register OAuth clients
@@ -230,13 +236,17 @@ HYDRA_ADMIN_URL=http://localhost:4445 pnpm hydra:clients
 - **Infra** (`./.env`) — DSNs, Hydra/Kratos URLs and secrets, Google
   credentials. Consumed by `docker-compose.yml`.
 - **Apps** (`monorepo/.env`, from `monorepo/.env.example`) — the backends'
-  `HYDRA_ADMIN_URL`, `KRATOS_ADMIN_URL`, `KRATOS_PUBLIC_URL`, ports, and
-  `CORS_ALLOWED_ORIGINS`.
-- **Frontends** — browser-public config is loaded at runtime from each app's
-  `public/config.json` (build-once / deploy-many), so a single build can target
-  any environment by swapping that file at deploy time:
-  - `apps/auth-frontend/public/config.json`
-  - `apps/admin-frontend/public/config.json`
+  `HYDRA_ADMIN_URL`, `KRATOS_ADMIN_URL`, `KRATOS_PUBLIC_URL`, ports,
+  `CORS_ALLOWED_ORIGINS`, and `AUTH_BASE_URL` (auth-backend's own public origin,
+  used to build the Kratos `return_to` for `/login/return`).
+- **Admin frontend** — browser-public config is loaded at runtime from
+  `apps/admin-frontend/public/config.json` (build-once / deploy-many), so a
+  single build can target any environment by swapping that file at deploy time.
+  The auth pages need no such file — they are server-rendered by `auth-backend`.
+
+> **Hydra/Kratos wiring:** point Hydra's `URLS_LOGIN`, `URLS_CONSENT`,
+> `URLS_LOGOUT`, `URLS_ERROR` and Kratos's login `ui_url` at the `auth-backend`
+> routes (`${AUTH_BASE_URL}/login`, `/consent`, `/logout`, `/error`).
 
 The Hydra/Kratos **admin** URLs are read server-side only and are never shipped
 to the browser.

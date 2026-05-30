@@ -1,26 +1,20 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
-import { getCorsOrigins, getPort } from "./app/config";
-import { createHydraRouter } from "./app/routes";
+import { getPort } from "./app/config";
+import { createPagesRouter } from "./app/pages";
 
 function createServer() {
   const app = express();
-  const allowedOrigins = getCorsOrigins();
-
-  app.use(
-    cors({
-      origin: allowedOrigins.length ? allowedOrigins : true,
-      credentials: true,
-    }),
-  );
-  app.use(express.json());
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
 
-  app.use("/api/hydra", createHydraRouter());
+  // Server-rendered auth pages (login / consent / logout / error). These are
+  // same-origin GET navigations plus a full-page form POST to Kratos, so no
+  // CORS or JSON body parsing is needed — that was only for the old SPA's XHR
+  // proxy under /api/hydra.
+  app.use("/", createPagesRouter());
 
   return app;
 }

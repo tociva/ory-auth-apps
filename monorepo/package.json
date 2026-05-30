@@ -10,7 +10,6 @@
     "typecheck": "nx run-many -t typecheck",
     "auth-backend:serve": "nx serve auth-backend",
     "admin-backend:serve": "nx serve admin-backend",
-    "auth-frontend:serve": "nx serve auth-frontend",
     "admin-frontend:serve": "nx serve admin-frontend",
     "hydra:clients": "node tools/create-hydra-clients.mjs"
   },

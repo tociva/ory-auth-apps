@@ -1,3 +1,8 @@
+/**
+ * Error-shaping helpers, ported from the old Angular error page. Kept
+ * framework-free so the page route and unit tests can use them directly.
+ */
+
 export interface OAuthError {
   error: string;
   error_description?: string;
