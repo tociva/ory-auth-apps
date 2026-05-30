@@ -50,9 +50,12 @@ export function createPagesRouter(): Router {
 
     try {
       const flowData = await kratos.getLoginFlow(flow, req);
+      // Use the flow's own `ui.action` (Kratos builds it from its public
+      // base_url, so it's always the correct browser-reachable submit URL)
+      // rather than reconstructing it from KRATOS_PUBLIC_URL.
       res.type("html").send(
         renderLogin({
-          actionUrl: kratos.loginActionUrl(flow),
+          actionUrl: flowData.ui.action,
           csrfToken: getCsrfToken(flowData),
           loginHint,
         }),

@@ -29,9 +29,11 @@ cookies:
   domain: ${KRATOS_COOKIES_DOMAIN}
 
 selfservice:
-  default_browser_return_url: ${AUTH_URL}/handle-login-return
+  # auth pages are server-rendered by auth-backend; after login Kratos returns
+  # the browser to /login/return, which accepts the Hydra login challenge.
+  default_browser_return_url: ${AUTH_URL}/login/return
   allowed_return_urls:
-    - ${AUTH_URL}/handle-login-return
+    - ${AUTH_URL}/login/return
     - ${KRATOS_URLS_LOGOUT}
 
   methods:
@@ -86,7 +88,7 @@ selfservice:
       ui_url: ${AUTH_URL}/verification
       use: code
       after:
-        default_browser_return_url: ${AUTH_URL}/handle-login-return
+        default_browser_return_url: ${AUTH_URL}/login/return
 
     logout:
       after:

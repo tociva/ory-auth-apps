@@ -32,12 +32,7 @@ export function browserLoginUrl(returnTo: string): string {
   return `${getKratosPublicUrl()}/self-service/login/browser?return_to=${encodeURIComponent(returnTo)}`;
 }
 
-/** The action URL the Google sign-in form POSTs to (full-page, browser → Kratos). */
-export function loginActionUrl(flowId: string): string {
-  return `${getKratosPublicUrl()}/self-service/login?flow=${encodeURIComponent(flowId)}`;
-}
-
-/** Fetch a login flow (carries the csrf_token we must render into the form). */
+/** Fetch a login flow (carries the csrf_token + ui.action we render into the form). */
 export async function getLoginFlow(flowId: string, req: Request): Promise<KratosFlow> {
   const res = await fetch(
     `${getKratosPublicUrl()}/self-service/login/flows?id=${encodeURIComponent(flowId)}`,
