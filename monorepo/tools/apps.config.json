@@ -7,10 +7,12 @@
       "public": true,
       "scope": "openid profile email offline_access",
       "redirect_uris": [
+        "https://app.daybook.cloud/auth/callback",
         "https://app-dev.daybook.cloud/auth/callback",
         "https://app-local.daybook.cloud/auth/callback"
       ],
       "post_logout_redirect_uris": [
+        "https://app.daybook.cloud/auth/logout",
         "https://app-dev.daybook.cloud/auth/logout",
         "https://app-local.daybook.cloud/auth/logout"
       ],
@@ -22,10 +24,12 @@
       "public": true,
       "scope": "openid profile email offline_access",
       "redirect_uris": [
+        "https://admin.idnest.dev/auth/callback",
         "https://admin-dev.idnest.dev/auth/callback",
         "https://admin-local.idnest.dev/auth/callback"
       ],
       "post_logout_redirect_uris": [
+        "https://admin.idnest.dev/auth/logout",
         "https://admin-dev.idnest.dev/auth/logout",
         "https://admin-local.idnest.dev/auth/logout"
       ],

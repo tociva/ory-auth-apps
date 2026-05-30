@@ -1,4 +1,4 @@
 {
-  "adminBackendUrl": "https://admin.idnest.dev/api",
-  "authLoginUrl": "https://auth.daybook.cloud/login"
+  "adminBackendUrl": "https://api.idnest.dev/api",
+  "authLoginUrl": "https://auth.idnest.dev/login"
 }

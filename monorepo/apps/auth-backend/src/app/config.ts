@@ -16,7 +16,7 @@ export const getKratosPublicUrl = (): string =>
   process.env.KRATOS_PUBLIC_URL ?? "http://localhost:4433";
 
 /**
- * This service's own public origin (e.g. https://auth.daybook.cloud). Used to
+ * This service's own public origin (e.g. https://auth.idnest.dev). Used to
  * build the `return_to` URL Kratos sends the browser back to after login.
  */
 export const getAuthBaseUrl = (): string =>
