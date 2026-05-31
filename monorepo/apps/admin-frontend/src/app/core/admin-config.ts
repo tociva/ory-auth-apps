@@ -11,7 +11,7 @@ import { InjectionToken } from "@angular/core";
  * `config.json` file. Values are merged over DEFAULT_ADMIN_CONFIG.
  */
 export interface AdminConfig {
-  /** admin-backend base, e.g. https://admin-api.daybook.cloud/api (admin routes live under `${adminBackendUrl}/admin`). */
+  /** admin-backend base, e.g. https://admin-api.idnest.cloud/api (admin routes live under `${adminBackendUrl}/admin`). */
   adminBackendUrl: string;
   /** Where to send unauthenticated users to sign in. */
   authLoginUrl: string;

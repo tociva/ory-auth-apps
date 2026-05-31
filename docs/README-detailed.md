@@ -10,11 +10,10 @@ separate Angular admin console manages clients and identities.
 
 - The **brand / project** is **idnest** — package names (`@idnest/*`), the nginx
   config files (`deploy/nginx/idnest-*.conf`), and this title all carry it.
-- This **deployment serves the `daybook.cloud` product**, so its public hosts
-  are `*.daybook.cloud` (one deployment per app). The session cookie is scoped
-  to `.daybook.cloud`, so all of the deployment's subdomains share one login.
-  Each product app is its own Hydra OAuth client that redirects to
-  `auth.daybook.cloud` and receives tokens.
+- This **deployment serves the `daybook.cloud` product**. Auth/identity
+  infrastructure runs on `*.idnest.cloud` (session cookie scoped to `.idnest.cloud`).
+  Product apps and APIs remain on `*.daybook.cloud`. Each product app is its own
+  Hydra OAuth client that redirects to `auth.idnest.cloud` and receives tokens.
 
 See [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) for the full migration history.
 
@@ -69,15 +68,15 @@ Hostnames and ports. **Production** uses the bare hosts; **local** uses the
 `*-local` variants over HTTPS via nginx + mkcert. Local app ports avoid the
 Angular default range (`42xx`) so they don't collide with other dev servers.
 
-| Production            | Local                       | Proxies to        | Service                                   |
-| --------------------- | --------------------------- | ----------------- | ----------------------------------------- |
-| `auth.daybook.cloud`  | `auth-local.daybook.cloud`  | `127.0.0.1:4000`  | `auth-backend` (login/consent/logout/error) |
-| `hydra.daybook.cloud` | `hydra-local.daybook.cloud` | `127.0.0.1:4444`  | Hydra public (authorize / token / OIDC)   |
-| `kratos.daybook.cloud`| `kratos-local.daybook.cloud`| `127.0.0.1:4433`  | Kratos public (self-service, whoami)      |
-| `admin-api.daybook.cloud`   | `admin-api-local.daybook.cloud`   | `127.0.0.1:4100`  | `admin-backend` API                       |
-| `admin.daybook.cloud` | `admin-local.daybook.cloud` | `127.0.0.1:4501`  | `admin-frontend` console                  |
-| `api.daybook.cloud`   | `api-local.daybook.cloud`   | `127.0.0.1:3001`  | daybook product backend (OAuth resource server) |
-| `app.daybook.cloud`   | `app-local.daybook.cloud`   | `127.0.0.1:4200`  | daybook product frontend (OAuth client)   |
+| Production              | Local                          | Proxies to        | Service                                   |
+| ----------------------- | ------------------------------ | ----------------- | ----------------------------------------- |
+| `auth.idnest.cloud`     | `auth-local.idnest.cloud`      | `127.0.0.1:4000`  | `auth-backend` (login/consent/logout/error) |
+| `hydra.idnest.cloud`    | `hydra-local.idnest.cloud`     | `127.0.0.1:4444`  | Hydra public (authorize / token / OIDC)   |
+| `kratos.idnest.cloud`   | `kratos-local.idnest.cloud`    | `127.0.0.1:4433`  | Kratos public (self-service, whoami)      |
+| `admin-api.idnest.cloud`| `admin-api-local.idnest.cloud` | `127.0.0.1:4100`  | `admin-backend` API                       |
+| `admin.idnest.cloud`    | `admin-local.idnest.cloud`     | `127.0.0.1:4501`  | `admin-frontend` console                  |
+| `api.daybook.cloud`     | `api-local.daybook.cloud`      | `127.0.0.1:3001`  | daybook product backend (OAuth resource server) |
+| `app.daybook.cloud`     | `app-local.daybook.cloud`      | `127.0.0.1:4200`  | daybook product frontend (OAuth client)   |
 
 Hydra admin (`:4445`) and Kratos admin (`:4434`) are **never** proxied to the
 public internet — they stay on localhost / a private network.
@@ -111,7 +110,13 @@ pnpm build          # builds auth-backend, admin-backend, admin-frontend, shared
 
 ```bash
 sudo tee -a /etc/hosts >/dev/null <<'EOF'
-127.0.0.1 auth-local.daybook.cloud hydra-local.daybook.cloud kratos-local.daybook.cloud admin-api-local.daybook.cloud admin-local.daybook.cloud api-local.daybook.cloud app-local.daybook.cloud
+127.0.0.1 auth-local.idnest.cloud
+127.0.0.1 hydra-local.idnest.cloud
+127.0.0.1 kratos-local.idnest.cloud
+127.0.0.1 admin-api-local.idnest.cloud
+127.0.0.1 admin-local.idnest.cloud
+127.0.0.1 api-local.daybook.cloud
+127.0.0.1 app-local.daybook.cloud
 EOF
 ```
 
@@ -128,12 +133,14 @@ mkcert -install                # trust the local CA in the system keychain
 sudo mkdir -p /opt/homebrew/etc/nginx/ssl
 cd /opt/homebrew/etc/nginx/ssl
 
+sudo mkcert -cert-file local.idnest.cloud.pem -key-file local.idnest.cloud-key.pem \
+  auth-local.idnest.cloud \
+  hydra-local.idnest.cloud \
+  kratos-local.idnest.cloud \
+  admin-api-local.idnest.cloud \
+  admin-local.idnest.cloud
+
 sudo mkcert -cert-file local.daybook.cloud.pem -key-file local.daybook.cloud-key.pem \
-  auth-local.daybook.cloud \
-  hydra-local.daybook.cloud \
-  kratos-local.daybook.cloud \
-  admin-api-local.daybook.cloud \
-  admin-local.daybook.cloud \
   api-local.daybook.cloud \
   app-local.daybook.cloud
 ```
@@ -150,7 +157,7 @@ Ready-made configs live in [`deploy/nginx/`](deploy/nginx/) (named for the
 - [`idnest-local.conf`](deploy/nginx/idnest-local.conf) — local HTTPS with the
   mkcert cert from Step 4.
 - [`idnest-prod.conf`](deploy/nginx/idnest-prod.conf) — production, assuming a
-  wildcard `*.daybook.cloud` cert.
+  wildcard `*.idnest.cloud` cert (auth/admin) and `*.daybook.cloud` cert (product apps).
 
 Install the local one and reload:
 
@@ -167,9 +174,9 @@ block:
 ```nginx
 server {
   listen 443 ssl;
-  server_name auth-local.daybook.cloud;
-  ssl_certificate     /opt/homebrew/etc/nginx/ssl/local.daybook.cloud.pem;
-  ssl_certificate_key /opt/homebrew/etc/nginx/ssl/local.daybook.cloud-key.pem;
+  server_name auth-local.idnest.cloud;
+  ssl_certificate     /opt/homebrew/etc/nginx/ssl/local.idnest.cloud.pem;
+  ssl_certificate_key /opt/homebrew/etc/nginx/ssl/local.idnest.cloud-key.pem;
   location / {
     proxy_pass http://127.0.0.1:4000;
     proxy_set_header Host              $host;
@@ -185,8 +192,8 @@ server {
 2. **Create credentials → OAuth client ID → Web application**.
 3. Under **Authorized redirect URIs**, add the Kratos OIDC callback for each
    environment:
-   - local: `https://kratos-local.daybook.cloud/self-service/methods/oidc/callback/google`
-   - prod:  `https://kratos.daybook.cloud/self-service/methods/oidc/callback/google`
+   - local: `https://kratos-local.idnest.cloud/self-service/methods/oidc/callback/google`
+   - prod:  `https://kratos.idnest.cloud/self-service/methods/oidc/callback/google`
 4. Copy the **Client ID** and **Client secret** into the infra `.env`
    (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) in the next step.
 
@@ -201,25 +208,25 @@ Two env files, different consumers.
 
 ```ini
 # App URLs
-AUTH_URL=https://auth-local.daybook.cloud
-CORS_ALLOWED_ORIGINS=https://admin-local.daybook.cloud,https://app-local.daybook.cloud
+AUTH_URL=https://auth-local.idnest.cloud
+CORS_ALLOWED_ORIGINS=https://admin-local.idnest.cloud,https://app-local.daybook.cloud
 
 # Hydra
 HYDRA_ADMIN_URL=http://localhost:4445
 HYDRA_DSN=postgres://hydrau:<hydra_db_password>@host.docker.internal:5432/hydra?sslmode=disable
-HYDRA_URLS_SELF_ISSUER=https://hydra-local.daybook.cloud/
-HYDRA_URLS_LOGIN=https://auth-local.daybook.cloud/login
-HYDRA_URLS_CONSENT=https://auth-local.daybook.cloud/consent
-HYDRA_URLS_LOGOUT=https://auth-local.daybook.cloud/logout
-HYDRA_URLS_ERROR=https://auth-local.daybook.cloud/error
+HYDRA_URLS_SELF_ISSUER=https://hydra-local.idnest.cloud/
+HYDRA_URLS_LOGIN=https://auth-local.idnest.cloud/login
+HYDRA_URLS_CONSENT=https://auth-local.idnest.cloud/consent
+HYDRA_URLS_LOGOUT=https://auth-local.idnest.cloud/logout
+HYDRA_URLS_ERROR=https://auth-local.idnest.cloud/error
 HYDRA_SECRETS_SYSTEM=<random_32+_char_secret>
 
 # Kratos
 KRATOS_DSN=postgres://kratosu:<kratos_db_password>@host.docker.internal:5432/kratos?sslmode=disable
-KRATOS_SERVE_PUBLIC_BASE_URL=https://kratos-local.daybook.cloud
+KRATOS_SERVE_PUBLIC_BASE_URL=https://kratos-local.idnest.cloud
 KRATOS_ADMIN_URL=http://localhost:4434
-KRATOS_URLS_LOGOUT=https://hydra-local.daybook.cloud/logout
-KRATOS_COOKIES_DOMAIN=.daybook.cloud
+KRATOS_URLS_LOGOUT=https://hydra-local.idnest.cloud/logout
+KRATOS_COOKIES_DOMAIN=.idnest.cloud
 KRATOS_LOG_LEVEL=info
 KRATOS_CSRF_COOKIE_SECRET=<random_32+_char_secret>
 KRATOS_CIPHER_SECRET=<exactly_32_char_secret>
@@ -232,7 +239,7 @@ GOOGLE_CLIENT_SECRET=<google_client_secret>
 > `CORS_ALLOWED_ORIGINS` (infra) is what Hydra and Kratos allow as browser
 > origins — include every product app origin (so the app can call Hydra's token
 > endpoint) plus the admin console. For prod, swap in `https://app.daybook.cloud`
-> and `https://admin.daybook.cloud`.
+> and `https://admin.idnest.cloud`.
 
 ### 7b. Apps `monorepo/.env` (from `monorepo/.env.example`) — consumed by the backends
 
@@ -247,15 +254,15 @@ KRATOS_ADMIN_URL=http://localhost:4434
 
 # Browser-reachable Kratos origin: auth-backend redirects the browser here and
 # forwards the session cookie to it. Use the public host, not a docker name.
-KRATOS_PUBLIC_URL=https://kratos-local.daybook.cloud
+KRATOS_PUBLIC_URL=https://kratos-local.idnest.cloud
 
 # auth-backend's own public origin. MUST equal the AUTH_URL origin in Kratos
 # `allowed_return_urls`, or Kratos rejects the post-login return.
-AUTH_BASE_URL=https://auth-local.daybook.cloud
+AUTH_BASE_URL=https://auth-local.idnest.cloud
 
 AUTH_BACKEND_PORT=4000
 ADMIN_BACKEND_PORT=4100
-CORS_ALLOWED_ORIGINS=https://admin-local.daybook.cloud,https://app-local.daybook.cloud
+CORS_ALLOWED_ORIGINS=https://admin-local.idnest.cloud,https://app-local.daybook.cloud
 ADMIN_BOOTSTRAP_EMAILS=you@example.com
 ```
 
@@ -267,7 +274,7 @@ ADMIN_BOOTSTRAP_EMAILS=you@example.com
 | `AUTH_BASE_URL`          | apps      | Kratos `return_to` after login (`/login/return`)        |
 | `KRATOS_PUBLIC_URL`      | apps      | browser login redirect + server-side whoami/logout      |
 | `KRATOS_SERVE_PUBLIC_BASE_URL` | infra | the public URL Kratos puts in flow `ui.action`        |
-| `KRATOS_COOKIES_DOMAIN`  | infra     | SSO cookie scope (`.daybook.cloud`)                     |
+| `KRATOS_COOKIES_DOMAIN`  | infra     | SSO cookie scope (`.idnest.cloud`)                      |
 
 ## Step 8 — Create databases
 
@@ -320,7 +327,7 @@ The Kratos container renders `config/kratos.yml` from `kratos.tpl.yml` via
 ory-kratos` after editing the template or env. Verify Kratos:
 
 ```bash
-curl -k https://kratos-local.daybook.cloud/health/ready
+curl -k https://kratos-local.idnest.cloud/health/ready
 ```
 
 ## Step 11 — Start the backends
@@ -333,7 +340,7 @@ pnpm admin-frontend:serve   # Angular console on :4501 (optional)
 ```
 
 Health check: `curl http://localhost:4000/health`. Opening
-`https://auth-local.daybook.cloud/login` directly redirects into the Kratos flow
+`https://auth-local.idnest.cloud/login` directly redirects into the Kratos flow
 (a real `login_challenge` only arrives via a product app's OAuth redirect,
 Step 12).
 
@@ -357,7 +364,7 @@ from the admin console — it wraps the same Hydra admin API.)
 ## Step 13 — Verify the flow
 
 Trigger a login from a product app (or build an authorize URL by hand, below).
-You should land on `auth-local.daybook.cloud/login`, sign in with Google, and be
+You should land on `auth-local.idnest.cloud/login`, sign in with Google, and be
 redirected back to the app with an authorization code.
 
 ---
@@ -365,7 +372,7 @@ redirected back to the app with an authorization code.
 # Client app integration (example)
 
 A product SPA on `app.daybook.cloud` uses Hydra as its OpenID Provider with the
-Authorization Code + PKCE flow. It redirects to `auth.daybook.cloud` to sign in.
+Authorization Code + PKCE flow. It redirects to `auth.idnest.cloud` to sign in.
 
 ### 1. Register the client (`monorepo/tools/apps.config.json`)
 
@@ -386,8 +393,8 @@ Authorization Code + PKCE flow. It redirects to `auth.daybook.cloud` to sign in.
 ```
 
 Then run `pnpm hydra:clients` (Step 12). OIDC discovery is served at
-`https://hydra.daybook.cloud/.well-known/openid-configuration` (local:
-`https://hydra-local.daybook.cloud/...`).
+`https://hydra.idnest.cloud/.well-known/openid-configuration` (local:
+`https://hydra-local.idnest.cloud/...`).
 
 ### 2. Client config (using [`oidc-client-ts`](https://github.com/authts/oidc-client-ts))
 
@@ -396,7 +403,7 @@ Then run `pnpm hydra:clients` (Step 12). OIDC discovery is served at
 import { UserManager, WebStorageStateStore } from "oidc-client-ts";
 
 export const userManager = new UserManager({
-  authority: "https://hydra.daybook.cloud/",              // = HYDRA_URLS_SELF_ISSUER
+  authority: "https://hydra.idnest.cloud/",               // = HYDRA_URLS_SELF_ISSUER
   client_id: "daybook-user-client",
   redirect_uri: "https://app.daybook.cloud/auth/callback",
   post_logout_redirect_uri: "https://app.daybook.cloud/auth/logout",
@@ -413,14 +420,14 @@ export const userManager = new UserManager({
 ```
 
 PKCE is generated automatically for public clients — no client secret is ever
-shipped to the browser. The browser only ever talks to `hydra.daybook.cloud`
-(authorize, token) and `auth.daybook.cloud` (login UI); it never sees Kratos/Hydra
+shipped to the browser. The browser only ever talks to `hydra.idnest.cloud`
+(authorize, token) and `auth.idnest.cloud` (login UI); it never sees Kratos/Hydra
 admin URLs.
 
 ### 3. Equivalent raw authorize URL (for reference / non-JS clients)
 
 ```
-https://hydra.daybook.cloud/oauth2/auth
+https://hydra.idnest.cloud/oauth2/auth
   ?client_id=daybook-user-client
   &response_type=code
   &scope=openid%20profile%20email%20offline_access
@@ -432,15 +439,15 @@ https://hydra.daybook.cloud/oauth2/auth
 ```
 
 The app exchanges the returned `code` (plus the PKCE `code_verifier`) at
-`https://hydra.daybook.cloud/oauth2/token` for `id_token` / `access_token` /
+`https://hydra.idnest.cloud/oauth2/token` for `id_token` / `access_token` /
 `refresh_token`.
 
 ---
 
 ## Auth flow (server-rendered)
 
-1. A product app sends the user to Hydra's authorize endpoint (`hydra.daybook.cloud`).
-2. Hydra redirects to `auth-backend`'s **`/login`** route (`auth.daybook.cloud`) with a `login_challenge`.
+1. A product app sends the user to Hydra's authorize endpoint (`hydra.idnest.cloud`).
+2. Hydra redirects to `auth-backend`'s **`/login`** route (`auth.idnest.cloud`) with a `login_challenge`.
 3. `/login` starts the Kratos browser login flow; Kratos bounces back to
    `/login?flow=…`, which server-side reads the `csrf_token` and renders the
    "Sign in with Google" button (a full-page form POST to Kratos → Google OIDC).
@@ -470,11 +477,11 @@ pnpm build                         # build every project
 
 ## Production deployment notes
 
-- Use the bare `*.daybook.cloud` hosts. Set `AUTH_URL`, `AUTH_BASE_URL`,
-  `KRATOS_SERVE_PUBLIC_BASE_URL`, and `KRATOS_PUBLIC_URL` accordingly;
-  `AUTH_URL` and `AUTH_BASE_URL` must share the same origin (`auth.daybook.cloud`).
+- Use the bare `*.idnest.cloud` hosts for auth/Hydra/Kratos/admin. Set `AUTH_URL`,
+  `AUTH_BASE_URL`, `KRATOS_SERVE_PUBLIC_BASE_URL`, and `KRATOS_PUBLIC_URL` accordingly;
+  `AUTH_URL` and `AUTH_BASE_URL` must share the same origin (`auth.idnest.cloud`).
 - Front everything with [`deploy/nginx/idnest-prod.conf`](deploy/nginx/idnest-prod.conf)
-  (wildcard `*.daybook.cloud` cert); build the backends (`pnpm build`) and run the
+  (wildcard `*.idnest.cloud` cert for auth/admin, `*.daybook.cloud` cert for product apps); build the backends (`pnpm build`) and run the
   bundle (`node dist/apps/auth-backend/main.cjs`); serve the `admin-frontend`
   build as static files.
 - Keep Hydra admin (`:4445`) and Kratos admin (`:4434`) on a private network —

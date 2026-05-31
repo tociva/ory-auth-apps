@@ -24,14 +24,14 @@
       "public": true,
       "scope": "openid profile email offline_access",
       "redirect_uris": [
-        "https://admin.daybook.cloud/auth/callback",
-        "https://admin-dev.daybook.cloud/auth/callback",
-        "https://admin-local.daybook.cloud/auth/callback"
+        "https://admin.idnest.cloud/auth/callback",
+        "https://admin-dev.idnest.cloud/auth/callback",
+        "https://admin-local.idnest.cloud/auth/callback"
       ],
       "post_logout_redirect_uris": [
-        "https://admin.daybook.cloud/auth/logout",
-        "https://admin-dev.daybook.cloud/auth/logout",
-        "https://admin-local.daybook.cloud/auth/logout"
+        "https://admin.idnest.cloud/auth/logout",
+        "https://admin-dev.idnest.cloud/auth/logout",
+        "https://admin-local.idnest.cloud/auth/logout"
       ],
       "audience": ["idnest-admin"]
     }
