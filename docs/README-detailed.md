@@ -44,7 +44,7 @@ orchestrated by [`docker-compose.yml`](docker-compose.yml).
 ├── Dockerfile.kratos        # Kratos image that renders the template at startup
 ├── docker-compose.yml       # Hydra + Kratos services
 ├── .env                      # Infra secrets/DSNs consumed by docker-compose (gitignored)
-├── setup-ory.sh             # DB bootstrap + migrations helper
+├── setup/                   # DB bootstrap + migrations (setup-ory-linux.sh, setup-ory-macos.sh)
 ├── deploy/nginx/            # nginx reverse-proxy configs (idnest-local.conf, idnest-prod.conf)
 └── monorepo/                # Nx workspace (pnpm)
     ├── apps/
@@ -271,11 +271,14 @@ ADMIN_BOOTSTRAP_EMAILS=you@example.com
 
 ## Step 8 — Create databases
 
-Either run the helper (creates roles + databases and runs migrations):
+Either run the OS-specific helper in `setup/` (creates roles + databases and
+runs migrations):
 
 ```bash
-HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... KRATOS_CONFIG_DIR="$PWD/config" \
-  ./setup-ory.sh
+# macOS
+HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./setup/setup-ory-macos.sh
+# Linux
+HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./setup/setup-ory-linux.sh
 ```
 
 …or do it manually as a superuser:
@@ -290,7 +293,7 @@ CREATE DATABASE kratos OWNER kratosu;
 
 ## Step 9 — Run database migrations
 
-(Skip if `setup-ory.sh` already did this.)
+(Skip if `setup/setup-ory-*.sh` already did this.)
 
 ```bash
 # Hydra

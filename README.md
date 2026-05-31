@@ -61,12 +61,15 @@ CREATE USER kratosu WITH PASSWORD '<kratos_db_password>';
 CREATE DATABASE kratos OWNER kratosu;
 ```
 
-Or run the helper, which creates the roles/databases **and** runs the migrations
-(see §9):
+Or run the OS-specific helper in [`setup/`](setup/), which creates the
+roles/databases **and** runs the migrations (see §9):
 
 ```bash
-HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... KRATOS_CONFIG_DIR="$PWD/config" \
-  ./setup-ory.sh
+# macOS (Homebrew Postgres — current user is the superuser)
+HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./setup/setup-ory-macos.sh
+
+# Linux (apt/yum Postgres with a `postgres` OS user)
+HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./setup/setup-ory-linux.sh
 ```
 
 > Always run the migrations (§9) **before** starting Hydra/Kratos.
@@ -279,7 +282,7 @@ docker run --rm --network host \
   oryd/kratos:v1.3.1 migrate sql -e --yes
 ```
 
-(`setup-ory.sh` in §2 runs both for you.)
+(The `setup/setup-ory-*.sh` helper in §2 runs both for you.)
 
 ---
 
