@@ -1,6 +1,6 @@
 services:
   hydra:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v26.2.0
     container_name: ory-hydra
     extra_hosts:
       - "host.docker.internal:host-gateway"   # 👈 important
@@ -50,7 +50,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.kratos
-    image: ory-kratos-envsubst:v1.3.1
+    image: ory-kratos-envsubst:v25.4.0
     container_name: ory-kratos
     extra_hosts:
       - "host.docker.internal:host-gateway"

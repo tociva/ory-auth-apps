@@ -24,8 +24,8 @@ See [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) for the full migration history.
 
 | Component             | Tech                       | Role                                                              |
 | --------------------- | -------------------------- | ----------------------------------------------------------------- |
-| ORY Hydra `v2.3.0`    | Docker image               | OAuth2 / OpenID Connect server: issues tokens, owns login/consent/logout challenges |
-| ORY Kratos `v1.3.1`   | Docker image               | Identity provider: runs the Google OIDC login flow, stores identities, sessions |
+| ORY Hydra `v26.2.0`    | Docker image               | OAuth2 / OpenID Connect server: issues tokens, owns login/consent/logout challenges |
+| ORY Kratos `v25.4.0`   | Docker image               | Identity provider: runs the Google OIDC login flow, stores identities, sessions |
 | `auth-backend`        | TypeScript + Express       | Hydra/Kratos **admin** proxy **and** server-rendered login/consent/logout/error pages (admin URLs stay server-side) |
 | `admin-backend`       | TypeScript + Express       | Privileged admin API (identities, clients, roles)                 |
 | `admin-frontend`      | Angular 21 + TailNG        | Staff-only admin console                                          |
@@ -299,13 +299,13 @@ CREATE DATABASE kratos OWNER kratosu;
 # Hydra
 docker run --rm --network host \
   -e DSN='postgres://hydrau:<password>@127.0.0.1:5432/hydra?sslmode=disable' \
-  oryd/hydra:v2.3.0 migrate sql up -e --yes
+  oryd/hydra:v26.2.0 migrate sql up -e --yes
 
 # Kratos
 docker run --rm --network host \
   -e DSN='postgres://kratosu:<password>@127.0.0.1:5432/kratos?sslmode=disable' \
   -v "$PWD/config:/etc/config" \
-  oryd/kratos:v1.3.1 migrate sql -e --yes
+  oryd/kratos:v25.4.0 migrate sql -e --yes
 ```
 
 ## Step 10 — Start Hydra + Kratos

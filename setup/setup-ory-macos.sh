@@ -22,8 +22,8 @@ KRATOS_DB_USER="${KRATOS_DB_USER:-kratosu}"
 KRATOS_DB_NAME="${KRATOS_DB_NAME:-kratos}"
 KRATOS_DB_PASSWORD="${KRATOS_DB_PASSWORD:?set KRATOS_DB_PASSWORD}"
 
-HYDRA_IMAGE="${HYDRA_IMAGE:-oryd/hydra:v2.3.0}"
-KRATOS_IMAGE="${KRATOS_IMAGE:-oryd/kratos:v1.3.1}"
+HYDRA_IMAGE="${HYDRA_IMAGE:-oryd/hydra:v26.2.0}"
+KRATOS_IMAGE="${KRATOS_IMAGE:-oryd/kratos:v25.4.0}"
 KRATOS_CONFIG_DIR="${KRATOS_CONFIG_DIR:-$REPO_ROOT/config}"
 # Database to connect to as the local superuser, and how Docker reaches the host.
 PG_SUPERDB="${PG_SUPERDB:-postgres}"

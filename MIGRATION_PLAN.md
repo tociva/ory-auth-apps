@@ -17,7 +17,7 @@ Legend: `- [ ]` = to do · `- [x]` = done · **(!)** = security-sensitive ·
 - Single Next.js app serves both the auth UI (login/consent/logout/error/
   handle-login-return) and the privileged `/api/hydra/*` admin-proxy routes.
 - Identity: Google OIDC only (username/password intentionally removed).
-- Hydra v2.3.0 + Kratos v1.3.1 run as Docker images; PostgreSQL backing store
+- Hydra v26.2.0 + Kratos v25.4.0 run as Docker images; PostgreSQL backing store
   (separate `hydra` and `kratos` databases).
 - Cookie domain `.idnest.dev` gives SSO across subdomains.
 

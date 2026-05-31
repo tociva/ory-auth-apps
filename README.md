@@ -273,13 +273,13 @@ The callback path is fixed by Kratos: `self-service/methods/oidc/callback/<provi
 # Hydra
 docker run --rm --network host \
   -e DSN='postgres://hydrau:<password>@127.0.0.1:5432/hydra?sslmode=disable' \
-  oryd/hydra:v2.3.0 migrate sql up -e --yes
+  oryd/hydra:v26.2.0 migrate sql up -e --yes
 
 # Kratos (needs the config volume)
 docker run --rm --network host \
   -e DSN='postgres://kratosu:<password>@127.0.0.1:5432/kratos?sslmode=disable' \
   -v "$PWD/config:/etc/config" \
-  oryd/kratos:v1.3.1 migrate sql -e --yes
+  oryd/kratos:v25.4.0 migrate sql -e --yes
 ```
 
 (The `setup/setup-ory-*.sh` helper in §2 runs both for you.)
