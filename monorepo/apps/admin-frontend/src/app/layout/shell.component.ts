@@ -49,7 +49,11 @@ export class ShellComponent implements OnInit {
   }
 
   signOut(): void {
-    // Derive the auth app's logout page from its login URL.
-    window.location.href = this.config.authLoginUrl.replace(/\/login\/?$/, "/logout");
+    // Derive the auth app's logout page from its login URL, and pass return_to
+    // so that after the Kratos session is cleared the browser lands back on the
+    // admin app (which then bounces to login, since there's no session).
+    const logoutUrl = this.config.authLoginUrl.replace(/\/login\/?$/, "/logout");
+    const returnTo = encodeURIComponent(window.location.origin);
+    window.location.href = `${logoutUrl}?return_to=${returnTo}`;
   }
 }

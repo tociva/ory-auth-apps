@@ -17,23 +17,6 @@
         "https://app-local.daybook.cloud/auth/logout"
       ],
       "audience": ["daybook.cloud-users"]
-    },
-    {
-      "client_id": "idnest-admin-client",
-      "client_name": "idnest.dev Admin Console",
-      "public": true,
-      "scope": "openid profile email offline_access",
-      "redirect_uris": [
-        "https://admin.idnest.cloud/auth/callback",
-        "https://admin-dev.idnest.cloud/auth/callback",
-        "https://admin-local.idnest.cloud/auth/callback"
-      ],
-      "post_logout_redirect_uris": [
-        "https://admin.idnest.cloud/auth/logout",
-        "https://admin-dev.idnest.cloud/auth/logout",
-        "https://admin-local.idnest.cloud/auth/logout"
-      ],
-      "audience": ["idnest-admin"]
     }
   ]
 }

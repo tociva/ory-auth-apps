@@ -7,7 +7,10 @@
       "properties": {
         "email": {
           "type": "string",
-          "format": "email"
+          "format": "email",
+          "ory.sh/kratos": {
+            "verification": { "via": "email" }
+          }
         },
         "name": {
           "type": "string",

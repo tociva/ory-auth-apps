@@ -13,6 +13,15 @@ export const getKratosAdminUrl = (): string => process.env.KRATOS_ADMIN_URL ?? "
 /** Public Kratos URL used for the `/sessions/whoami` authorization check. */
 export const getKratosPublicUrl = (): string => process.env.KRATOS_PUBLIC_URL ?? "";
 
+/**
+ * Kratos public API base for this backend's server-to-server `whoami` call.
+ * Defaults to the public URL, but set KRATOS_INTERNAL_URL to the internal
+ * http:// address (e.g. http://localhost:4433) so the call skips TLS / nginx
+ * and avoids needing the local mkcert CA in Node's trust store.
+ */
+export const getKratosInternalUrl = (): string =>
+  process.env.KRATOS_INTERNAL_URL ?? getKratosPublicUrl();
+
 export const getPort = (): number => Number(process.env.ADMIN_BACKEND_PORT ?? 4100);
 
 /** Comma-separated allowlist of browser origins permitted to call this API. */

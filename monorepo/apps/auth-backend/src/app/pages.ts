@@ -6,7 +6,7 @@
  */
 import { Router, type Request, type Response } from "express";
 import { getCsrfToken } from "@idnest/shared-types";
-import { getAuthBaseUrl } from "./config";
+import { getAuthBaseUrl, getCorsOrigins } from "./config";
 import { getHumanHint, pickSafeDetails } from "./error-utils";
 import { acceptConsent, acceptLogin, acceptLogout } from "./handlers";
 import * as kratos from "./kratos-public";
@@ -16,6 +16,19 @@ import { renderLogin } from "./views/login";
 function first(value: unknown): string | undefined {
   if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined;
   return typeof value === "string" ? value : undefined;
+}
+
+/**
+ * Allow post-login redirects only to known app origins (the CORS allowlist),
+ * so the `return_to` carried through a session-only login can't be turned into
+ * an open redirect.
+ */
+function isAllowedReturnTo(target: string): boolean {
+  try {
+    return getCorsOrigins().includes(new URL(target).origin);
+  } catch {
+    return false;
+  }
 }
 
 /** Render the error page from an arbitrary error payload. */
@@ -41,9 +54,15 @@ export function createPagesRouter(): Router {
     const loginHint = first(req.query["login_hint"]);
 
     if (!flow) {
-      const returnTo =
-        `${getAuthBaseUrl()}/login/return` +
-        (loginChallenge ? `?login_challenge=${encodeURIComponent(loginChallenge)}` : "");
+      // Carry both the Hydra `login_challenge` (OAuth flow) and a session-only
+      // `return_to` (e.g. the admin console) through Kratos, so /login/return
+      // can tell the two cases apart afterwards.
+      const postLoginReturnTo = first(req.query["return_to"]);
+      const params = new URLSearchParams();
+      if (loginChallenge) params.set("login_challenge", loginChallenge);
+      if (postLoginReturnTo) params.set("return_to", postLoginReturnTo);
+      const query = params.toString();
+      const returnTo = `${getAuthBaseUrl()}/login/return${query ? `?${query}` : ""}`;
       res.redirect(kratos.browserLoginUrl(returnTo));
       return;
     }
@@ -72,7 +91,17 @@ export function createPagesRouter(): Router {
    */
   router.get("/login/return", async (req: Request, res: Response): Promise<void> => {
     const loginChallenge = first(req.query["login_challenge"]);
+
+    // Session-only login (e.g. the admin console authenticates on the Kratos
+    // session cookie, not a Hydra challenge). Kratos has already set the
+    // session, so send the browser back to the app's return_to — validated
+    // against the origin allowlist to prevent an open redirect.
     if (!loginChallenge) {
+      const returnTo = first(req.query["return_to"]);
+      if (returnTo && isAllowedReturnTo(returnTo)) {
+        res.redirect(returnTo);
+        return;
+      }
       sendError(res, { error: "missing_login_challenge", error_description: "Missing login_challenge." });
       return;
     }
@@ -126,28 +155,43 @@ export function createPagesRouter(): Router {
 
   /**
    * GET /logout — terminate the Kratos session first (so the user isn't silently
-   * signed back in), then accept the Hydra logout challenge. Kratos clears the
-   * session cookie via Set-Cookie, which we relay to the browser.
+   * signed back in), then either:
+   *  - `logout_challenge` present (Hydra OAuth logout): accept the challenge and
+   *    redirect on to Hydra; or
+   *  - no challenge (session-only logout, e.g. the admin console): redirect back
+   *    to an allowlisted `return_to`.
+   * Kratos clears the session cookie via Set-Cookie, which we relay to the browser.
    */
   router.get("/logout", async (req: Request, res: Response): Promise<void> => {
     const logoutChallenge = first(req.query["logout_challenge"]);
-    if (!logoutChallenge) {
-      sendError(res, { error: "missing_logout_challenge", error_description: "Missing logout_challenge." });
-      return;
-    }
 
-    // Best-effort Kratos session termination. A 401 means there's no active
-    // session — nothing to terminate, so we proceed to Hydra.
+    // Best-effort Kratos session termination, common to both paths. A 401 means
+    // there's no active session — nothing to terminate.
     try {
       const init = await kratos.initLogout(req);
+      // Prefer rebuilding from the token (internal URL) over Kratos's
+      // logout_url, which points at the public HTTPS host — keeping this call
+      // server-side over the internal address.
       const performUrl =
-        init.logout_url ?? (init.logout_token ? kratos.logoutTokenUrl(init.logout_token) : null);
+        init.logout_token ? kratos.logoutTokenUrl(init.logout_token) : init.logout_url ?? null;
       if (performUrl) {
         const setCookies = await kratos.performLogout(performUrl, req);
         for (const c of setCookies) res.append("Set-Cookie", c);
       }
     } catch {
-      /* no active Kratos session or init failed; continue to Hydra */
+      /* no active Kratos session or init failed */
+    }
+
+    // Session-only logout: the Kratos session is now cleared; send the browser
+    // back to the app's allowlisted return_to.
+    if (!logoutChallenge) {
+      const returnTo = first(req.query["return_to"]);
+      if (returnTo && isAllowedReturnTo(returnTo)) {
+        res.redirect(returnTo);
+        return;
+      }
+      sendError(res, { error: "missing_logout_challenge", error_description: "Missing logout_challenge." });
+      return;
     }
 
     const result = await acceptLogout({ logout_challenge: logoutChallenge });

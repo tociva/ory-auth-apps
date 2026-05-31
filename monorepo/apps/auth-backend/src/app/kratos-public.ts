@@ -9,7 +9,7 @@
  */
 import type { Request } from "express";
 import type { KratosFlow } from "@idnest/shared-types";
-import { getKratosPublicUrl } from "./config";
+import { getKratosInternalUrl, getKratosPublicUrl } from "./config";
 
 export interface KratosWhoami {
   identity: {
@@ -35,7 +35,7 @@ export function browserLoginUrl(returnTo: string): string {
 /** Fetch a login flow (carries the csrf_token + ui.action we render into the form). */
 export async function getLoginFlow(flowId: string, req: Request): Promise<KratosFlow> {
   const res = await fetch(
-    `${getKratosPublicUrl()}/self-service/login/flows?id=${encodeURIComponent(flowId)}`,
+    `${getKratosInternalUrl()}/self-service/login/flows?id=${encodeURIComponent(flowId)}`,
     { headers: { cookie: cookieHeader(req), accept: "application/json" } },
   );
   if (!res.ok) throw new Error(`Kratos getLoginFlow failed: ${res.status}`);
@@ -44,7 +44,7 @@ export async function getLoginFlow(flowId: string, req: Request): Promise<Kratos
 
 /** Resolve the current identity from the session cookie. Throws on 401. */
 export async function whoami(req: Request): Promise<KratosWhoami> {
-  const res = await fetch(`${getKratosPublicUrl()}/sessions/whoami`, {
+  const res = await fetch(`${getKratosInternalUrl()}/sessions/whoami`, {
     headers: { cookie: cookieHeader(req), accept: "application/json" },
   });
   if (res.status === 401) {
@@ -79,7 +79,7 @@ export async function whoamiWithRetry(req: Request, maxRetries = 3): Promise<Kra
 
 /** Start the Kratos browser logout flow; returns the URL that performs logout. */
 export async function initLogout(req: Request): Promise<KratosLogoutInit> {
-  const res = await fetch(`${getKratosPublicUrl()}/self-service/logout/browser`, {
+  const res = await fetch(`${getKratosInternalUrl()}/self-service/logout/browser`, {
     headers: { cookie: cookieHeader(req), accept: "application/json" },
   });
   if (!res.ok) {
@@ -91,7 +91,7 @@ export async function initLogout(req: Request): Promise<KratosLogoutInit> {
 }
 
 export function logoutTokenUrl(token: string): string {
-  return `${getKratosPublicUrl()}/self-service/logout?token=${encodeURIComponent(token)}`;
+  return `${getKratosInternalUrl()}/self-service/logout?token=${encodeURIComponent(token)}`;
 }
 
 /**
@@ -113,7 +113,7 @@ export async function performLogout(url: string, req: Request): Promise<string[]
 /** Fetch a Kratos self-service error payload by id (for the error page). */
 export async function getKratosError(id: string, req: Request): Promise<unknown> {
   const res = await fetch(
-    `${getKratosPublicUrl()}/self-service/errors?id=${encodeURIComponent(id)}`,
+    `${getKratosInternalUrl()}/self-service/errors?id=${encodeURIComponent(id)}`,
     { headers: { cookie: cookieHeader(req), accept: "application/json" } },
   );
   if (!res.ok) throw new Error(`Kratos getError failed: ${res.status}`);
