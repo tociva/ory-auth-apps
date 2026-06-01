@@ -1,11 +1,21 @@
 /**
  * Self-contained CSS for the server-rendered auth pages, inlined into every
- * page's <head>. Ported from the old Angular app's styles.css, with the
- * `--tng-*` (TailNG) theme fallbacks resolved to plain values since there's no
- * component library here anymore.
+ * page's <head>. Colors mapped from the design-system light semantic tokens.
  */
 export const STYLES = /* css */ `
-:root { --brand: #367588; --brand-hover: #2c606f; }
+:root {
+  --brand:          #2563eb;
+  --brand-hover:    #1d4ed8;
+  --bg-base:        #eef4fb;
+  --bg-canvas:      #e3edf8;
+  --bg-surface:     #f3f8fd;
+  --fg-primary:     #1f2937;
+  --fg-secondary:   #4b5563;
+  --fg-muted:       #6b7280;
+  --border-default: #b8c7d9;
+  --border-subtle:  #cdd9e8;
+  --border-strong:  #7f92aa;
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -14,8 +24,8 @@ html, body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
-  color: #1f2937;
-  background: #eef4fb;
+  color: var(--fg-primary);
+  background: var(--bg-base);
 }
 
 .page-center {
@@ -24,37 +34,55 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  background: linear-gradient(160deg, var(--bg-base) 0%, var(--bg-canvas) 100%);
 }
 
 .card {
   width: 100%;
-  max-width: 24rem;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  padding: 1.75rem;
+  max-width: 26rem;
+  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 3px rgba(37, 99, 235, 0.06),
+    0 8px 24px -4px rgba(37, 99, 235, 0.10),
+    0 20px 40px -8px rgba(37, 99, 235, 0.08);
+  padding: 2.25rem 2rem;
 }
 .card-error { max-width: 32rem; }
 
-.card-header { text-align: center; margin-bottom: 1.25rem; }
-.brand-name { font-size: 1.5rem; font-weight: 700; color: var(--brand); margin: 0; }
-.brand-tagline { font-size: 0.875rem; color: #6b7280; margin: 0.25rem 0 0; }
+.card-header { text-align: center; margin-bottom: 1.75rem; }
+
+/* Daybook logo sizing inside card */
+.daybook-logo {
+  max-width: 200px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.brand-tagline { font-size: 0.875rem; color: var(--fg-muted); margin: 0.75rem 0 0; }
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0 0 1.5rem;
+}
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   width: 100%;
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
+  padding: 0.6875rem 1.25rem;
+  font-size: 0.9375rem;
   font-weight: 500;
-  border-radius: 0.5rem;
-  border: 2px solid transparent;
+  border-radius: 0.625rem;
+  border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
-  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   line-height: 1.4;
 }
 .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
@@ -63,12 +91,23 @@ html, body {
 .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
 .btn-primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
 
-.btn-outline { background: #fff; color: var(--brand); border-color: var(--brand); }
+.btn-outline { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
 .btn-outline:hover { background: var(--brand); color: #fff; }
-.btn-outline:hover .google-icon path { fill: #fff; }
 
-.btn-google { font-weight: 600; }
-.google-icon { width: 18px; height: 18px; }
+/* Google OAuth button — neutral white, keeps the colorful icon intact */
+.btn-google {
+  background: #ffffff;
+  color: var(--fg-secondary);
+  border-color: var(--border-default);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  font-weight: 500;
+}
+.btn-google:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10);
+}
+.google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 
 .alert { padding: 0.875rem 1rem; border-radius: 0.625rem; border: 1px solid; font-size: 0.875rem; margin-bottom: 1rem; }
 .alert-error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
@@ -77,7 +116,7 @@ html, body {
 .link { color: var(--brand); text-decoration: underline; background: none; border: none; cursor: pointer; font: inherit; padding: 0; }
 .link:hover { opacity: 0.75; }
 
-.terms-text { font-size: 0.75rem; color: #6b7280; text-align: center; margin: 1.25rem 0 0; }
+.terms-text { font-size: 0.75rem; color: var(--fg-muted); text-align: center; margin: 1.25rem 0 0; }
 
 .error-title { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
 .hint-title { display: block; margin-bottom: 0.25rem; }
@@ -86,7 +125,7 @@ html, body {
 .details-label { font-size: 0.8125rem; font-weight: 600; color: #374151; }
 .error-pre {
   background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-subtle);
   border-radius: 0.5rem;
   padding: 0.875rem;
   font-size: 0.8125rem;

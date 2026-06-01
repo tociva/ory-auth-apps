@@ -10,8 +10,7 @@ import { getAuthBaseUrl, getCorsOrigins } from "./config";
 import { getHumanHint, pickSafeDetails } from "./error-utils";
 import { acceptConsent, acceptLogin, acceptLogout } from "./handlers";
 import * as kratos from "./kratos-public";
-import { renderError } from "./views/error";
-import { renderLogin } from "./views/login";
+import { renderError, renderLogin } from "./views";
 
 function first(value: unknown): string | undefined {
   if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined;
