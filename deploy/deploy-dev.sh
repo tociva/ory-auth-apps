@@ -12,7 +12,7 @@
 # Usage:  ./deploy-dev.sh
 #
 set -euo pipefail
-cd "$(dirname "$0")"          # run from repo root regardless of cwd
+cd "$(dirname "$0")/.."       # script lives in deploy/, run from repo root
 
 # 1. stop backends
 pm2 stop 'ory-auth-dev' 2>/dev/null || true
