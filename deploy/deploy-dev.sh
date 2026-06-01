@@ -11,7 +11,7 @@
 #
 # Usage:  ./deploy-dev.sh
 #
-set -euo pipefail
+set -eu
 cd "$(dirname "$0")/.."       # script lives in deploy/, run from repo root
 
 # 1. stop backends
