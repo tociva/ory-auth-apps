@@ -37,6 +37,11 @@ cp -f ../ory.monorepo.env monorepo/.env
 docker compose up -d
 
 # 7. (re)start backends
-pm2 restart 'ory-auth-dev' 2>/dev/null || pm2 start monorepo/dist/apps/auth-backend/main.cjs --name 'ory-auth-dev'
-pm2 restart 'ory-admin-api-dev' 2>/dev/null || pm2 start monorepo/dist/apps/admin-backend/main.cjs --name 'ory-admin-api-dev'
+# Run from monorepo/ so the bundle's `dotenv/config` loads monorepo/.env
+# (KRATOS_PUBLIC_URL, AUTH_BASE_URL, ...). delete+start because pm2 restart
+# keeps the old working directory.
+MONO="$PWD/monorepo"
+pm2 delete 'ory-auth-dev' 'ory-admin-api-dev' 2>/dev/null || true
+pm2 start "$MONO/dist/apps/auth-backend/main.cjs"  --name 'ory-auth-dev'      --cwd "$MONO"
+pm2 start "$MONO/dist/apps/admin-backend/main.cjs" --name 'ory-admin-api-dev' --cwd "$MONO"
 pm2 save
