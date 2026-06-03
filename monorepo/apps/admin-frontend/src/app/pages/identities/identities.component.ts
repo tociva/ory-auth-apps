@@ -19,38 +19,8 @@ import {
   selector: "app-identities",
   standalone: true,
   imports: [RouterLink, TngTableComponent, TngTableCellTemplate, TngBadgeComponent, TngButtonComponent],
-  template: `
-    <div class="toolbar">
-      <div>
-        <h1 class="page-title">Identities</h1>
-        <p class="muted">{{ rows.length }} loaded</p>
-      </div>
-      <tng-button appearance="outline" size="sm" tone="neutral" (click)="reload()">Refresh</tng-button>
-    </div>
-
-    @if (error) {
-      <div class="alert alert-error">{{ error }}</div>
-    }
-
-    <tng-table
-      [columns]="columns"
-      [items]="rows"
-      [loading]="loading"
-      ariaLabel="Kratos identities"
-      density="comfortable"
-    >
-      <ng-template tngTableCellTemplate="role" let-row="row">
-        @if (roleOf(row)) {
-          <span tngBadge>admin</span>
-        } @else {
-          <span class="muted">user</span>
-        }
-      </ng-template>
-      <ng-template tngTableCellTemplate="actions" let-row="row">
-        <a class="cell-link" [routerLink]="['/identities', idOf(row)]">Manage</a>
-      </ng-template>
-    </tng-table>
-  `,
+  templateUrl: "./identities.component.html",
+  styleUrls: ["./identities.component.css"],
 })
 export class IdentitiesComponent implements OnInit {
   private readonly api = inject(AdminApiService);

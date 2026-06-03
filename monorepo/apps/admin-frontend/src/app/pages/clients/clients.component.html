@@ -1,0 +1,71 @@
+<div class="toolbar">
+  <div>
+    <h1 class="page-title">OAuth Clients</h1>
+    <p class="muted">{{ rows.length }} registered</p>
+  </div>
+  <tng-button appearance="outline" size="sm" tone="neutral" (click)="startCreate()">New client</tng-button>
+</div>
+
+@if (error) {
+  <div class="alert alert-error">{{ error }}</div>
+}
+@if (notice) {
+  <div class="alert alert-success">{{ notice }}</div>
+}
+
+<tng-table [columns]="columns" [items]="rows" [loading]="loading" ariaLabel="Hydra OAuth clients" density="comfortable">
+  <ng-template tngTableCellTemplate="actions" let-row="row">
+    <span class="row">
+      <a class="cell-link" href="#" (click)="startEdit(row); $event.preventDefault()">Edit</a>
+      <a class="cell-link" href="#" (click)="remove(idOf(row)); $event.preventDefault()">Delete</a>
+    </span>
+  </ng-template>
+</tng-table>
+
+<tng-card class="client-card">
+  <tng-card-header>
+    <tng-card-title>{{ editing ? "Edit client" : "Create client" }}</tng-card-title>
+  </tng-card-header>
+  <tng-card-content>
+    <div class="field-grid">
+      <tng-form-field>
+        <tng-label>Client ID</tng-label>
+        <tng-input name="client_id" [(ngModel)]="form.client_id" [readonly]="editing" placeholder="daybook-user-client" />
+      </tng-form-field>
+      <tng-form-field>
+        <tng-label>Client name</tng-label>
+        <tng-input name="client_name" [(ngModel)]="form.client_name" placeholder="Dev Daybook User Client" />
+      </tng-form-field>
+      <tng-form-field class="full">
+        <tng-label>Scope</tng-label>
+        <tng-input name="scope" [(ngModel)]="form.scope" />
+      </tng-form-field>
+      <tng-form-field class="full">
+        <tng-label>Redirect URIs (comma or newline separated)</tng-label>
+        <tng-input name="redirect_uris" [(ngModel)]="form.redirectUris" placeholder="https://app/callback" />
+      </tng-form-field>
+      <tng-form-field class="full">
+        <tng-label>Post-logout redirect URIs</tng-label>
+        <tng-input name="post_logout" [(ngModel)]="form.postLogoutUris" placeholder="https://app/logout" />
+      </tng-form-field>
+      <tng-form-field class="full">
+        <tng-label>Audience</tng-label>
+        <tng-input name="audience" [(ngModel)]="form.audience" placeholder="daybook.cloud-users" />
+      </tng-form-field>
+    </div>
+
+    <div class="row toggle-row">
+      <tng-switch [(checked)]="form.public" ariaLabel="Public SPA client (PKCE)"></tng-switch>
+      <span>Public SPA client — uses PKCE (<code>token_endpoint_auth_method=none</code>).</span>
+    </div>
+
+    <div class="row actions-row">
+      <tng-button appearance="solid" tone="primary" [disabled]="busy || !form.client_id" (click)="submit()">
+        {{ editing ? "Save changes" : "Create client" }}
+      </tng-button>
+      @if (editing) {
+        <tng-button appearance="outline" tone="neutral" [disabled]="busy" (click)="startCreate()">Cancel</tng-button>
+      }
+    </div>
+  </tng-card-content>
+</tng-card>

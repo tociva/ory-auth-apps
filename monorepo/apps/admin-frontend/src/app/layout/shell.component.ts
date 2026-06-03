@@ -8,30 +8,8 @@ import { ADMIN_CONFIG } from "../core/admin-config";
   selector: "app-shell",
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TngButtonComponent],
-  template: `
-    <div class="admin-shell">
-      <header class="admin-header">
-        <div class="row">
-          <span class="admin-brand">idnest.dev Admin</span>
-          <nav class="admin-nav">
-            <a routerLink="/identities" routerLinkActive="active">Identities</a>
-            <a routerLink="/clients" routerLinkActive="active">OAuth Clients</a>
-          </nav>
-        </div>
-        <div class="admin-user">
-          @if (email) {
-            <span>{{ email }}</span>
-          }
-          <tng-button appearance="outline" size="sm" tone="neutral" (click)="signOut()">
-            Sign out
-          </tng-button>
-        </div>
-      </header>
-      <main class="admin-main">
-        <router-outlet />
-      </main>
-    </div>
-  `,
+  templateUrl: "./shell.component.html",
+  styleUrls: ["./shell.component.css"],
 })
 export class ShellComponent implements OnInit {
   private readonly api = inject(AdminApiService);

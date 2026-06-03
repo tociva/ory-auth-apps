@@ -1,0 +1,99 @@
+<p><a class="cell-link" routerLink="/identities">&larr; Back to identities</a></p>
+
+@if (loading) {
+  <div class="row"><tng-progress-spinner /> <span class="muted">Loading…</span></div>
+} @else if (!identity) {
+  <div class="alert alert-error">{{ error || "Identity not found." }}</div>
+} @else {
+  @if (error) {
+    <div class="alert alert-error">{{ error }}</div>
+  }
+  @if (notice) {
+    <div class="alert alert-success">{{ notice }}</div>
+  }
+
+  <div class="stack">
+    <tng-card>
+      <tng-card-header>
+        <tng-card-title>{{ name }}</tng-card-title>
+      </tng-card-header>
+      <tng-card-content>
+        <div class="row">
+          <span class="muted">Email</span>
+          <span>{{ email || "—" }}</span>
+          @if (verified) {
+            <span tngBadge>verified</span>
+          } @else {
+            <span class="muted">unverified</span>
+          }
+        </div>
+        <tng-separator />
+        <div class="row"><span class="muted">State</span><span>{{ identity.state ?? "active" }}</span></div>
+        <div class="row"><span class="muted">ID</span><span class="muted">{{ identity.id }}</span></div>
+      </tng-card-content>
+    </tng-card>
+
+    <tng-card>
+      <tng-card-header>
+        <tng-card-title>Admin role</tng-card-title>
+      </tng-card-header>
+      <tng-card-content>
+        <div class="row">
+          <tng-switch
+            [checked]="admin"
+            [disabled]="busy"
+            ariaLabel="Toggle admin role"
+            (checkedChange)="onToggleRole($event)"
+          ></tng-switch>
+          <span>{{ admin ? "This user is an administrator." : "Standard user." }}</span>
+        </div>
+        <p class="muted">
+          Backed by Kratos <code>metadata_admin.role</code> — the runtime source of truth.
+        </p>
+      </tng-card-content>
+    </tng-card>
+
+    <tng-card>
+      <tng-card-header>
+        <tng-card-title>Sessions</tng-card-title>
+      </tng-card-header>
+      <tng-card-content>
+        <div class="toolbar">
+          <span class="muted">{{ sessions.length }} active</span>
+          <tng-button size="sm" appearance="outline" tone="danger" [disabled]="busy || !sessions.length" (click)="revokeAll()">
+            Revoke all
+          </tng-button>
+        </div>
+        @for (s of sessions; track s.id) {
+          <div class="row session-row">
+            <div>
+              <div class="muted">{{ s.id }}</div>
+              <div class="muted">expires: {{ s.expires_at || "—" }}</div>
+            </div>
+            <tng-button size="sm" appearance="outline" tone="danger" [disabled]="busy" (click)="revokeOne(s.id)">
+              Revoke
+            </tng-button>
+          </div>
+        } @empty {
+          <p class="muted">No active sessions.</p>
+        }
+      </tng-card-content>
+    </tng-card>
+
+    <tng-card>
+      <tng-card-header>
+        <tng-card-title>Danger zone</tng-card-title>
+      </tng-card-header>
+      <tng-card-content>
+        <div class="row">
+          <tng-button appearance="outline" tone="neutral" [disabled]="busy" (click)="deactivate()">
+            Deactivate
+          </tng-button>
+          <tng-button appearance="solid" tone="danger" [disabled]="busy" (click)="remove()">
+            Delete identity
+          </tng-button>
+        </div>
+      </tng-card-content>
+    </tng-card>
+  </div>
+}
