@@ -307,3 +307,9 @@ For the full architecture, per-variable wiring tables, the server-rendered auth
 flow, raw OAuth URLs, debug commands, and security notes, see
 [`docs/README-detailed.md`](docs/README-detailed.md) and
 [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md).
+
+## 11. Clear google account to start the whole login flow
+```
+1. Go to https://myaccount.google.com/connections
+2. Delete all connections you have with <app name>
+```

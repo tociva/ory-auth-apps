@@ -1,0 +1,4 @@
+{
+  "adminBackendUrl": "${ADMIN_BACKEND_URL}",
+  "authLoginUrl": "${AUTH_LOGIN_URL}"
+}
