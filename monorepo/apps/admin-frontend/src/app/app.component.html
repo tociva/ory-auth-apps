@@ -1,1 +1,9 @@
+@if (showTopProgress()) {
+  <div class="app-top-progress" aria-hidden="true">
+    <span class="app-top-progress__bar"></span>
+  </div>
+}
+
 <router-outlet />
+
+<tng-toast #toast position="bottom-right" />

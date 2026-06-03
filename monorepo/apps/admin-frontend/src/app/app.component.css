@@ -1,1 +1,33 @@
+:host {
+  display: block;
+}
 
+.app-top-progress {
+  background: transparent;
+  height: 3px;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 1200;
+}
+
+.app-top-progress__bar {
+  animation: app-top-progress-indeterminate 1.3s ease-in-out infinite;
+  background: var(--tng-semantic-accent-brand);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--tng-semantic-accent-brand) 55%, transparent);
+  display: block;
+  height: 100%;
+  width: 42%;
+}
+
+@keyframes app-top-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}

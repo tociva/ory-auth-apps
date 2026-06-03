@@ -1,0 +1,25 @@
+<tng-button
+  type="button"
+  appearance="outline"
+  tone="neutral"
+  size="sm"
+  class="admin-search-trigger"
+  aria-label="Open search"
+  (click)="openPalette()"
+  (keydown)="onSearchBtnKeydown($event)"
+>
+  <tng-icon icon="search" class="admin-search-trigger__icon"></tng-icon>
+  <span>Search</span>
+  <kbd class="admin-search-trigger__shortcut">{{ searchShortcutHint }}</kbd>
+</tng-button>
+
+<tng-command-palette
+  class="admin-search-overlay"
+  [open]="open()"
+  [query]="query()"
+  [options]="results()"
+  placeholder="Search admin..."
+  (openChange)="open.set($event)"
+  (queryChange)="query.set($event)"
+  (optionSelect)="onOptionSelect($event)"
+/>

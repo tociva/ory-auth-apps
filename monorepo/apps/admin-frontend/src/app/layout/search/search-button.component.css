@@ -1,0 +1,41 @@
+:host {
+  display: contents;
+}
+
+.admin-search-trigger {
+  --tng-button-justify: space-between;
+  --tng-button-min-width: 10rem;
+  --tng-button-width: 100%;
+  color: var(--tng-semantic-foreground-secondary);
+  display: none;
+  gap: 0.5rem;
+}
+
+.admin-search-trigger:hover {
+  color: var(--tng-semantic-foreground-primary);
+}
+
+@media (min-width: 640px) {
+  .admin-search-trigger {
+    display: inline-flex;
+  }
+}
+
+.admin-search-trigger__icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.admin-search-trigger__shortcut {
+  border: 1px solid var(--tng-semantic-border-subtle);
+  border-radius: 0.375rem;
+  color: var(--tng-semantic-foreground-muted);
+  font: inherit;
+  font-size: 0.68rem;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+}
+
+.admin-search-overlay {
+  --tng-z-overlay: 1200;
+}

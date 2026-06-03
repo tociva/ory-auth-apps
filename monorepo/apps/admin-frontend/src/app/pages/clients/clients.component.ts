@@ -16,6 +16,7 @@ import {
 } from "@tailng-ui/components";
 import { AdminApiService, describeError } from "../../core/admin-api.service";
 import type { ClientFormValue, HydraClient } from "../../core/admin-types";
+import { ToastService } from "../../core/toast/toast.service";
 
 interface ClientForm {
   client_id: string;
@@ -65,6 +66,7 @@ const splitList = (value: string): string[] =>
 })
 export class ClientsComponent implements OnInit {
   private readonly api = inject(AdminApiService);
+  private readonly toast = inject(ToastService);
 
   rows: HydraClient[] = [];
   loading = true;
@@ -96,6 +98,7 @@ export class ClientsComponent implements OnInit {
       this.rows = await this.api.listClients();
     } catch (e) {
       this.error = describeError(e);
+      this.toast.danger(this.error);
     } finally {
       this.loading = false;
     }
@@ -149,14 +152,17 @@ export class ClientsComponent implements OnInit {
       if (this.editing) {
         await this.api.updateClient(payload);
         this.notice = `Client "${payload.client_id}" updated.`;
+        this.toast.success(this.notice);
       } else {
         await this.api.createClient(payload);
         this.notice = `Client "${payload.client_id}" created.`;
+        this.toast.success(this.notice);
       }
       this.startCreate();
       await this.reload();
     } catch (e) {
       this.error = describeError(e);
+      this.toast.danger(this.error);
     } finally {
       this.busy = false;
     }
@@ -170,9 +176,11 @@ export class ClientsComponent implements OnInit {
     try {
       await this.api.deleteClient(clientId);
       this.notice = `Client "${clientId}" deleted.`;
+      this.toast.success(this.notice);
       await this.reload();
     } catch (e) {
       this.error = describeError(e);
+      this.toast.danger(this.error);
     } finally {
       this.busy = false;
     }

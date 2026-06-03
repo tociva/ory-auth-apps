@@ -12,6 +12,7 @@ import {
   TngSwitchComponent,
 } from "@tailng-ui/components";
 import { AdminApiService, describeError } from "../../core/admin-api.service";
+import { ToastService } from "../../core/toast/toast.service";
 import {
   type AdminIdentity,
   identityEmail,
@@ -43,6 +44,7 @@ export class IdentityDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(AdminApiService);
+  private readonly toast = inject(ToastService);
 
   identity: AdminIdentity | null = null;
   sessions: KratosSession[] = [];
@@ -96,6 +98,7 @@ export class IdentityDetailComponent implements OnInit {
     await this.run(async () => {
       this.identity = await this.api.setAdminRole(this.id, next);
       this.notice = next ? "Admin role granted." : "Admin role revoked.";
+      this.toast.success(this.notice);
     });
   }
 
@@ -103,6 +106,7 @@ export class IdentityDetailComponent implements OnInit {
     await this.run(async () => {
       this.identity = await this.api.deactivateIdentity(this.id);
       this.notice = "Identity deactivated.";
+      this.toast.success(this.notice);
     });
   }
 
@@ -110,6 +114,7 @@ export class IdentityDetailComponent implements OnInit {
     if (!window.confirm("Permanently delete this identity? This cannot be undone.")) return;
     await this.run(async () => {
       await this.api.deleteIdentity(this.id);
+      this.toast.success("Identity deleted.");
       await this.router.navigate(["/identities"]);
     });
   }
@@ -119,6 +124,7 @@ export class IdentityDetailComponent implements OnInit {
       await this.api.revokeSession(sessionId);
       await this.loadSessions();
       this.notice = "Session revoked.";
+      this.toast.success(this.notice);
     });
   }
 
@@ -127,6 +133,7 @@ export class IdentityDetailComponent implements OnInit {
       await this.api.revokeIdentitySessions(this.id);
       await this.loadSessions();
       this.notice = "All sessions revoked.";
+      this.toast.success(this.notice);
     });
   }
 
@@ -138,6 +145,7 @@ export class IdentityDetailComponent implements OnInit {
       await fn();
     } catch (e) {
       this.error = describeError(e);
+      this.toast.danger(this.error);
     } finally {
       this.busy = false;
     }

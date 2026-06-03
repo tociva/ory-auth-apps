@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Identities",
+    "description": "View and manage Kratos user identities, roles, and sessions",
+    "keywords": ["users", "kratos", "identity", "accounts", "roles", "sessions"],
+    "url": "/identities"
+  },
+  {
+    "title": "OAuth Clients",
+    "description": "Manage Hydra OAuth 2.0 client applications",
+    "keywords": ["oauth", "clients", "hydra", "applications", "apps", "oidc"],
+    "url": "/clients"
+  },
+  {
+    "title": "New OAuth Client",
+    "description": "Create a new Hydra OAuth 2.0 client application",
+    "keywords": ["new", "create", "add", "oauth", "client", "hydra"],
+    "url": "/clients?new=1"
+  }
+]

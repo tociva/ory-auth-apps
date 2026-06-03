@@ -1,22 +1,147 @@
-<div class="admin-shell">
-  <header class="admin-header">
-    <div class="row">
-      <span class="admin-brand">idnest.dev Admin</span>
-      <nav class="admin-nav">
-        <a routerLink="/identities" routerLinkActive="active">Identities</a>
-        <a routerLink="/clients" routerLinkActive="active">OAuth Clients</a>
-      </nav>
+<div class="admin-shell" [class.drawer-collapsed]="drawerCollapsed">
+  <aside id="admin-drawer" class="admin-drawer" aria-label="Admin navigation">
+    <div class="drawer-brand">
+      <div class="brand-mark" aria-hidden="true">
+        <tng-icon icon="shield-check" />
+      </div>
+      <div class="brand-copy">
+        <span class="brand-name">idnest</span>
+        <span class="brand-subtitle">Admin Console</span>
+      </div>
     </div>
-    <div class="admin-user">
-      @if (email) {
-        <span>{{ email }}</span>
-      }
-      <tng-button appearance="outline" size="sm" tone="neutral" (click)="signOut()">
-        Sign out
-      </tng-button>
+
+    <tng-separator decorative />
+
+    <nav class="drawer-menu" aria-label="Primary">
+      <tng-accordion
+        class="drawer-accordion"
+        tabindex="-1"
+        [type]="'multiple'"
+        [defaultValue]="defaultExpandedGroups"
+        [collapsible]="true"
+        ariaLabel="Admin navigation groups"
+      >
+        @for (group of navGroups; track group.key) {
+          <tng-accordion-item [value]="group.key">
+            <tng-accordion-trigger>
+              <span class="drawer-group-trigger">
+                <span class="drawer-group-copy">
+                  <span class="drawer-group-label">{{ group.label }}</span>
+                  <span class="drawer-group-subtitle drawer-link-copy">{{ group.subtitle }}</span>
+                </span>
+              </span>
+            </tng-accordion-trigger>
+
+            <tng-accordion-panel class="drawer-group-panel">
+              <tng-listbox
+                class="drawer-group-listbox"
+                [ariaLabel]="group.label + ' links'"
+                [options]="group.children"
+                [getOptionValue]="getChildValue"
+                [getOptionLabel]="getChildLabel"
+                [value]="activeGroupPaths().get(group.key) ?? null"
+                [typeahead]="false"
+                [loop]="true"
+                (valueChange)="onNavValueChange($event)"
+              >
+                <ng-template #tngListboxOptionTpl let-ctx>
+                  <span class="drawer-option-label">{{ ctx.label }}</span>
+                  @if (ctx.selected) {
+                    <tng-icon icon="chevron-right" class="drawer-option-icon" />
+                  }
+                </ng-template>
+              </tng-listbox>
+            </tng-accordion-panel>
+          </tng-accordion-item>
+        }
+      </tng-accordion>
+    </nav>
+
+    <div class="drawer-footer">
+      <span tngBadge>dev</span>
+      <span class="drawer-footer-text">Protected by Kratos session policy</span>
     </div>
-  </header>
-  <main class="admin-main">
-    <router-outlet />
-  </main>
+  </aside>
+
+  <div class="admin-workspace">
+    <header class="admin-header">
+      <div class="header-left">
+        <tng-button
+          appearance="ghost"
+          size="sm"
+          tone="neutral"
+          [ariaExpanded]="!drawerCollapsed"
+          ariaControls="admin-drawer"
+          (click)="toggleDrawer()"
+        >
+          <tng-icon [icon]="drawerCollapsed ? 'panel-left-open' : 'panel-left-close'" />
+        </tng-button>
+        <div class="header-title">
+          <span class="eyebrow">Security administration</span>
+          <h1>{{ pageTitle }}</h1>
+        </div>
+      </div>
+
+      <app-search-button class="header-search" />
+
+      <div class="header-actions">
+        <!-- Theme selector -->
+        <tng-select
+          class="header-theme-select"
+          [value]="themeService.themeName()"
+          [options]="themeOptions"
+          (valueChange)="onThemeChange($event)"
+        />
+
+        <!-- Light / Dark mode toggle -->
+        <div class="header-mode-toggle" role="group" aria-label="Color mode">
+          <tng-button
+            size="sm"
+            [appearance]="!themeService.darkMode() ? 'solid' : 'ghost'"
+            tone="neutral"
+            ariaLabel="Light mode"
+            (click)="onModeChange(false)"
+          >
+            <tng-icon icon="sun" />
+          </tng-button>
+          <tng-button
+            size="sm"
+            [appearance]="themeService.darkMode() ? 'solid' : 'ghost'"
+            tone="neutral"
+            ariaLabel="Dark mode"
+            (click)="onModeChange(true)"
+          >
+            <tng-icon icon="moon" />
+          </tng-button>
+        </div>
+
+        <!-- Profile menu -->
+        @if (displayName) {
+          <div class="admin-profile">
+            <button
+              class="profile-trigger"
+              type="button"
+              [tngMenuTriggerFor]="profileMenu"
+            >
+              <tng-avatar [fallback]="displayName" size="sm" />
+              <span class="profile-trigger-name">{{ displayName }}</span>
+            </button>
+
+            <tng-menu
+              #profileMenu="tngMenu"
+              ariaLabel="Account options"
+              (tngMenuSelect)="onProfileMenuSelect($event)"
+            >
+              <div tngMenuGroupLabel>Session</div>
+              <button type="button" tngMenuItem tngMenuItemValue="logout">Logout</button>
+            </tng-menu>
+          </div>
+        }
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <router-outlet />
+    </main>
+  </div>
 </div>

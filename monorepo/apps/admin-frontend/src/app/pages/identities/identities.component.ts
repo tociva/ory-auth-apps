@@ -8,6 +8,7 @@ import {
   type TngTableColumn,
 } from "@tailng-ui/components";
 import { AdminApiService, describeError } from "../../core/admin-api.service";
+import { ToastService } from "../../core/toast/toast.service";
 import {
   type AdminIdentity,
   identityEmail,
@@ -24,6 +25,7 @@ import {
 })
 export class IdentitiesComponent implements OnInit {
   private readonly api = inject(AdminApiService);
+  private readonly toast = inject(ToastService);
 
   rows: AdminIdentity[] = [];
   loading = true;
@@ -48,6 +50,7 @@ export class IdentitiesComponent implements OnInit {
       this.rows = await this.api.listIdentities();
     } catch (e) {
       this.error = describeError(e);
+      this.toast.danger(this.error);
     } finally {
       this.loading = false;
     }

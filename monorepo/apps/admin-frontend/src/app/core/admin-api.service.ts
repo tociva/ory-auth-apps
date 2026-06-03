@@ -2,6 +2,7 @@ import { HttpClient, type HttpErrorResponse } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { ADMIN_CONFIG } from "./admin-config";
+import { ProgressService } from "./progress/progress.service";
 import type {
   AdminIdentity,
   AdminMe,
@@ -19,14 +20,27 @@ import type {
 export class AdminApiService {
   private readonly http = inject(HttpClient);
   private readonly config = inject(ADMIN_CONFIG);
+  private readonly progress = inject(ProgressService);
   private csrfToken = "";
 
   private base(): string {
     return `${this.config.adminBackendUrl}/admin`;
   }
 
+  /** Wraps an async operation with the top-bar progress indicator. */
+  private async withProgress<T>(fn: () => Promise<T>): Promise<T> {
+    this.progress.show();
+    try {
+      return await fn();
+    } finally {
+      this.progress.hideOne();
+    }
+  }
+
   private get<T>(path: string): Promise<T> {
-    return firstValueFrom(this.http.get<T>(`${this.base()}${path}`, { withCredentials: true }));
+    return this.withProgress(() =>
+      firstValueFrom(this.http.get<T>(`${this.base()}${path}`, { withCredentials: true })),
+    );
   }
 
   private async unsafeHeaders(): Promise<Record<string, string>> {
@@ -35,30 +49,30 @@ export class AdminApiService {
   }
 
   private async post<T>(path: string, body: unknown = {}): Promise<T> {
-    return firstValueFrom(
-      this.http.post<T>(`${this.base()}${path}`, body, {
-        headers: await this.unsafeHeaders(),
-        withCredentials: true,
-      }),
-    );
+    return this.withProgress(async () => {
+      const headers = await this.unsafeHeaders();
+      return firstValueFrom(
+        this.http.post<T>(`${this.base()}${path}`, body, { headers, withCredentials: true }),
+      );
+    });
   }
 
   private async put<T>(path: string, body: unknown): Promise<T> {
-    return firstValueFrom(
-      this.http.put<T>(`${this.base()}${path}`, body, {
-        headers: await this.unsafeHeaders(),
-        withCredentials: true,
-      }),
-    );
+    return this.withProgress(async () => {
+      const headers = await this.unsafeHeaders();
+      return firstValueFrom(
+        this.http.put<T>(`${this.base()}${path}`, body, { headers, withCredentials: true }),
+      );
+    });
   }
 
   private async delete<T>(path: string): Promise<T> {
-    return firstValueFrom(
-      this.http.delete<T>(`${this.base()}${path}`, {
-        headers: await this.unsafeHeaders(),
-        withCredentials: true,
-      }),
-    );
+    return this.withProgress(async () => {
+      const headers = await this.unsafeHeaders();
+      return firstValueFrom(
+        this.http.delete<T>(`${this.base()}${path}`, { headers, withCredentials: true }),
+      );
+    });
   }
 
   // --- Authorization probe ---
