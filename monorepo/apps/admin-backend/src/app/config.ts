@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 /**
  * Server-side configuration for the admin API.
  *
@@ -24,12 +26,18 @@ export const getKratosInternalUrl = (): string =>
 
 export const getPort = (): number => Number(process.env.ADMIN_BACKEND_PORT ?? 4100);
 
-/** Comma-separated allowlist of browser origins permitted to call this API. */
-export const getCorsOrigins = (): string[] =>
-  (process.env.CORS_ALLOWED_ORIGINS ?? "")
+/** Comma-separated allowlist of browser origins permitted to call the admin API. */
+export const getAdminCorsOrigins = (): string[] =>
+  (process.env.ADMIN_CORS_ALLOWED_ORIGINS ?? "")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+
+const fallbackCsrfSecret = randomUUID();
+
+/** Secret used to sign stateless admin CSRF tokens. */
+export const getAdminCsrfSecret = (): string =>
+  process.env.ADMIN_CSRF_SECRET ?? process.env.KRATOS_CSRF_COOKIE_SECRET ?? fallbackCsrfSecret;
 
 /**
  * Bootstrap admin emails (1-2 expected), normalized to lowercase + trimmed.

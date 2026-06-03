@@ -1,4 +1,6 @@
 import { Router, type Request, type Response } from "express";
+import { getAdminCsrfSecret } from "./config";
+import { createCsrfToken, requireAdminCsrf } from "./auth/csrf";
 import { requireAdmin, type AuthedRequest } from "./auth/middleware";
 import {
   createClient,
@@ -39,8 +41,17 @@ export function createAdminRouter(): Router {
 
   // --- Authorization probe (reaching here means requireAdmin passed) ---
   router.get("/me", (req: AuthedRequest, res: Response) => {
-    res.json({ email: req.adminEmail, identity: req.adminIdentity });
+    res.json({
+      email: req.adminEmail,
+      identity: req.adminIdentity,
+      csrfToken:
+        req.adminIdentity && req.adminEmail
+          ? createCsrfToken(req.adminIdentity, req.adminEmail, getAdminCsrfSecret())
+          : undefined,
+    });
   });
+
+  router.use(requireAdminCsrf());
 
   // --- Identities ---
   router.get(

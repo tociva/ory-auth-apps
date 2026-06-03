@@ -92,8 +92,8 @@ Two env files with different consumers:
 **`monorepo/.env`** (copy from `monorepo/.env.example`) — consumed by the
 backends:
 `HYDRA_ADMIN_URL`, `KRATOS_ADMIN_URL`, `KRATOS_PUBLIC_URL`, `AUTH_BASE_URL`,
-`AUTH_BACKEND_PORT`, `ADMIN_BACKEND_PORT`, `CORS_ALLOWED_ORIGINS`,
-`ADMIN_BOOTSTRAP_EMAILS`.
+`AUTH_BACKEND_PORT`, `ADMIN_BACKEND_PORT`, `ADMIN_CORS_ALLOWED_ORIGINS`,
+`ADMIN_CSRF_SECRET`, `ADMIN_BOOTSTRAP_EMAILS`.
 
 ```bash
 cd monorepo && cp .env.example .env   # then fill in values

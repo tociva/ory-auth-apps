@@ -37,6 +37,8 @@ export interface KratosSession {
 export interface AuthorizeConfig {
   /** Public Kratos base URL (no trailing slash needed). */
   kratosPublicUrl: string;
+  /** Admin Kratos base URL (no trailing slash needed). */
+  kratosAdminUrl: string;
   /** Bootstrap admin emails, already normalized (lowercase + trimmed). */
   bootstrapAdminEmails: string[];
 }
@@ -85,7 +87,24 @@ export async function authorize(
     return { ok: false, status: 401, error: "Inactive or invalid session" };
   }
 
-  const identity = session.identity;
+  const sessionIdentity = session.identity;
+  let identityRes: Response;
+  try {
+    identityRes = await fetch(
+      `${cfg.kratosAdminUrl.replace(/\/+$/, "")}/identities/${encodeURIComponent(sessionIdentity.id)}`,
+    );
+  } catch {
+    return { ok: false, status: 401, error: "Identity lookup failed" };
+  }
+  if (!identityRes.ok) {
+    return { ok: false, status: 401, error: "Identity lookup failed" };
+  }
+
+  const identity = (await identityRes.json().catch(() => null)) as AdminIdentity | null;
+  if (!isKratosUser(identity) || identity.id !== sessionIdentity.id) {
+    return { ok: false, status: 401, error: "Invalid identity" };
+  }
+
   const email = normalizeEmail(String(identity.traits?.email ?? ""));
   if (!email) {
     return { ok: false, status: 403, error: "Identity has no email" };

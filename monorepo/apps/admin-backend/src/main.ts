@@ -1,16 +1,16 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { getCorsOrigins, getPort } from "./app/config";
+import { getAdminCorsOrigins, getPort } from "./app/config";
 import { createAdminRouter } from "./app/routes";
 
 function createServer() {
   const app = express();
-  const allowedOrigins = getCorsOrigins();
+  const allowedOrigins = getAdminCorsOrigins();
 
   app.use(
     cors({
-      origin: allowedOrigins.length ? allowedOrigins : true,
+      origin: allowedOrigins,
       credentials: true,
     }),
   );

@@ -20,6 +20,7 @@ export interface AdminIdentity extends KratosUser {
 export interface AdminMe {
   email: string;
   identity: AdminIdentity;
+  csrfToken: string;
 }
 
 /** A Hydra OAuth client (subset the console reads/writes). */

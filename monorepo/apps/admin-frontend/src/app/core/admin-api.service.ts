@@ -19,6 +19,7 @@ import type {
 export class AdminApiService {
   private readonly http = inject(HttpClient);
   private readonly config = inject(ADMIN_CONFIG);
+  private csrfToken = "";
 
   private base(): string {
     return `${this.config.adminBackendUrl}/admin`;
@@ -28,25 +29,44 @@ export class AdminApiService {
     return firstValueFrom(this.http.get<T>(`${this.base()}${path}`, { withCredentials: true }));
   }
 
-  private post<T>(path: string, body: unknown = {}): Promise<T> {
+  private async unsafeHeaders(): Promise<Record<string, string>> {
+    if (!this.csrfToken) await this.me();
+    return { "X-Admin-CSRF": this.csrfToken };
+  }
+
+  private async post<T>(path: string, body: unknown = {}): Promise<T> {
     return firstValueFrom(
-      this.http.post<T>(`${this.base()}${path}`, body, { withCredentials: true }),
+      this.http.post<T>(`${this.base()}${path}`, body, {
+        headers: await this.unsafeHeaders(),
+        withCredentials: true,
+      }),
     );
   }
 
-  private put<T>(path: string, body: unknown): Promise<T> {
+  private async put<T>(path: string, body: unknown): Promise<T> {
     return firstValueFrom(
-      this.http.put<T>(`${this.base()}${path}`, body, { withCredentials: true }),
+      this.http.put<T>(`${this.base()}${path}`, body, {
+        headers: await this.unsafeHeaders(),
+        withCredentials: true,
+      }),
     );
   }
 
-  private delete<T>(path: string): Promise<T> {
-    return firstValueFrom(this.http.delete<T>(`${this.base()}${path}`, { withCredentials: true }));
+  private async delete<T>(path: string): Promise<T> {
+    return firstValueFrom(
+      this.http.delete<T>(`${this.base()}${path}`, {
+        headers: await this.unsafeHeaders(),
+        withCredentials: true,
+      }),
+    );
   }
 
   // --- Authorization probe ---
   me(): Promise<AdminMe> {
-    return this.get<AdminMe>("/me");
+    return this.get<AdminMe>("/me").then((me) => {
+      this.csrfToken = me.csrfToken;
+      return me;
+    });
   }
 
   // --- Identities ---

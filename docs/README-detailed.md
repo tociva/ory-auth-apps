@@ -262,7 +262,8 @@ AUTH_BASE_URL=https://auth-local.idnest.cloud
 
 AUTH_BACKEND_PORT=4000
 ADMIN_BACKEND_PORT=4100
-CORS_ALLOWED_ORIGINS=https://admin-local.idnest.cloud,https://app-local.daybook.cloud
+ADMIN_CORS_ALLOWED_ORIGINS=https://admin-local.idnest.cloud
+ADMIN_CSRF_SECRET=<random_32+_char_secret>
 ADMIN_BOOTSTRAP_EMAILS=you@example.com
 ```
 
