@@ -1,6 +1,6 @@
 // Requires Node.js 18+ for built-in fetch.
 const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL || 'http://localhost:4445';
-const CLIENT_ID = "dev.daybook.cloud-user-client";
+const CLIENT_ID = "daybook.cloud-user-client";
 
 const CLIENT_PAYLOAD = {
   client_id: CLIENT_ID,
@@ -8,15 +8,13 @@ const CLIENT_PAYLOAD = {
   response_types: ["code"],
   scope: "openid profile email offline_access",
   redirect_uris: [
-    "https://app-dev.daybook.cloud/auth/callback",
-    "https://app-local.daybook.cloud/auth/callback",
+    "https://app.daybook.cloud/auth/callback"
   ],
   post_logout_redirect_uris: [
-    "https://app-dev.daybook.cloud/auth/logout",
-    "https://app-local.daybook.cloud/auth/logout",
+    "https://app.daybook.cloud/auth/logout"
   ],
   token_endpoint_auth_method: "none",
-  client_name: "Dev Daybook User Client",
+  client_name: "Daybook User Client",
   audience: ["daybook.cloud-users"],
 };
 

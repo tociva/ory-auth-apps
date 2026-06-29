@@ -180,6 +180,13 @@ pnpm auth-backend:serve     # :4000
 pnpm admin-backend:serve    # :4100  (optional)
 pnpm admin-frontend:serve   # :4501  (optional)
 ```
+```sh
+cd xxx/monorepo
+nvm use 22
+pm2 start pnpm \
+  --name idnest-auth-backend \
+  -- auth-backend:serve
+```
 
 Start the daybook **product** apps (backend `:3001`, frontend `:5173`) from their
 own repo.
