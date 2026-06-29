@@ -1,6 +1,6 @@
 // Requires Node.js 18+ for built-in fetch.
 const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL || 'http://localhost:4445';
-const CLIENT_ID = "daybook.cloud-user-client";
+const CLIENT_ID = "daybook-user-client";
 
 const CLIENT_PAYLOAD = {
   client_id: CLIENT_ID,
