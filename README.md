@@ -144,7 +144,7 @@ sudo mkcert -cert-file local.idnest.cloud.pem -key-file local.idnest.cloud-key.p
   admin-api-local.idnest.cloud admin-local.idnest.cloud
 
 sudo mkcert -cert-file local.daybook.cloud.pem -key-file local.daybook.cloud-key.pem \
-  api-local.daybook.cloud app-local.daybook.cloud
+  api-local.daybook.cloud app-local.daybook.cloud admin-local.daybook.cloud
 
 # Below section for both idnest and daybook confs
 sudo chown -R $(whoami):admin /opt/homebrew/etc/nginx/ssl

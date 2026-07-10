@@ -1,0 +1,116 @@
+:host {
+  display: block;
+}
+
+.table-shell {
+  background: var(--tng-semantic-background-surface, #fff);
+  border: 1px solid var(--tng-semantic-border-subtle, #dbe3ea);
+  border-radius: 0.65rem;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.clients-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--tng-semantic-foreground-primary, #1f2937);
+  font-size: 0.875rem;
+  min-width: 760px;
+  width: 100%;
+}
+
+.clients-table th,
+.clients-table td {
+  border-bottom: 1px solid var(--tng-semantic-border-subtle, #dbe3ea);
+  line-height: 1.35;
+  padding: 0.75rem 0.9rem;
+  text-align: start;
+  vertical-align: middle;
+}
+
+.clients-table th {
+  background: color-mix(
+    in srgb,
+    var(--tng-semantic-background-surface, #fff) 84%,
+    var(--tng-semantic-background-base, #eef4fb) 16%
+  );
+  color: var(--tng-semantic-foreground-secondary, #4b5563);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.clients-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.client-row {
+  cursor: pointer;
+  outline: none;
+}
+
+.client-row:hover td {
+  background: color-mix(
+    in srgb,
+    var(--tng-semantic-foreground-primary, #1f2937) 4%,
+    var(--tng-semantic-background-surface, #fff)
+  );
+}
+
+.client-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.client-id {
+  color: var(--tng-semantic-accent-brand, var(--brand));
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.client-id:hover {
+  text-decoration: underline;
+}
+
+.client-name {
+  color: var(--tng-semantic-foreground-secondary, #4b5563);
+  font-size: 0.8125rem;
+}
+
+.auth-method {
+  white-space: nowrap;
+}
+
+.text-clip {
+  display: block;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions-column,
+.actions-cell {
+  text-align: end;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.state-row td {
+  color: var(--tng-semantic-foreground-muted, #6b7280);
+  height: 3.5rem;
+  text-align: center;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

@@ -12,8 +12,73 @@
   <div class="alert alert-error">{{ error }}</div>
 }
 
-<tng-table [columns]="columns" [items]="rows" [loading]="loading" ariaLabel="Hydra OAuth clients" density="comfortable">
-  <ng-template tngTableCellTemplate="actions" let-row="row">
-    <a class="cell-link" [routerLink]="['/clients', idOf(row)]">Manage</a>
-  </ng-template>
-</tng-table>
+<div class="table-shell" [attr.aria-busy]="loading ? 'true' : null">
+  <table class="clients-table">
+    <caption class="sr-only">
+      Hydra OAuth clients
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Client</th>
+        <th scope="col">Auth method</th>
+        <th scope="col">Redirect URIs</th>
+        <th scope="col">Scopes</th>
+        <th class="actions-column" scope="col">
+          <span class="sr-only">Actions</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading) {
+        <tr class="state-row">
+          <td colspan="5">Loading clients</td>
+        </tr>
+      } @else if (error) {
+        <tr class="state-row">
+          <td colspan="5">Unable to load clients</td>
+        </tr>
+      } @else if (rows.length === 0) {
+        <tr class="state-row">
+          <td colspan="5">No OAuth clients found</td>
+        </tr>
+      } @else {
+        @for (client of rows; track client.client_id) {
+          <tr
+            class="client-row"
+            [attr.title]="'Open ' + clientLabel(client)"
+            (click)="openClientFromPointer($event, client)"
+          >
+            <td>
+              <div class="client-cell">
+                <a class="client-id" [routerLink]="['/clients', client.client_id]">
+                  {{ client.client_id }}
+                </a>
+                @if (client.client_name) {
+                  <span class="client-name">{{ client.client_name }}</span>
+                } @else {
+                  <span class="muted">No display name</span>
+                }
+              </div>
+            </td>
+            <td>
+              <span class="auth-method">{{ authMethodLabel(client) }}</span>
+            </td>
+            <td>
+              <span class="text-clip" [attr.title]="redirectUriTitle(client)">
+                {{ redirectUriSummary(client) }}
+              </span>
+            </td>
+            <td>
+              <span class="text-clip" [attr.title]="scopeSummary(client)">
+                {{ scopeSummary(client) }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <a class="cell-link" [routerLink]="['/clients', client.client_id]">Manage</a>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

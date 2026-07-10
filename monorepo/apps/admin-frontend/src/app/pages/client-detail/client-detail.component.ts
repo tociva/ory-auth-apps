@@ -2,6 +2,7 @@ import { Component, inject, type OnInit } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import {
+  TngInputAngularFormsAdapter,
   TngButtonComponent,
   TngCardComponent,
   TngCardContentComponent,
@@ -49,6 +50,7 @@ const splitList = (value: string): string[] =>
   imports: [
     FormsModule,
     RouterLink,
+    TngInputAngularFormsAdapter,
     TngButtonComponent,
     TngCardComponent,
     TngCardContentComponent,

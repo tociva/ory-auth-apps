@@ -20,6 +20,7 @@
           <tng-form-field>
             <tng-label>Client ID</tng-label>
             <tng-input
+              tngAngularForms
               name="client_id"
               [(ngModel)]="form.client_id"
               [readonly]="!createMode"
@@ -29,6 +30,7 @@
           <tng-form-field>
             <tng-label>Client name</tng-label>
             <tng-input
+              tngAngularForms
               name="client_name"
               [(ngModel)]="form.client_name"
               placeholder="Dev Daybook User Client"
@@ -36,11 +38,12 @@
           </tng-form-field>
           <tng-form-field class="full">
             <tng-label>Scope</tng-label>
-            <tng-input name="scope" [(ngModel)]="form.scope" />
+            <tng-input tngAngularForms name="scope" [(ngModel)]="form.scope" />
           </tng-form-field>
           <tng-form-field class="full">
             <tng-label>Redirect URIs (comma or newline separated)</tng-label>
             <tng-input
+              tngAngularForms
               name="redirect_uris"
               [(ngModel)]="form.redirectUris"
               placeholder="https://app/callback"
@@ -49,6 +52,7 @@
           <tng-form-field class="full">
             <tng-label>Post-logout redirect URIs</tng-label>
             <tng-input
+              tngAngularForms
               name="post_logout"
               [(ngModel)]="form.postLogoutUris"
               placeholder="https://app/logout"
@@ -57,6 +61,7 @@
           <tng-form-field class="full">
             <tng-label>Audience</tng-label>
             <tng-input
+              tngAngularForms
               name="audience"
               [(ngModel)]="form.audience"
               placeholder="daybook.cloud-users"

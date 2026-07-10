@@ -26,6 +26,79 @@ a {
   color: inherit;
 }
 
+/* ─── Admin drawer TailNG chrome overrides ────────────────────────────────── */
+.admin-drawer tng-listbox.drawer-listbox .tng-listbox-option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--shell-text);
+  display: flex;
+  font-size: 0.84rem;
+  line-height: 1.2;
+  min-height: 2rem;
+  padding: 0.375rem 0.5rem;
+  transition: color 140ms ease;
+}
+
+.admin-drawer
+  tng-listbox.drawer-listbox
+  .tng-listbox-option:hover:not([data-selected]):not([data-disabled]):not(:disabled),
+.admin-drawer
+  tng-listbox.drawer-listbox
+  .tng-listbox-option[data-active]:not([data-selected]):not([data-disabled]):not(:disabled) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--shell-accent);
+}
+
+.admin-drawer tng-listbox.drawer-listbox .tng-listbox-option[data-selected] {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--shell-accent);
+  font-weight: 650;
+}
+
+.admin-drawer tng-listbox.drawer-listbox .tng-listbox-option[data-selected][data-active] {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+.admin-drawer.drawer-collapsed tng-listbox.drawer-listbox .tng-listbox-option {
+  padding-inline: 0.375rem;
+}
+
+.admin-drawer.drawer-collapsed .drawer-option-tooltip .tng-tooltip-root {
+  display: inline-flex;
+  width: 100%;
+}
+
+.admin-drawer.drawer-collapsed .drawer-option-tooltip .tng-tooltip-trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit;
+  cursor: inherit;
+  display: inline-flex;
+  font: inherit;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-drawer.drawer-collapsed .drawer-option-tooltip .tng-tooltip-trigger[data-state='open'] {
+  border: 0;
+}
+
 /* ─── Generic page bits ───────────────────────────────────────────────────── */
 .page-title {
   font-size: 1.25rem;
