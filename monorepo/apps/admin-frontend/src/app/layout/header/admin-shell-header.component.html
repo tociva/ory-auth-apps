@@ -1,10 +1,21 @@
 <header class="admin-header">
   <div class="header-left">
-    <tng-icon [icon]="drawerCollapsed ? 'panel-left-open' : 'panel-left-close'"
-     size="1.125rem"
-     class="header-drawer-toggle"
-     (click)="drawerToggle.emit()"
-     />
+    <tng-button
+      type="button"
+      appearance="ghost"
+      tone="neutral"
+      size="sm"
+      class="header-icon-button header-drawer-toggle"
+      (click)="drawerToggle.emit()"
+    >
+      <tng-icon
+        [icon]="drawerCollapsed ? 'panel-left-open' : 'panel-left-close'"
+        size="1.125rem"
+        class="header-action-icon"
+        aria-hidden="true"
+      />
+      <span class="header-icon-button-label">Toggle navigation drawer</span>
+    </tng-button>
     <div class="header-title">
       <span class="eyebrow">Security administration</span>
       <h1>{{ pageTitle }}</h1>
@@ -14,12 +25,17 @@
   <app-search-button class="header-search" />
 
   <div class="header-actions">
-    <tng-icon
-      class="header-theme-trigger"
-      icon="palette"
-      size="0.875rem"
+    <tng-button
+      type="button"
+      appearance="ghost"
+      tone="neutral"
+      size="sm"
+      class="header-icon-button header-theme-trigger"
       [tngMenuTriggerFor]="themeMenu"
-    />
+    >
+      <tng-icon icon="palette" size="0.875rem" class="header-action-icon" aria-hidden="true" />
+      <span class="header-icon-button-label">Choose theme</span>
+    </tng-button>
 
     <tng-menu
       #themeMenu="tngMenu"
@@ -41,14 +57,22 @@
       }
     </tng-menu>
 
-    <button
-      class="header-icon-button header-mode-toggle"
+    <tng-button
       type="button"
-      aria-label="Toggle color mode"
+      appearance="ghost"
+      tone="neutral"
+      size="sm"
+      class="header-icon-button header-mode-toggle"
       (click)="toggleModeChange()"
     >
-      <tng-icon [icon]="themeService.darkMode() ? 'sun' : 'moon'" size="0.875rem" />
-    </button>
+      <tng-icon
+        [icon]="themeService.darkMode() ? 'sun' : 'moon'"
+        size="0.875rem"
+        class="header-action-icon"
+        aria-hidden="true"
+      />
+      <span class="header-icon-button-label">Toggle color mode</span>
+    </tng-button>
 
     <div class="admin-profile">
       <button class="profile-trigger" type="button" [tngMenuTriggerFor]="profileMenu">

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from "@angular/core";
 import {
   TngAvatarComponent,
+  TngButtonComponent,
   TngMenuComponent,
   TngMenuTriggerFor,
 } from "@tailng-ui/components";
@@ -14,6 +15,7 @@ import { SearchButtonComponent } from "../search/search-button.component";
   standalone: true,
   imports: [
     TngAvatarComponent,
+    TngButtonComponent,
     TngIcon,
     TngMenuComponent,
     TngMenuTriggerFor,
