@@ -1,4 +1,9 @@
-import { toUserClaims, type HydraConsentRequest, type KratosUser } from "@idnest/shared-types";
+import {
+  hasVerifiedEmailAddress,
+  toUserClaims,
+  type HydraConsentRequest,
+  type KratosUser,
+} from "@idnest/shared-types";
 import { getHydraAdminUrl, getKratosAdminUrl } from "../config";
 import { errorBody, type HandlerResult } from "./types";
 
@@ -38,6 +43,16 @@ export async function acceptConsent(input: AcceptConsentInput): Promise<HandlerR
       };
     }
     const kratosUser = (await kratosUserRes.json()) as KratosUser;
+    if (!hasVerifiedEmailAddress(kratosUser)) {
+      return {
+        status: 403,
+        body: {
+          error: "email_not_verified",
+          error_description: "Please sign in with a provider account that has a verified email address.",
+        },
+      };
+    }
+
     const user = toUserClaims(kratosUser);
 
     // 3. Accept consent, granting ONLY what this client actually requested.

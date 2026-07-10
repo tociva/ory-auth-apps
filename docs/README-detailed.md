@@ -1,7 +1,7 @@
 # idnest.dev Auth (ORY Hydra + Kratos)
 
 **idnest** is the auth platform (the codebase, packaged as `@idnest/*`).
-Identity is **Google OIDC only** (no local username/password). The public login
+Identity is **Google + Apple OIDC** (no local username/password). The public login
 / consent / logout / error pages are **server-rendered by the `auth-backend`
 Express service** (the former Angular `auth-frontend` SPA was removed); a
 separate Angular admin console manages clients and identities.
@@ -24,7 +24,7 @@ See [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) for the full migration history.
 | Component             | Tech                       | Role                                                              |
 | --------------------- | -------------------------- | ----------------------------------------------------------------- |
 | ORY Hydra `v26.2.0`    | Docker image               | OAuth2 / OpenID Connect server: issues tokens, owns login/consent/logout challenges |
-| ORY Kratos `v25.4.0`   | Docker image               | Identity provider: runs the Google OIDC login flow, stores identities, sessions |
+| ORY Kratos `v25.4.0`   | Docker image               | Identity provider: runs Google/Apple OIDC login flows, stores identities, sessions |
 | `auth-backend`        | TypeScript + Express       | Hydra/Kratos **admin** proxy **and** server-rendered login/consent/logout/error pages (admin URLs stay server-side) |
 | `admin-backend`       | TypeScript + Express       | Privileged admin API (identities, clients, roles)                 |
 | `admin-frontend`      | Angular 21 + TailNG        | Staff-only admin console                                          |
@@ -39,7 +39,7 @@ orchestrated by [`docker-compose.yml`](docker-compose.yml).
 ```
 .
 ├── config/                  # Kratos config (kratos.tpl.yml -> kratos.yml via envsubst)
-│   └── kratos/               # identity schema + Google OIDC claims mapper
+│   └── kratos/               # identity schema + OIDC claims mappers
 ├── Dockerfile.kratos        # Kratos image that renders the template at startup
 ├── docker-compose.yml       # Hydra + Kratos services
 ├── .env                      # Infra secrets/DSNs consumed by docker-compose (gitignored)
@@ -186,7 +186,9 @@ server {
 }
 ```
 
-## Step 6 — Google OIDC credentials
+## Step 6 — Google and Apple OIDC credentials
+
+Google:
 
 1. Open `https://console.cloud.google.com/apis/credentials`.
 2. **Create credentials → OAuth client ID → Web application**.
@@ -197,8 +199,24 @@ server {
 4. Copy the **Client ID** and **Client secret** into the infra `.env`
    (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) in the next step.
 
+Apple:
+
+1. In Apple Developer, configure Sign in with Apple for the Services ID used by
+   Kratos.
+2. Add the Kratos OIDC callback for each environment:
+   - local: `https://kratos-local.idnest.cloud/self-service/methods/oidc/callback/apple`
+   - prod:  `https://kratos.idnest.cloud/self-service/methods/oidc/callback/apple`
+3. Copy the **Services ID**, **Team ID**, **key ID**, and private key into the
+   infra `.env` (`APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_PRIVATE_KEY_ID`,
+   `APPLE_PRIVATE_KEY`) in the next step.
+
 The callback path is fixed by Kratos: `self-service/methods/oidc/callback/<provider-id>`,
-where the provider id is `google` (see `config/kratos.tpl.yml`).
+where the provider id is `google` or `apple` (see `config/kratos.tpl.yml`). The
+Apple provider is rendered only when all Apple env vars are present, so
+Google-only local setups can start without placeholder Apple credentials.
+
+This self-hosted Kratos v25.4.0 config uses the default explicit linking flow.
+Provider logins without a verified email are rejected before Hydra issues tokens.
 
 ## Step 7 — Environment files
 
@@ -231,9 +249,15 @@ KRATOS_LOG_LEVEL=info
 KRATOS_CSRF_COOKIE_SECRET=<random_32+_char_secret>
 KRATOS_CIPHER_SECRET=<exactly_32_char_secret>
 
-# Google OIDC (from Step 6)
+# Social OIDC (from Step 6)
 GOOGLE_CLIENT_ID=<google_client_id>
 GOOGLE_CLIENT_SECRET=<google_client_secret>
+
+# Optional: include all Apple values to render the Apple provider
+APPLE_CLIENT_ID=<apple_services_id>
+APPLE_TEAM_ID=<apple_team_id>
+APPLE_PRIVATE_KEY_ID=<apple_private_key_id>
+APPLE_PRIVATE_KEY="<pem_with_\n_escapes>"
 ```
 
 > `CORS_ALLOWED_ORIGINS` (infra) is what Hydra and Kratos allow as browser
@@ -451,8 +475,8 @@ The app exchanges the returned `code` (plus the PKCE `code_verifier`) at
 2. Hydra redirects to `auth-backend`'s **`/login`** route (`auth.idnest.cloud`) with a `login_challenge`.
 3. `/login` starts the Kratos browser login flow; Kratos bounces back to
    `/login?flow=…`, which server-side reads the `csrf_token` and renders the
-   "Sign in with Google" button (a full-page form POST to Kratos → Google OIDC).
-4. After Google returns, Kratos redirects to **`/login/return`**, which resolves
+   provider buttons (full-page form POSTs to Kratos → selected OIDC provider).
+4. After the selected provider returns, Kratos redirects to **`/login/return`**, which resolves
    the session server-side (Kratos `whoami`, forwarding the cookie — no browser
    polling) and calls Hydra **accept-login**.
 5. Hydra redirects to **`/consent`**, which calls Hydra **accept-consent**,
@@ -511,8 +535,9 @@ docker logs ory-kratos
 
 ## Security notes
 
-- **Google-only**: other social providers were removed; only Google OIDC is
-  configured in Kratos.
+- **Social account linking**: this self-hosted Kratos v25.4.0 config uses the
+  default explicit linking flow from `/settings`. Provider logins without a
+  verified email are rejected before Hydra issues tokens.
 - **Rotate secrets**: the Google client secret, `HYDRA_SECRETS_SYSTEM`, both DB
   passwords, and the Kratos cookie/cipher secrets were present in the working
   tree historically and must be considered compromised — rotate them and move to

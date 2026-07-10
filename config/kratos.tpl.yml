@@ -34,6 +34,8 @@ selfservice:
   default_browser_return_url: ${AUTH_URL}/login/return
   allowed_return_urls:
     - ${AUTH_URL}/login/return
+    - ${AUTH_URL}/settings
+    - ${AUTH_URL}/settings/return
     - ${KRATOS_URLS_LOGOUT}
 
   methods:
@@ -65,6 +67,20 @@ selfservice:
             auth_url: https://accounts.google.com/o/oauth2/v2/auth
             token_url: https://www.googleapis.com/oauth2/v4/token
             issuer_url: https://accounts.google.com
+          # BEGIN optional apple provider
+          - id: apple
+            provider: apple
+            mapper_url: file:///etc/config/kratos/oidc.apple.mapper.jsonnet
+            client_id: ${APPLE_CLIENT_ID}
+            apple_team_id: ${APPLE_TEAM_ID}
+            apple_private_key_id: ${APPLE_PRIVATE_KEY_ID}
+            # In .env, render APPLE_PRIVATE_KEY as a valid YAML string
+            # (for example, a double-quoted PEM with \n escapes).
+            apple_private_key: ${APPLE_PRIVATE_KEY}
+            issuer_url: https://appleid.apple.com
+            scope:
+              - email
+          # END optional apple provider
 
   flows:
     error:
@@ -75,8 +91,8 @@ selfservice:
       privileged_session_max_age: 15m
       required_aal: highest_available
 
-    # Recovery/verification are email-based flows. With Google-only OIDC there
-    # is no UI for them and no real SMTP configured, so they are disabled.
+    # Recovery/verification are email-based flows. With social-only OIDC there is
+    # no UI for them and no real SMTP configured, so they are disabled.
     # Re-enable and build the UI + configure SMTP if email flows are needed.
     recovery:
       enabled: false
@@ -103,8 +119,8 @@ selfservice:
       lifespan: 10m
       ui_url: ${AUTH_URL}/registration
       after:
-        # Google sign-up goes through the OIDC flow. Without this session hook
-        # a first-time user is created but NOT logged in, forcing a "retry".
+        # Social sign-up goes through the OIDC flow. Without this session hook a
+        # first-time user is created but NOT logged in, forcing a "retry".
         oidc:
           hooks:
             - hook: session

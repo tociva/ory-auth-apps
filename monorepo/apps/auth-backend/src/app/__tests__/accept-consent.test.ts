@@ -9,7 +9,11 @@ const consentRequest = {
   requested_scope: ["openid", "email"],
   requested_access_token_audience: ["app-a"],
 };
-const identity = { id: "kratos-id-1", traits: { name: "Ada", email: "ada@example.com", picture: "p.png" } };
+const identity = {
+  id: "kratos-id-1",
+  traits: { name: "Ada", email: "ada@example.com", picture: "p.png" },
+  verifiable_addresses: [{ via: "email", value: "ada@example.com", verified: true }],
+};
 
 function happyPath() {
   return mockFetchByUrl([
@@ -49,7 +53,7 @@ describe("accept-consent", () => {
     await acceptConsent({ consent_challenge: "cc_1" });
     const acceptCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("/consent/accept"))!;
     const sent = JSON.parse((acceptCall[1] as RequestInit).body as string);
-    const expected = { name: "Ada", email: "ada@example.com", picture: "p.png" };
+    const expected = { name: "Ada", email: "ada@example.com", email_verified: true, picture: "p.png" };
     expect(sent.session.id_token.user).toEqual(expected);
     expect(sent.session.access_token.user).toEqual(expected);
   });
@@ -73,6 +77,32 @@ describe("accept-consent", () => {
     ]);
     const res = await acceptConsent({ consent_challenge: "cc_1" });
     expect(res.status).toBe(500);
+  });
+
+  it("rejects consent before Hydra can issue tokens when the email is not verified", async () => {
+    const fetchMock = mockFetchByUrl([
+      { match: "/requests/consent?", result: { ok: true, json: consentRequest } },
+      {
+        match: "/identities/",
+        result: {
+          ok: true,
+          json: {
+            id: "kratos-id-1",
+            traits: { email: "ada@example.com" },
+            verifiable_addresses: [{ via: "email", value: "ada@example.com", verified: false }],
+          },
+        },
+      },
+    ]);
+
+    const res = await acceptConsent({ consent_challenge: "cc_1" });
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({
+      error: "email_not_verified",
+      error_description: "Please sign in with a provider account that has a verified email address.",
+    });
+    expect(fetchMock.mock.calls.some((c) => String(c[0]).includes("/consent/accept"))).toBe(false);
   });
 
   it("returns error JSON when the Hydra accept fails", async () => {

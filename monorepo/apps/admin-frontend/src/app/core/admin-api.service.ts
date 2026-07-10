@@ -123,6 +123,10 @@ export class AdminApiService {
     return this.get<HydraClient[]>("/clients");
   }
 
+  getClient(clientId: string): Promise<HydraClient> {
+    return this.get<HydraClient>(`/clients/${encodeURIComponent(clientId)}`);
+  }
+
   createClient(value: ClientFormValue): Promise<HydraClient> {
     return this.post<HydraClient>("/clients", value);
   }

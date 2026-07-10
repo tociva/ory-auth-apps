@@ -8,15 +8,11 @@
  * so the browser already sends those cookies to us.
  */
 import type { Request } from "express";
-import type { KratosFlow } from "@idnest/shared-types";
+import type { KratosFlow, KratosUser } from "@idnest/shared-types";
 import { getKratosInternalUrl, getKratosPublicUrl } from "./config";
 
 export interface KratosWhoami {
-  identity: {
-    id: string;
-    traits?: { name?: string; email?: string; picture?: string; [k: string]: unknown };
-    [k: string]: unknown;
-  };
+  identity: KratosUser;
   [k: string]: unknown;
 }
 
@@ -32,6 +28,11 @@ export function browserLoginUrl(returnTo: string): string {
   return `${getKratosPublicUrl()}/self-service/login/browser?return_to=${encodeURIComponent(returnTo)}`;
 }
 
+/** Build the browser settings URL Kratos should start the flow at. */
+export function browserSettingsUrl(returnTo: string): string {
+  return `${getKratosPublicUrl()}/self-service/settings/browser?return_to=${encodeURIComponent(returnTo)}`;
+}
+
 /** Fetch a login flow (carries the csrf_token + ui.action we render into the form). */
 export async function getLoginFlow(flowId: string, req: Request): Promise<KratosFlow> {
   const res = await fetch(
@@ -39,6 +40,21 @@ export async function getLoginFlow(flowId: string, req: Request): Promise<Kratos
     { headers: { cookie: cookieHeader(req), accept: "application/json" } },
   );
   if (!res.ok) throw new Error(`Kratos getLoginFlow failed: ${res.status}`);
+  return (await res.json()) as KratosFlow;
+}
+
+/** Fetch a settings flow (carries csrf_token + OIDC link/unlink nodes). */
+export async function getSettingsFlow(flowId: string, req: Request): Promise<KratosFlow> {
+  const res = await fetch(
+    `${getKratosInternalUrl()}/self-service/settings/flows?id=${encodeURIComponent(flowId)}`,
+    { headers: { cookie: cookieHeader(req), accept: "application/json" } },
+  );
+  if (res.status === 401) {
+    const err = new Error("No active Kratos session") as Error & { status?: number };
+    err.status = 401;
+    throw err;
+  }
+  if (!res.ok) throw new Error(`Kratos getSettingsFlow failed: ${res.status}`);
   return (await res.json()) as KratosFlow;
 }
 

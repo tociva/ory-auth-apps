@@ -1,5 +1,5 @@
 import { Injectable, signal } from "@angular/core";
-import type { AppToastEvent, AppToastOptions, AppToastTone } from "./toast.model";
+import type { AppToastEvent, AppToastOptions } from "./toast.model";
 
 /**
  * Plain signal-based toast service (no ngrx).

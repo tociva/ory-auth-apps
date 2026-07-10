@@ -5,12 +5,16 @@
  * HTML. The privileged Hydra/Kratos admin work is reused from `./handlers`.
  */
 import { Router, type Request, type Response } from "express";
-import { getCsrfToken } from "@idnest/shared-types";
 import { getAuthBaseUrl, getCorsOrigins } from "./config";
 import { getHumanHint, pickSafeDetails } from "./error-utils";
 import { acceptConsent, acceptLogin, acceptLogout } from "./handlers";
 import * as kratos from "./kratos-public";
-import { renderError, renderLogin } from "./views";
+import { renderError, renderLogin, renderSettings } from "./views";
+import {
+  hiddenInputsFromFlow,
+  oidcSubmitButtonsFromFlow,
+  type FlowHiddenInput,
+} from "./views/pages/flow-controls";
 
 function first(value: unknown): string | undefined {
   if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined;
@@ -18,16 +22,53 @@ function first(value: unknown): string | undefined {
 }
 
 /**
- * Allow post-login redirects only to known app origins (the CORS allowlist),
- * so the `return_to` carried through a session-only login can't be turned into
- * an open redirect.
+ * Allow post-login redirects only to known app origins plus the internal
+ * settings handoff. This keeps session-only login `return_to` from becoming an
+ * open redirect while still letting /settings require login first.
  */
-function isAllowedReturnTo(target: string): boolean {
+function isAllowedAppReturnTo(target: string): boolean {
   try {
     return getCorsOrigins().includes(new URL(target).origin);
   } catch {
     return false;
   }
+}
+
+function isAllowedAuthReturnTo(target: string): boolean {
+  try {
+    const url = new URL(target);
+    const auth = new URL(getAuthBaseUrl());
+    return url.origin === auth.origin && url.pathname === "/settings";
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedReturnTo(target: string): boolean {
+  return isAllowedAppReturnTo(target) || isAllowedAuthReturnTo(target);
+}
+
+function settingsUrl(returnTo: string | undefined): string {
+  const params = new URLSearchParams();
+  if (returnTo) params.set("return_to", returnTo);
+  const query = params.toString();
+  return `${getAuthBaseUrl()}/settings${query ? `?${query}` : ""}`;
+}
+
+function settingsReturnUrl(returnTo: string | undefined): string {
+  const params = new URLSearchParams();
+  if (returnTo) params.set("return_to", returnTo);
+  const query = params.toString();
+  return `${getAuthBaseUrl()}/settings/return${query ? `?${query}` : ""}`;
+}
+
+function loginUrl(returnTo: string): string {
+  const params = new URLSearchParams({ return_to: returnTo });
+  return `/login?${params.toString()}`;
+}
+
+function withExtraHiddenInput(inputs: FlowHiddenInput[], name: string, value: string | undefined): FlowHiddenInput[] {
+  return value ? [...inputs, { name, value }] : inputs;
 }
 
 /** Render the error page from an arbitrary error payload. */
@@ -45,7 +86,7 @@ export function createPagesRouter(): Router {
    *  - No `flow`: start the Kratos browser login flow, telling it to send the
    *    browser back to /login/return (carrying the login_challenge) after login.
    *  - `flow` present: Kratos has bounced the browser here with a flow id; load
-   *    it server-side, read the csrf_token, and render the Google button.
+   *    it server-side, read the csrf_token, and render provider buttons.
    */
   router.get("/login", async (req: Request, res: Response): Promise<void> => {
     const flow = first(req.query["flow"]);
@@ -74,17 +115,21 @@ export function createPagesRouter(): Router {
       res.type("html").send(
         renderLogin({
           actionUrl: flowData.ui.action,
-          csrfToken: getCsrfToken(flowData),
-          loginHint,
+          hiddenInputs: withExtraHiddenInput(hiddenInputsFromFlow(flowData), "login_hint", loginHint),
+          providers: oidcSubmitButtonsFromFlow(flowData, "Continue with"),
         }),
       );
     } catch {
-      sendError(res, { error: "login_flow_error", error_description: "Could not load the login flow. Please try again." }, 502);
+      sendError(
+        res,
+        { error: "login_flow_error", error_description: "Could not load the login flow. Please try again." },
+        502,
+      );
     }
   });
 
   /**
-   * GET /login/return — Kratos redirects here after a successful Google login.
+   * GET /login/return — Kratos redirects here after a successful social login.
    * Resolve the identity (forwarding the session cookie), then accept the Hydra
    * login challenge and redirect on to Hydra. Replaces the SPA's whoami polling.
    */
@@ -110,11 +155,6 @@ export function createPagesRouter(): Router {
       const result = await acceptLogin({
         login_challenge: loginChallenge,
         subject: identity.id,
-        id_token: {
-          name: identity.traits?.name,
-          email: identity.traits?.email,
-          picture: identity.traits?.picture,
-        },
       });
       const redirectTo = (result.body as { redirect_to?: string }).redirect_to;
       if (result.status === 200 && redirectTo) {
@@ -125,15 +165,118 @@ export function createPagesRouter(): Router {
     } catch (e) {
       const status = (e as { status?: number }).status;
       if (status === 401) {
-        sendError(res, { error: "login_unconfirmed", error_description: "We couldn't confirm your login. Please try signing in again." }, 401);
+        sendError(
+          res,
+          {
+            error: "login_unconfirmed",
+            error_description: "We couldn't confirm your login. Please try signing in again.",
+          },
+          401,
+        );
         return;
       }
-      sendError(res, { error: "login_return_error", error_description: e instanceof Error ? e.message : "Session error" }, 500);
+      sendError(
+        res,
+        { error: "login_return_error", error_description: e instanceof Error ? e.message : "Session error" },
+        500,
+      );
     }
   });
 
   /**
-   * GET /consent — auto-accepts the requested scope/audience (Google-only, no
+   * GET /settings
+   *  - No `flow`: require a Kratos session, then start the browser settings flow.
+   *  - `flow` present: load the flow and render OIDC link/unlink controls.
+   */
+  router.get("/settings", async (req: Request, res: Response): Promise<void> => {
+    const flow = first(req.query["flow"]);
+    const returnTo = first(req.query["return_to"]);
+
+    if (returnTo && !isAllowedAppReturnTo(returnTo)) {
+      sendError(
+        res,
+        {
+          error: "invalid_return_to",
+          error_description: "The settings return_to URL is not allowed.",
+        },
+        400,
+      );
+      return;
+    }
+
+    if (!flow) {
+      try {
+        await kratos.whoami(req);
+      } catch (e) {
+        const status = (e as { status?: number }).status;
+        if (status === 401) {
+          res.redirect(loginUrl(settingsUrl(returnTo)));
+          return;
+        }
+        sendError(
+          res,
+          { error: "settings_session_error", error_description: e instanceof Error ? e.message : "Session error" },
+          500,
+        );
+        return;
+      }
+
+      res.redirect(kratos.browserSettingsUrl(settingsReturnUrl(returnTo)));
+      return;
+    }
+
+    try {
+      const flowData = await kratos.getSettingsFlow(flow, req);
+      res.type("html").send(
+        renderSettings({
+          actionUrl: flowData.ui.action,
+          hiddenInputs: hiddenInputsFromFlow(flowData),
+          providers: oidcSubmitButtonsFromFlow(flowData, "Link"),
+          returnTo,
+        }),
+      );
+    } catch (e) {
+      const status = (e as { status?: number }).status;
+      if (status === 401) {
+        res.redirect(loginUrl(settingsUrl(returnTo)));
+        return;
+      }
+      sendError(
+        res,
+        { error: "settings_flow_error", error_description: e instanceof Error ? e.message : "Settings error" },
+        500,
+      );
+    }
+  });
+
+  /**
+   * GET /settings/return — Kratos sends the browser here after a successful
+   * settings operation. Redirect back to the originating product app.
+   */
+  router.get("/settings/return", async (req: Request, res: Response): Promise<void> => {
+    const returnTo = first(req.query["return_to"]);
+    if (returnTo && isAllowedAppReturnTo(returnTo)) {
+      res.redirect(returnTo);
+      return;
+    }
+
+    if (returnTo) {
+      sendError(
+        res,
+        {
+          error: "invalid_return_to",
+          error_description: "The settings return_to URL is not allowed.",
+        },
+        400,
+      );
+      return;
+    }
+
+    res.redirect("/settings");
+  });
+
+  /**
+   * GET /consent — auto-accepts the requested scope/audience (social OIDC, no
    * interactive consent screen), then redirects back to Hydra.
    */
   router.get("/consent", async (req: Request, res: Response): Promise<void> => {

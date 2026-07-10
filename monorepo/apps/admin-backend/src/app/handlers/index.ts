@@ -10,6 +10,7 @@ export {
 } from "./identities";
 export {
   listClients,
+  getClient,
   createClient,
   updateClient,
   deleteClient,

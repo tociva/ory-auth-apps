@@ -67,7 +67,7 @@ services:
     volumes:
       - ./config:/etc/config
     entrypoint: >
-      sh -c "envsubst < /etc/config/kratos.tpl.yml > /etc/config/kratos.yml
+      sh -c "sh /etc/config/render-kratos-config.sh
       && exec kratos serve -c /etc/config/kratos.yml --watch-courier"
     networks:
       - ory-network

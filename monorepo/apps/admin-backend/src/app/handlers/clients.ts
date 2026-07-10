@@ -54,6 +54,24 @@ export async function listClients(): Promise<HandlerResult> {
   }
 }
 
+export interface ClientIdInput {
+  client_id?: string;
+}
+
+export async function getClient(input: ClientIdInput): Promise<HandlerResult> {
+  try {
+    if (!input.client_id) return { status: 400, body: { error: "client_id is required" } };
+    const res = await fetch(`${clientsBase()}/${encodeURIComponent(input.client_id)}`);
+    if (res.status === 404) return { status: 404, body: { error: "Client not found" } };
+    if (!res.ok) {
+      return { status: 500, body: { error: `Failed to get client: ${await readError(res)}` } };
+    }
+    return { status: 200, body: await res.json() };
+  } catch (err) {
+    return { status: 500, body: errorBody(err) };
+  }
+}
+
 export async function createClient(input: ClientPayload): Promise<HandlerResult> {
   try {
     const invalid = validateForCreate(input);
@@ -88,10 +106,6 @@ export async function updateClient(input: ClientPayload): Promise<HandlerResult>
   } catch (err) {
     return { status: 500, body: errorBody(err) };
   }
-}
-
-export interface ClientIdInput {
-  client_id?: string;
 }
 
 export async function deleteClient(input: ClientIdInput): Promise<HandlerResult> {

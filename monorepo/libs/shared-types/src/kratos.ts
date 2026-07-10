@@ -11,9 +11,17 @@ export interface KratosTraits {
   [key: string]: unknown;
 }
 
+export interface KratosVerifiableAddress {
+  via?: string;
+  value?: string;
+  verified?: boolean;
+  [key: string]: unknown;
+}
+
 export interface KratosUser {
   id: string;
   traits: KratosTraits;
+  verifiable_addresses?: KratosVerifiableAddress[];
   [key: string]: unknown;
 }
 
@@ -21,6 +29,7 @@ export interface KratosUser {
 export interface KratosUserClaims {
   name?: string;
   email?: string;
+  email_verified?: boolean;
   picture?: string;
 }
 
@@ -28,6 +37,15 @@ export interface KratosUiNodeAttributes {
   name?: string;
   value?: unknown;
   type?: string;
+  disabled?: boolean;
+  [key: string]: unknown;
+}
+
+export interface KratosUiNodeMeta {
+  label?: {
+    text?: string;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 
@@ -35,6 +53,7 @@ export interface KratosUiNode {
   type: string;
   group: string;
   attributes: KratosUiNodeAttributes;
+  meta?: KratosUiNodeMeta;
   [key: string]: unknown;
 }
 
@@ -76,11 +95,23 @@ export function isKratosUser(value: unknown): value is KratosUser {
   return true;
 }
 
+/** True when the identity's current email trait is verified in Kratos. */
+export function hasVerifiedEmailAddress(user: KratosUser): boolean {
+  const email = user.traits.email;
+  if (typeof email !== "string" || email.length === 0) return false;
+
+  return (user.verifiable_addresses ?? []).some(
+    (address) => address.via === "email" && address.value === email && address.verified === true,
+  );
+}
+
 /** Project a Kratos identity's traits into the claims we embed in tokens. */
 export function toUserClaims(user: KratosUser): KratosUserClaims {
+  const email = user.traits?.email;
   return {
     name: user.traits?.name,
-    email: user.traits?.email,
+    email,
+    email_verified: typeof email === "string" ? hasVerifiedEmailAddress(user) : undefined,
     picture: user.traits?.picture,
   };
 }

@@ -15,6 +15,6 @@
     "title": "New OAuth Client",
     "description": "Create a new Hydra OAuth 2.0 client application",
     "keywords": ["new", "create", "add", "oauth", "client", "hydra"],
-    "url": "/clients?new=1"
+    "url": "/clients/new"
   }
 ]

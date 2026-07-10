@@ -116,27 +116,25 @@
         </div>
 
         <!-- Profile menu -->
-        @if (displayName) {
-          <div class="admin-profile">
-            <button
-              class="profile-trigger"
-              type="button"
-              [tngMenuTriggerFor]="profileMenu"
-            >
-              <tng-avatar [fallback]="displayName" size="sm" />
-              <span class="profile-trigger-name">{{ displayName }}</span>
-            </button>
+        <div class="admin-profile">
+          <button
+            class="profile-trigger"
+            type="button"
+            [tngMenuTriggerFor]="profileMenu"
+          >
+            <tng-avatar [fallback]="displayName || 'Admin'" size="sm" />
+            <span class="profile-trigger-name">{{ displayName || "Admin" }}</span>
+          </button>
 
-            <tng-menu
-              #profileMenu="tngMenu"
-              ariaLabel="Account options"
-              (tngMenuSelect)="onProfileMenuSelect($event)"
-            >
-              <div tngMenuGroupLabel>Session</div>
-              <button type="button" tngMenuItem tngMenuItemValue="logout">Logout</button>
-            </tng-menu>
-          </div>
-        }
+          <tng-menu
+            #profileMenu="tngMenu"
+            ariaLabel="Account options"
+            (tngMenuSelect)="onProfileMenuSelect($event)"
+          >
+            <div tngMenuGroupLabel>Session</div>
+            <button type="button" tngMenuItem tngMenuItemValue="logout">Logout</button>
+          </tng-menu>
+        </div>
       </div>
     </header>
 

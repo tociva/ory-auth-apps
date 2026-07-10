@@ -29,6 +29,20 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./pages/clients/clients.component").then((m) => m.ClientsComponent),
       },
+      {
+        path: "clients/new",
+        loadComponent: () =>
+          import("./pages/client-detail/client-detail.component").then(
+            (m) => m.ClientDetailComponent,
+          ),
+      },
+      {
+        path: "clients/:clientId",
+        loadComponent: () =>
+          import("./pages/client-detail/client-detail.component").then(
+            (m) => m.ClientDetailComponent,
+          ),
+      },
       { path: "", pathMatch: "full", redirectTo: "identities" },
     ],
   },

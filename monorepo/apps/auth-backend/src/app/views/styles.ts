@@ -85,6 +85,7 @@ html, body {
   transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   line-height: 1.4;
 }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .btn-sm { width: auto; padding: 0.375rem 0.875rem; font-size: 0.8125rem; }
 
@@ -94,20 +95,33 @@ html, body {
 .btn-outline { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
 .btn-outline:hover { background: var(--brand); color: #fff; }
 
-/* Google OAuth button — neutral white, keeps the colorful icon intact */
-.btn-google {
+.oidc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Social OAuth buttons — neutral white, keeps provider marks intact */
+.btn-provider,
+.btn-google,
+.btn-apple {
   background: #ffffff;
   color: var(--fg-secondary);
   border-color: var(--border-default);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   font-weight: 500;
 }
-.btn-google:hover {
+.btn-provider:hover,
+.btn-google:hover,
+.btn-apple:hover {
   background: var(--bg-surface);
   border-color: var(--border-strong);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10);
 }
-.google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.provider-icon,
+.google-icon,
+.apple-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.apple-icon { color: #111827; }
 
 .alert { padding: 0.875rem 1rem; border-radius: 0.625rem; border: 1px solid; font-size: 0.875rem; margin-bottom: 1rem; }
 .alert-error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }

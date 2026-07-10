@@ -13,14 +13,11 @@
  * Emails are normalized (trim + lowercase) before any comparison. UI hiding is
  * never treated as a security boundary; this check is the boundary.
  */
-import { isKratosUser, type KratosUser } from "@idnest/shared-types";
-
-/** A Kratos verifiable address (email) as returned by the identity/session API. */
-export interface KratosVerifiableAddress {
-  value?: string;
-  verified?: boolean;
-  via?: string;
-}
+import {
+  isKratosUser,
+  type KratosUser,
+  type KratosVerifiableAddress,
+} from "@idnest/shared-types";
 
 /** Kratos identity with the admin-relevant fields we read for authorization. */
 export interface AdminIdentity extends KratosUser {
@@ -101,7 +98,7 @@ export async function authorize(
   }
 
   const identity = (await identityRes.json().catch(() => null)) as AdminIdentity | null;
-  if (!isKratosUser(identity) || identity.id !== sessionIdentity.id) {
+  if (!identity || !isKratosUser(identity) || identity.id !== sessionIdentity.id) {
     return { ok: false, status: 401, error: "Invalid identity" };
   }
 

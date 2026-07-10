@@ -1,11 +1,4 @@
-import type { KratosUser } from "@idnest/shared-types";
-
-/** A Kratos verifiable address (email) as returned by the admin identity API. */
-export interface KratosVerifiableAddress {
-  value?: string;
-  verified?: boolean;
-  via?: string;
-}
+import type { KratosUser, KratosVerifiableAddress } from "@idnest/shared-types";
 
 /** Kratos identity enriched with the admin-relevant fields the console reads. */
 export interface AdminIdentity extends KratosUser {

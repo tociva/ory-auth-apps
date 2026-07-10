@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createClient, deleteClient, updateClient } from "../handlers/clients";
+import { createClient, deleteClient, getClient, updateClient } from "../handlers/clients";
 import { mockFetchByUrl } from "./helpers";
 
 beforeEach(() => {
@@ -8,6 +8,21 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("oauth client management", () => {
+  it("gets a client by id", async () => {
+    mockFetchByUrl([
+      { match: "/admin/clients/app1", result: { ok: true, json: { client_id: "app1" } } },
+    ]);
+    expect(await getClient({ client_id: "app1" })).toMatchObject({
+      status: 200,
+      body: { client_id: "app1" },
+    });
+  });
+
+  it("returns 404 when getting a missing client", async () => {
+    mockFetchByUrl([{ match: "/admin/clients/none", result: { ok: false, status: 404 } }]);
+    expect(await getClient({ client_id: "none" })).toMatchObject({ status: 404 });
+  });
+
   it("creates a public client with PKCE (auth_method=none) and 201", async () => {
     const fetchMock = mockFetchByUrl([
       { match: "/admin/clients", result: { ok: true, status: 201, json: { client_id: "app1" } } },

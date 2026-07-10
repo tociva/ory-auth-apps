@@ -7,6 +7,7 @@ import {
   deactivateIdentity,
   deleteClient,
   deleteIdentity,
+  getClient,
   getIdentity,
   listClients,
   listIdentities,
@@ -79,6 +80,7 @@ export function createAdminRouter(): Router {
 
   // --- OAuth clients ---
   router.get("/clients", adapt(listClients, () => ({})));
+  router.get("/clients/:clientId", adapt(getClient, (req) => ({ client_id: req.params.clientId })));
   router.post("/clients", adapt(createClient, fromBody));
   router.put(
     "/clients/:clientId",

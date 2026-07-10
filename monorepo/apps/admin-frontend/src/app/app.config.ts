@@ -20,7 +20,7 @@ export function createAppConfig(config: AdminConfig): ApplicationConfig {
         provide: APP_INITIALIZER,
         useFactory: () => {
           inject(AppThemeService); // side-effect: registers the theme effect
-          return () => {};
+          return () => undefined;
         },
         multi: true,
       },

@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { getCsrfToken, isKratosUser, toUserClaims, type KratosFlow, type KratosUser } from "./kratos";
+import {
+  getCsrfToken,
+  hasVerifiedEmailAddress,
+  isKratosUser,
+  toUserClaims,
+  type KratosFlow,
+  type KratosUser,
+} from "./kratos";
 
 const validIdentity: KratosUser = {
   id: "kratos-id-1",
   traits: { name: "Ada", email: "ada@example.com", picture: "p.png" },
+  verifiable_addresses: [{ via: "email", value: "ada@example.com", verified: true }],
 };
 
 describe("isKratosUser", () => {
@@ -25,11 +33,36 @@ describe("isKratosUser", () => {
   });
 });
 
+describe("hasVerifiedEmailAddress", () => {
+  it("accepts a matching verified email address", () => {
+    expect(hasVerifiedEmailAddress(validIdentity)).toBe(true);
+  });
+
+  it("rejects missing, mismatched, and unverified email addresses", () => {
+    expect(hasVerifiedEmailAddress({ id: "x", traits: {} })).toBe(false);
+    expect(
+      hasVerifiedEmailAddress({
+        id: "x",
+        traits: { email: "ada@example.com" },
+        verifiable_addresses: [{ via: "email", value: "other@example.com", verified: true }],
+      }),
+    ).toBe(false);
+    expect(
+      hasVerifiedEmailAddress({
+        id: "x",
+        traits: { email: "ada@example.com" },
+        verifiable_addresses: [{ via: "email", value: "ada@example.com", verified: false }],
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("toUserClaims", () => {
   it("projects traits into token claims", () => {
     expect(toUserClaims(validIdentity)).toEqual({
       name: "Ada",
       email: "ada@example.com",
+      email_verified: true,
       picture: "p.png",
     });
   });
@@ -38,6 +71,7 @@ describe("toUserClaims", () => {
     expect(toUserClaims({ id: "x", traits: {} })).toEqual({
       name: undefined,
       email: undefined,
+      email_verified: undefined,
       picture: undefined,
     });
   });

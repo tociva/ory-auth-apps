@@ -1,7 +1,7 @@
 # idnest.dev Auth (ORY Hydra + Kratos)
 
 **idnest** is the auth platform (codebase packaged as `@idnest/*`). Identity is
-**Google OIDC only** — the login / consent / logout / error pages are
+**Google + Apple OIDC** — the login / consent / logout / error pages are
 server-rendered by the `auth-backend` Express service; an Angular admin console
 manages OAuth clients and identities. One deployment per product; this one
 serves the **`daybook.cloud`** product. Auth/identity infrastructure runs on
@@ -87,7 +87,9 @@ Two env files with different consumers:
 `HYDRA_SECRETS_SYSTEM`, `KRATOS_DSN`, `KRATOS_SERVE_PUBLIC_BASE_URL`,
 `KRATOS_ADMIN_URL`, `KRATOS_URLS_LOGOUT`, `KRATOS_COOKIES_DOMAIN`,
 `KRATOS_CSRF_COOKIE_SECRET`, `KRATOS_CIPHER_SECRET` (must be **exactly 32 chars**),
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Apple is optional; the Kratos
+renderer includes the Apple provider only when `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`,
+`APPLE_PRIVATE_KEY_ID`, and `APPLE_PRIVATE_KEY` are all set.
 
 **`monorepo/.env`** (copy from `monorepo/.env.example`) — consumed by the
 backends:
@@ -183,9 +185,16 @@ pnpm admin-frontend:serve   # :4501  (optional)
 ```sh
 cd xxx/monorepo
 nvm use 22
-pm2 start pnpm \
-  --name idnest-auth-backend \
-  -- auth-backend:serve
+pnpm nx build auth-backend
+pm2 start dist/apps/auth-backend/main.cjs \
+  --name idnest-auth-backend
+```
+```sh
+cd xxx/monorepo
+nvm use 22
+pnpm nx build admin-backend
+pm2 start dist/apps/admin-backend/main.cjs \
+  --name idnest-admin-backend
 ```
 
 Start the daybook **product** apps (backend `:3001`, frontend `:5173`) from their
@@ -273,7 +282,9 @@ Raw authorize URL and token-exchange details are in `docs/README-detailed.md` §
 
 ---
 
-## 8. Google setup
+## 8. Social provider setup
+
+Google:
 
 1. Go to `console.cloud.google.com/apis/credentials`.
 2. Select the OAuth client (or create a **Web application** client).
@@ -284,8 +295,25 @@ Raw authorize URL and token-exchange details are in `docs/README-detailed.md` §
 4. Put the client id/secret into the infra `./.env` as `GOOGLE_CLIENT_ID` and
    `GOOGLE_CLIENT_SECRET`.
 
+Apple:
+
+1. In Apple Developer, configure Sign in with Apple for the Services ID used by
+   Kratos.
+2. Add the Kratos OIDC callback for Apple, e.g.
+   `https://kratos-dev.idnest.cloud/self-service/methods/oidc/callback/apple`
+   (local: `https://kratos-local.idnest.cloud/...`,
+   prod: `https://kratos.idnest.cloud/...`).
+3. Put the Services ID, Team ID, key ID, and private key into the infra `./.env`
+   as `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_PRIVATE_KEY_ID`, and
+   `APPLE_PRIVATE_KEY`.
+
 The callback path is fixed by Kratos: `self-service/methods/oidc/callback/<provider-id>`
-(`google`).
+(`google` or `apple`). The Apple provider is rendered only when all Apple env vars
+are present, so Google-only local setups can start without placeholder Apple
+credentials.
+
+This self-hosted Kratos v25.4.0 config uses the default explicit linking flow.
+Provider logins without a verified email are rejected before Hydra issues tokens.
 
 ---
 

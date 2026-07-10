@@ -58,6 +58,7 @@ export class ShellComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   protected readonly themeService = inject(AppThemeService);
+  private destroyed = false;
 
   protected readonly themeOptions = THEME_OPTIONS;
 
@@ -96,6 +97,12 @@ export class ShellComponent implements OnInit {
   protected readonly getChildLabel = (child: NavChild): string => child.label;
   protected readonly getChildValue = (child: NavChild): string => child.path;
 
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.destroyed = true;
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     this.syncPageTitle();
     this.router.events
@@ -110,7 +117,7 @@ export class ShellComponent implements OnInit {
 
     try {
       const me = await this.api.me();
-      this.displayName = identityName(me.identity) || me.email;
+      await this.setDisplayNameAfterCurrentCheck(identityName(me.identity) || me.email);
     } catch {
       // Guard already gated entry; ignore transient failure.
     }
@@ -158,5 +165,12 @@ export class ShellComponent implements OnInit {
       return;
     }
     this.pageTitle = "Identities";
+  }
+
+  private async setDisplayNameAfterCurrentCheck(displayName: string): Promise<void> {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    if (!this.destroyed) {
+      this.displayName = displayName;
+    }
   }
 }

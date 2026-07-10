@@ -16,7 +16,7 @@ Legend: `- [ ]` = to do · `- [x]` = done · **(!)** = security-sensitive ·
 
 - Single Next.js app serves both the auth UI (login/consent/logout/error/
   handle-login-return) and the privileged `/api/hydra/*` admin-proxy routes.
-- Identity: Google OIDC only (username/password intentionally removed).
+- Identity: Google + Apple OIDC (username/password intentionally removed).
 - Hydra v26.2.0 + Kratos v25.4.0 run as Docker images; PostgreSQL backing store
   (separate `hydra` and `kratos` databases).
 - Cookie domain `.idnest.dev` gives SSO across subdomains.
@@ -146,7 +146,7 @@ Do these before restructuring; several are correctness/security bugs.
 - [x] Enforce PKCE for public SPA clients at the client level
       (`token_endpoint_auth_method=none`). See also 2.5 for the server-side flag.
 - [x] Add every app + backend origin to `CORS_ALLOWED_ORIGINS`
-      (`monorepo/.env.example`).
+      (infra `.env` for Hydra/Kratos browser endpoints).
 
 ### 2.5 Remaining Phase 2 hardening
 

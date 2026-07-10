@@ -1,13 +1,12 @@
 // Default email_verified to false so the expression is safe even if Google
-// omits the claim. Google sets email_verified=true for normal Gmail/Workspace
-// accounts, which lets Kratos mark the address verified on sign-in (no email
-// verification flow is started).
+// omits the claim. Only map the required email trait when Google marks it
+// verified; otherwise Kratos rejects the OIDC flow during identity validation.
 local claims = { email_verified: false } + std.extVar('claims');
 
 {
   identity: {
     traits: {
-      email: claims.email,
+      [if 'email' in claims && claims.email_verified then 'email' else null]: claims.email,
       name: claims.name,
       picture: claims.picture,
     },

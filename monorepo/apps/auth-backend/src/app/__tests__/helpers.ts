@@ -14,7 +14,8 @@ type FetchResult = {
  * Response. Falls back to a 500 if no matcher matches, surfacing test gaps.
  */
 export function mockFetchByUrl(matchers: Array<{ match: string; result: FetchResult }>) {
-  const fn = vi.fn(async (url: string | URL) => {
+  const fn = vi.fn(async (...args: [url: string | URL, init?: RequestInit]) => {
+    const [url] = args;
     const u = String(url);
     const hit = matchers.find((m) => u.includes(m.match));
     const r: FetchResult = hit?.result ?? { ok: false, status: 500, json: { error: "unmatched" } };

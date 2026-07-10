@@ -1,2 +1,2 @@
-export { renderError, renderLogin } from "./pages";
-export type { ErrorViewModel, LoginViewModel } from "./pages";
+export { renderError, renderLogin, renderSettings } from "./pages";
+export type { ErrorViewModel, LoginViewModel, SettingsViewModel } from "./pages";
