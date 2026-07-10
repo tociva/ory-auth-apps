@@ -1,15 +1,10 @@
 <header class="admin-header">
   <div class="header-left">
-    <tng-button
-      appearance="ghost"
-      size="sm"
-      tone="neutral"
-      [ariaExpanded]="!drawerCollapsed"
-      ariaControls="admin-drawer"
-      (click)="drawerToggle.emit()"
-    >
-      <tng-icon [icon]="drawerCollapsed ? 'panel-left-open' : 'panel-left-close'" />
-    </tng-button>
+    <tng-icon [icon]="drawerCollapsed ? 'panel-left-open' : 'panel-left-close'"
+     size="1.125rem"
+     class="header-drawer-toggle"
+     (click)="drawerToggle.emit()"
+     />
     <div class="header-title">
       <span class="eyebrow">Security administration</span>
       <h1>{{ pageTitle }}</h1>
@@ -19,33 +14,41 @@
   <app-search-button class="header-search" />
 
   <div class="header-actions">
-    <tng-select
-      class="header-theme-select"
-      [value]="themeService.themeName()"
-      [options]="themeOptions"
-      (valueChange)="onThemeChange($event)"
+    <tng-icon
+      class="header-theme-trigger"
+      icon="palette"
+      size="0.875rem"
+      [tngMenuTriggerFor]="themeMenu"
     />
 
-    <div class="header-mode-toggle" role="group" aria-label="Color mode">
-      <tng-button
-        size="sm"
-        [appearance]="!themeService.darkMode() ? 'solid' : 'ghost'"
-        tone="neutral"
-        ariaLabel="Light mode"
-        (click)="onModeChange(false)"
-      >
-        <tng-icon icon="sun" />
-      </tng-button>
-      <tng-button
-        size="sm"
-        [appearance]="themeService.darkMode() ? 'solid' : 'ghost'"
-        tone="neutral"
-        ariaLabel="Dark mode"
-        (click)="onModeChange(true)"
-      >
-        <tng-icon icon="moon" />
-      </tng-button>
-    </div>
+    <tng-menu
+      #themeMenu="tngMenu"
+      class="header-theme-menu"
+      ariaLabel="Theme"
+      (tngMenuSelect)="onThemeMenuSelect($event)"
+    >
+      <div tngMenuGroupLabel>Theme</div>
+      @for (option of themeOptions; track option.value) {
+        <button
+          type="button"
+          tngMenuItem
+          tngMenuItemRole="menuitemradio"
+          [tngMenuItemValue]="option.value"
+          [tngMenuItemChecked]="themeService.themeName() === option.value"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </tng-menu>
+
+    <button
+      class="header-icon-button header-mode-toggle"
+      type="button"
+      aria-label="Toggle color mode"
+      (click)="toggleModeChange()"
+    >
+      <tng-icon [icon]="themeService.darkMode() ? 'sun' : 'moon'" size="0.875rem" />
+    </button>
 
     <div class="admin-profile">
       <button class="profile-trigger" type="button" [tngMenuTriggerFor]="profileMenu">

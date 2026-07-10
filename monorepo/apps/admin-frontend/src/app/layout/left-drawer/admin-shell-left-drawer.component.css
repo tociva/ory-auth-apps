@@ -38,8 +38,7 @@
 }
 
 .brand-copy,
-.drawer-link-copy,
-.drawer-footer-text {
+.drawer-link-copy {
   min-width: 0;
   transition:
     opacity 160ms ease,
@@ -72,80 +71,7 @@
   scrollbar-gutter: stable;
 }
 
-.drawer-accordion {
-  display: block;
-  min-width: 0;
-  width: 100%;
-}
-
-.drawer-accordion tng-accordion-item {
-  border-bottom: 1px solid var(--tng-semantic-border-subtle, var(--shell-border));
-  display: block;
-}
-
-.drawer-accordion tng-accordion-item:last-child {
-  border-bottom: 0;
-}
-
-.drawer-accordion tng-accordion-item > .tng-accordion__item {
-  border-bottom: 0;
-}
-
-.drawer-accordion tng-accordion-trigger {
-  min-height: 3.5rem;
-  padding: 0;
-}
-
-.drawer-accordion tng-accordion-trigger > .tng-accordion__trigger {
-  min-height: 3.5rem;
-  padding-block: 0.5rem;
-  padding-inline: 0 0.45rem;
-}
-
-.drawer-group-trigger {
-  align-items: center;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: space-between;
-  min-width: 0;
-  padding-inline: 0.75rem 0.5rem;
-  width: 100%;
-}
-
-.drawer-group-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-  text-align: left;
-}
-
-.drawer-group-label {
-  font-size: 0.875rem;
-  font-weight: 700;
-  line-height: 1.15;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.drawer-group-subtitle {
-  color: var(--shell-muted);
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-tng-accordion-panel.drawer-group-panel > .tng-accordion__panel {
-  background: transparent;
-  border-top: 0;
-  padding: 0.2rem 0.4rem 0.4rem 0.6rem;
-}
-
-tng-listbox.drawer-group-listbox {
+tng-listbox.drawer-listbox {
   --drawer-option-hover-bg: color-mix(
     in srgb,
     var(--tng-semantic-foreground-primary) 5%,
@@ -174,25 +100,23 @@ tng-listbox.drawer-group-listbox {
   width: 100%;
 }
 
-tng-listbox.drawer-group-listbox:focus,
-tng-listbox.drawer-group-listbox:focus-visible {
+tng-listbox.drawer-listbox:focus,
+tng-listbox.drawer-listbox:focus-visible {
   border: 0;
   box-shadow: none;
   outline: none;
 }
 
-tng-listbox.drawer-group-listbox .tng-listbox-option {
-  align-items: center;
+tng-listbox.drawer-listbox .tng-listbox-option {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 0.4rem;
   box-shadow: none;
   color: var(--shell-text);
   cursor: pointer;
-  display: grid;
+  display: flex;
+  align-items: center;
   font-size: 0.84rem;
-  gap: 0.5rem;
-  grid-template-columns: minmax(0, 1fr) 1rem;
   line-height: 1.2;
   min-height: 2rem;
   padding: 0.375rem 0.5rem;
@@ -203,78 +127,100 @@ tng-listbox.drawer-group-listbox .tng-listbox-option {
   width: 100%;
 }
 
-tng-listbox.drawer-group-listbox
+tng-listbox.drawer-listbox
   .tng-listbox-option:hover:not([data-selected]):not([data-active]):not([data-disabled]) {
   background: var(--drawer-option-hover-bg);
 }
 
-tng-listbox.drawer-group-listbox
+tng-listbox.drawer-listbox
   .tng-listbox-option[data-active]:not([data-selected]):not([data-disabled]) {
   background: var(--drawer-option-active-bg);
   border-color: color-mix(in srgb, var(--tng-semantic-accent-brand) 28%, transparent);
 }
 
-tng-listbox.drawer-group-listbox .tng-listbox-option[data-selected]:not([data-active]) {
+tng-listbox.drawer-listbox .tng-listbox-option[data-selected]:not([data-active]) {
   background: var(--drawer-option-selected-bg);
   border-color: color-mix(in srgb, var(--tng-semantic-accent-brand) 42%, transparent);
   color: var(--shell-accent);
   font-weight: 650;
 }
 
-tng-listbox.drawer-group-listbox .tng-listbox-option[data-selected][data-active] {
+tng-listbox.drawer-listbox .tng-listbox-option[data-selected][data-active] {
   background: color-mix(in srgb, var(--tng-semantic-accent-brand) 20%, var(--tng-semantic-background-base));
   border-color: var(--tng-semantic-accent-brand);
   color: var(--shell-accent);
   font-weight: 700;
 }
 
+.drawer-option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  width: 100%;
+}
+
 .drawer-option-label {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.drawer-option-icon {
+.drawer-option-leading-icon,
+.drawer-option-trailing-icon {
   flex: 0 0 1rem;
-  height: 1rem;
   width: 1rem;
+  height: 1rem;
 }
 
-.drawer-footer {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-height: 2.5rem;
-  padding: 0.625rem 0.25rem;
-  color: var(--shell-muted);
-  font-size: 0.75rem;
-  line-height: 1.25;
-}
-
-.admin-drawer.drawer-collapsed .brand-copy,
-.admin-drawer.drawer-collapsed .drawer-link-copy,
-.admin-drawer.drawer-collapsed .drawer-footer-text {
-  opacity: 0;
+.drawer-option-trailing-icon:not(.drawer-option-trailing-icon--visible) {
   visibility: hidden;
 }
 
-.admin-drawer.drawer-collapsed .drawer-brand {
-  grid-template-columns: 2.5rem;
+.admin-drawer.drawer-collapsed {
+  align-items: center;
+  padding-inline: 0.5rem;
 }
 
-.admin-drawer.drawer-collapsed .drawer-footer {
+.admin-drawer.drawer-collapsed tng-separator {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.admin-drawer.drawer-collapsed .drawer-option-row {
   justify-content: center;
 }
 
-.admin-drawer.drawer-collapsed .drawer-menu {
-  display: none;
+.admin-drawer.drawer-collapsed .drawer-option-tooltip {
+  display: inline-flex;
+  width: 100%;
 }
 
-:host ::ng-deep tng-icon svg {
-  width: var(--icon-size, 1.125rem);
-  height: var(--icon-size, 1.125rem);
-  stroke-width: 2;
+.admin-drawer.drawer-collapsed .drawer-option-tooltip .tng-tooltip-root {
+  display: inline-flex;
+  width: 100%;
+}
+
+.admin-drawer.drawer-collapsed .drawer-option-tooltip .tng-tooltip-trigger {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  cursor: inherit;
+}
+
+.admin-drawer.drawer-collapsed .drawer-option-row--collapsed {
+  justify-content: center;
+  width: 100%;
+}
+
+.admin-drawer.drawer-collapsed tng-listbox.drawer-listbox .tng-listbox-option {
+  padding-inline: 0.375rem;
 }
 
 @media (max-width: 860px) {
@@ -290,17 +236,6 @@ tng-listbox.drawer-group-listbox .tng-listbox-option[data-selected][data-active]
 
   .admin-drawer.drawer-collapsed {
     transform: translateX(calc(-1 * var(--drawer-width)));
-  }
-
-  .admin-drawer.drawer-collapsed .brand-copy,
-  .admin-drawer.drawer-collapsed .drawer-link-copy,
-  .admin-drawer.drawer-collapsed .drawer-footer-text {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .admin-drawer.drawer-collapsed .drawer-brand {
-    grid-template-columns: 2.5rem minmax(0, 1fr);
   }
 
   .admin-drawer.drawer-collapsed .drawer-menu {

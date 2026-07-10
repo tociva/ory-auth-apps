@@ -2,8 +2,7 @@
   <app-admin-shell-left-drawer
     [collapsed]="drawerCollapsed"
     [navGroups]="navGroups"
-    [defaultExpandedGroups]="defaultExpandedGroups"
-    [activeGroupPaths]="activeGroupPaths()"
+    [activePath]="activePath()"
     (navSelect)="onNavValueChange($event)"
   />
 

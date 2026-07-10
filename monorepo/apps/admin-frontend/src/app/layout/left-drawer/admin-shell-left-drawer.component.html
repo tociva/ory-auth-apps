@@ -6,63 +6,56 @@
 >
   <div class="drawer-brand">
     <div class="brand-mark" aria-hidden="true">
-      <tng-icon icon="shield-check" />
+      <tng-icon icon="shield-check" size="1.125rem" />
     </div>
-    <div class="brand-copy">
-      <span class="brand-name">idnest</span>
-      <span class="brand-subtitle">Admin Console</span>
-    </div>
+    @if (!collapsed) {
+      <div class="brand-copy">
+        <span class="brand-name">idnest</span>
+        <span class="brand-subtitle">Admin Console</span>
+      </div>
+    }
   </div>
 
   <tng-separator decorative />
 
   <nav class="drawer-menu" aria-label="Primary">
-    <tng-accordion
-      class="drawer-accordion"
-      tabindex="-1"
-      [type]="'multiple'"
-      [defaultValue]="defaultExpandedGroups"
-      [collapsible]="true"
-      ariaLabel="Admin navigation groups"
+    <tng-listbox
+      class="drawer-listbox"
+      ariaLabel="Admin navigation"
+      [options]="navItems"
+      [getOptionValue]="getChildValue"
+      [getOptionLabel]="getChildLabel"
+      [value]="activePath"
+      [typeahead]="false"
+      [loop]="true"
+      (valueChange)="onNavValueChange($event)"
     >
-      @for (group of navGroups; track group.key) {
-        <tng-accordion-item [value]="group.key">
-          <tng-accordion-trigger>
-            <span class="drawer-group-trigger">
-              <span class="drawer-group-copy">
-                <span class="drawer-group-label">{{ group.label }}</span>
-                <span class="drawer-group-subtitle drawer-link-copy">{{ group.subtitle }}</span>
-              </span>
+      <ng-template #tngListboxOptionTpl let-ctx>
+        @if (collapsed) {
+          <tng-tooltip
+            class="drawer-option-tooltip"
+            [text]="ctx.label"
+            [ariaLabel]="ctx.label"
+            side="right"
+          >
+            <span trigger class="drawer-option-row drawer-option-row--collapsed">
+              <tng-icon [icon]="ctx.option.icon" size="1.125rem" class="drawer-option-leading-icon" aria-hidden="true" />
             </span>
-          </tng-accordion-trigger>
-
-          <tng-accordion-panel class="drawer-group-panel">
-            <tng-listbox
-              class="drawer-group-listbox"
-              [ariaLabel]="group.label + ' links'"
-              [options]="group.children"
-              [getOptionValue]="getChildValue"
-              [getOptionLabel]="getChildLabel"
-              [value]="activeGroupPaths.get(group.key) ?? null"
-              [typeahead]="false"
-              [loop]="true"
-              (valueChange)="onNavValueChange($event)"
-            >
-              <ng-template #tngListboxOptionTpl let-ctx>
-                <span class="drawer-option-label">{{ ctx.label }}</span>
-                @if (ctx.selected) {
-                  <tng-icon icon="chevron-right" class="drawer-option-icon" />
-                }
-              </ng-template>
-            </tng-listbox>
-          </tng-accordion-panel>
-        </tng-accordion-item>
-      }
-    </tng-accordion>
+          </tng-tooltip>
+        } @else {
+          <span class="drawer-option-row">
+            <tng-icon [icon]="ctx.option.icon" size="1rem" class="drawer-option-leading-icon" aria-hidden="true" />
+            <span class="drawer-option-label">{{ ctx.label }}</span>
+            <tng-icon
+              icon="chevron-right"
+              size="1rem"
+              class="drawer-option-trailing-icon"
+              [class.drawer-option-trailing-icon--visible]="ctx.selected"
+              aria-hidden="true"
+            />
+          </span>
+        }
+      </ng-template>
+    </tng-listbox>
   </nav>
-
-  <div class="drawer-footer">
-    <span tngBadge>dev</span>
-    <span class="drawer-footer-text">Protected by Kratos session policy</span>
-  </div>
 </aside>

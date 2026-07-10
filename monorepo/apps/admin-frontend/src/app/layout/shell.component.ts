@@ -30,27 +30,24 @@ export class ShellComponent implements OnInit {
       label: "Identities & Access",
       subtitle: "Users, roles, and OAuth clients",
       children: [
-        { label: "Identities", path: "/identities" },
-        { label: "OAuth Clients", path: "/clients" },
+        { label: "Identities", path: "/identities", icon: "users" },
+        { label: "OAuth Clients", path: "/clients", icon: "key-round" },
       ],
     },
   ];
 
   private readonly currentUrl = signal(this.router.url);
 
-  protected readonly activeGroupPaths = computed(() => {
-    const map = new Map<string, string | null>();
+  protected readonly activePath = computed(() => {
     const url = this.currentUrl().split(/[?#]/)[0] ?? "";
     for (const group of this.navGroups) {
       const active = group.children.find(
         (c) => url === c.path || url.startsWith(`${c.path}/`),
       );
-      map.set(group.key, active?.path ?? null);
+      if (active) return active.path;
     }
-    return map;
+    return null;
   });
-
-  protected readonly defaultExpandedGroups = this.navGroups.map((g) => g.key);
 
   drawerCollapsed = false;
   displayName = "";

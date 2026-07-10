@@ -1,12 +1,8 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import {
-  TngAccordionComponent,
-  TngAccordionItemComponent,
-  TngAccordionPanelComponent,
-  TngAccordionTriggerComponent,
-  TngBadgeComponent,
   TngListboxComponent,
   TngSeparatorComponent,
+  TngTooltipComponent,
 } from "@tailng-ui/components";
 import { TngIcon } from "@tailng-ui/icons";
 import type { AdminShellNavChild, AdminShellNavGroup } from "../admin-shell.types";
@@ -15,14 +11,10 @@ import type { AdminShellNavChild, AdminShellNavGroup } from "../admin-shell.type
   selector: "app-admin-shell-left-drawer",
   standalone: true,
   imports: [
-    TngAccordionComponent,
-    TngAccordionItemComponent,
-    TngAccordionPanelComponent,
-    TngAccordionTriggerComponent,
-    TngBadgeComponent,
     TngIcon,
     TngListboxComponent,
     TngSeparatorComponent,
+    TngTooltipComponent,
   ],
   templateUrl: "./admin-shell-left-drawer.component.html",
   styleUrls: ["./admin-shell-left-drawer.component.css"],
@@ -30,10 +22,13 @@ import type { AdminShellNavChild, AdminShellNavGroup } from "../admin-shell.type
 export class AdminShellLeftDrawerComponent {
   @Input({ required: true }) collapsed = false;
   @Input({ required: true }) navGroups: readonly AdminShellNavGroup[] = [];
-  @Input({ required: true }) defaultExpandedGroups: readonly string[] = [];
-  @Input({ required: true }) activeGroupPaths: ReadonlyMap<string, string | null> = new Map();
+  @Input({ required: true }) activePath: string | null = null;
 
   @Output() readonly navSelect = new EventEmitter<string>();
+
+  protected get navItems(): readonly AdminShellNavChild[] {
+    return this.navGroups.flatMap((group) => group.children);
+  }
 
   protected readonly getChildLabel = (child: AdminShellNavChild): string => child.label;
   protected readonly getChildValue = (child: AdminShellNavChild): string => child.path;

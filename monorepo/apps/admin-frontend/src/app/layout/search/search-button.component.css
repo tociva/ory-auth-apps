@@ -22,8 +22,7 @@
 }
 
 .admin-search-trigger__icon {
-  height: 1rem;
-  width: 1rem;
+  flex-shrink: 0;
 }
 
 .admin-search-trigger__shortcut {

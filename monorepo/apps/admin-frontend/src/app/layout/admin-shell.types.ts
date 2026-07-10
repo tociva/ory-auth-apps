@@ -1,4 +1,8 @@
-export type AdminShellNavChild = Readonly<{ label: string; path: string }>;
+export type AdminShellNavChild = Readonly<{
+  label: string;
+  path: string;
+  icon: string;
+}>;
 
 export type AdminShellNavGroup = Readonly<{
   label: string;

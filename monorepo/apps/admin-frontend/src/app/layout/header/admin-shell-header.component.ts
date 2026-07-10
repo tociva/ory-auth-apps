@@ -1,10 +1,8 @@
 import { Component, EventEmitter, Input, Output, inject } from "@angular/core";
 import {
   TngAvatarComponent,
-  TngButtonComponent,
   TngMenuComponent,
   TngMenuTriggerFor,
-  TngSelectComponent,
 } from "@tailng-ui/components";
 import { TngIcon } from "@tailng-ui/icons";
 import { TngMenuGroupLabel, TngMenuItem, type TngMenuSelectEvent } from "@tailng-ui/primitives";
@@ -16,13 +14,11 @@ import { SearchButtonComponent } from "../search/search-button.component";
   standalone: true,
   imports: [
     TngAvatarComponent,
-    TngButtonComponent,
     TngIcon,
     TngMenuComponent,
     TngMenuTriggerFor,
     TngMenuItem,
     TngMenuGroupLabel,
-    TngSelectComponent,
     SearchButtonComponent,
   ],
   templateUrl: "./admin-shell-header.component.html",
@@ -45,13 +41,13 @@ export class AdminShellHeaderComponent {
     }
   }
 
-  protected onThemeChange(value: unknown): void {
-    if (typeof value === "string") {
-      this.themeService.setThemeName(value as AppThemeName);
+  protected onThemeMenuSelect(event: TngMenuSelectEvent): void {
+    if (typeof event.value === "string") {
+      this.themeService.setThemeName(event.value as AppThemeName);
     }
   }
 
-  protected onModeChange(isDark: boolean): void {
-    this.themeService.setDarkMode(isDark);
+  protected toggleModeChange(): void {
+    this.themeService.setDarkMode(!this.themeService.darkMode());
   }
 }
