@@ -1,0 +1,16 @@
+:host {
+  display: contents;
+}
+
+.admin-main {
+  flex: 1;
+  width: min(100%, 76rem);
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+@media (max-width: 860px) {
+  .admin-main {
+    padding: 1rem;
+  }
+}

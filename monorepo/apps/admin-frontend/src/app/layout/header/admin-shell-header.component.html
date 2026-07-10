@@ -1,0 +1,66 @@
+<header class="admin-header">
+  <div class="header-left">
+    <tng-button
+      appearance="ghost"
+      size="sm"
+      tone="neutral"
+      [ariaExpanded]="!drawerCollapsed"
+      ariaControls="admin-drawer"
+      (click)="drawerToggle.emit()"
+    >
+      <tng-icon [icon]="drawerCollapsed ? 'panel-left-open' : 'panel-left-close'" />
+    </tng-button>
+    <div class="header-title">
+      <span class="eyebrow">Security administration</span>
+      <h1>{{ pageTitle }}</h1>
+    </div>
+  </div>
+
+  <app-search-button class="header-search" />
+
+  <div class="header-actions">
+    <tng-select
+      class="header-theme-select"
+      [value]="themeService.themeName()"
+      [options]="themeOptions"
+      (valueChange)="onThemeChange($event)"
+    />
+
+    <div class="header-mode-toggle" role="group" aria-label="Color mode">
+      <tng-button
+        size="sm"
+        [appearance]="!themeService.darkMode() ? 'solid' : 'ghost'"
+        tone="neutral"
+        ariaLabel="Light mode"
+        (click)="onModeChange(false)"
+      >
+        <tng-icon icon="sun" />
+      </tng-button>
+      <tng-button
+        size="sm"
+        [appearance]="themeService.darkMode() ? 'solid' : 'ghost'"
+        tone="neutral"
+        ariaLabel="Dark mode"
+        (click)="onModeChange(true)"
+      >
+        <tng-icon icon="moon" />
+      </tng-button>
+    </div>
+
+    <div class="admin-profile">
+      <button class="profile-trigger" type="button" [tngMenuTriggerFor]="profileMenu">
+        <tng-avatar [fallback]="displayName || 'Admin'" size="sm" />
+        <span class="profile-trigger-name">{{ displayName || "Admin" }}</span>
+      </button>
+
+      <tng-menu
+        #profileMenu="tngMenu"
+        ariaLabel="Account options"
+        (tngMenuSelect)="onProfileMenuSelect($event)"
+      >
+        <div tngMenuGroupLabel>Session</div>
+        <button type="button" tngMenuItem tngMenuItemValue="logout">Logout</button>
+      </tng-menu>
+    </div>
+  </div>
+</header>

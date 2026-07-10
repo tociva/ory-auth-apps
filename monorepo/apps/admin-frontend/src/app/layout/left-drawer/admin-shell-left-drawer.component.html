@@ -1,0 +1,68 @@
+<aside
+  id="admin-drawer"
+  class="admin-drawer"
+  [class.drawer-collapsed]="collapsed"
+  aria-label="Admin navigation"
+>
+  <div class="drawer-brand">
+    <div class="brand-mark" aria-hidden="true">
+      <tng-icon icon="shield-check" />
+    </div>
+    <div class="brand-copy">
+      <span class="brand-name">idnest</span>
+      <span class="brand-subtitle">Admin Console</span>
+    </div>
+  </div>
+
+  <tng-separator decorative />
+
+  <nav class="drawer-menu" aria-label="Primary">
+    <tng-accordion
+      class="drawer-accordion"
+      tabindex="-1"
+      [type]="'multiple'"
+      [defaultValue]="defaultExpandedGroups"
+      [collapsible]="true"
+      ariaLabel="Admin navigation groups"
+    >
+      @for (group of navGroups; track group.key) {
+        <tng-accordion-item [value]="group.key">
+          <tng-accordion-trigger>
+            <span class="drawer-group-trigger">
+              <span class="drawer-group-copy">
+                <span class="drawer-group-label">{{ group.label }}</span>
+                <span class="drawer-group-subtitle drawer-link-copy">{{ group.subtitle }}</span>
+              </span>
+            </span>
+          </tng-accordion-trigger>
+
+          <tng-accordion-panel class="drawer-group-panel">
+            <tng-listbox
+              class="drawer-group-listbox"
+              [ariaLabel]="group.label + ' links'"
+              [options]="group.children"
+              [getOptionValue]="getChildValue"
+              [getOptionLabel]="getChildLabel"
+              [value]="activeGroupPaths.get(group.key) ?? null"
+              [typeahead]="false"
+              [loop]="true"
+              (valueChange)="onNavValueChange($event)"
+            >
+              <ng-template #tngListboxOptionTpl let-ctx>
+                <span class="drawer-option-label">{{ ctx.label }}</span>
+                @if (ctx.selected) {
+                  <tng-icon icon="chevron-right" class="drawer-option-icon" />
+                }
+              </ng-template>
+            </tng-listbox>
+          </tng-accordion-panel>
+        </tng-accordion-item>
+      }
+    </tng-accordion>
+  </nav>
+
+  <div class="drawer-footer">
+    <span tngBadge>dev</span>
+    <span class="drawer-footer-text">Protected by Kratos session policy</span>
+  </div>
+</aside>

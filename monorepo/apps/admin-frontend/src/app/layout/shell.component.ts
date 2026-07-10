@@ -1,54 +1,19 @@
 import { Component, computed, DestroyRef, inject, signal, type OnInit } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
-import {
-  TngAccordionComponent,
-  TngAccordionItemComponent,
-  TngAccordionPanelComponent,
-  TngAccordionTriggerComponent,
-  TngAvatarComponent,
-  TngBadgeComponent,
-  TngButtonComponent,
-  TngListboxComponent,
-  TngMenuComponent,
-  TngMenuTriggerFor,
-  TngSeparatorComponent,
-  TngSelectComponent,
-} from "@tailng-ui/components";
-import { TngIcon } from "@tailng-ui/icons";
-import { TngMenuItem, TngMenuGroupLabel, type TngMenuSelectEvent } from "@tailng-ui/primitives";
+import { NavigationEnd, Router } from "@angular/router";
 import { filter } from "rxjs";
 import { AdminApiService } from "../core/admin-api.service";
 import { ADMIN_CONFIG } from "../core/admin-config";
 import { identityName } from "../core/admin-types";
-import { AppThemeService, THEME_OPTIONS, type AppThemeName } from "../core/theme/app-theme.service";
-import { SearchButtonComponent } from "./search/search-button.component";
-
-type NavChild = Readonly<{ label: string; path: string }>;
-type NavGroup = Readonly<{ label: string; subtitle: string; key: string; children: NavChild[] }>;
+import type { AdminShellNavGroup } from "./admin-shell.types";
+import { AdminShellHeaderComponent } from "./header/admin-shell-header.component";
+import { AdminShellLeftDrawerComponent } from "./left-drawer/admin-shell-left-drawer.component";
+import { AdminShellMainContentComponent } from "./main-content/admin-shell-main-content.component";
 
 @Component({
   selector: "app-shell",
   standalone: true,
-  imports: [
-    RouterOutlet,
-    TngAccordionComponent,
-    TngAccordionItemComponent,
-    TngAccordionPanelComponent,
-    TngAccordionTriggerComponent,
-    TngAvatarComponent,
-    TngBadgeComponent,
-    TngButtonComponent,
-    TngIcon,
-    TngListboxComponent,
-    TngMenuComponent,
-    TngMenuTriggerFor,
-    TngMenuItem,
-    TngMenuGroupLabel,
-    TngSeparatorComponent,
-    TngSelectComponent,
-    SearchButtonComponent,
-  ],
+  imports: [AdminShellHeaderComponent, AdminShellLeftDrawerComponent, AdminShellMainContentComponent],
   templateUrl: "./shell.component.html",
   styleUrls: ["./shell.component.css"],
 })
@@ -57,12 +22,9 @@ export class ShellComponent implements OnInit {
   private readonly config = inject(ADMIN_CONFIG);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
-  protected readonly themeService = inject(AppThemeService);
   private destroyed = false;
 
-  protected readonly themeOptions = THEME_OPTIONS;
-
-  readonly navGroups: readonly NavGroup[] = [
+  protected readonly navGroups: readonly AdminShellNavGroup[] = [
     {
       key: "identities-access",
       label: "Identities & Access",
@@ -93,9 +55,6 @@ export class ShellComponent implements OnInit {
   drawerCollapsed = false;
   displayName = "";
   pageTitle = "Identities";
-
-  protected readonly getChildLabel = (child: NavChild): string => child.label;
-  protected readonly getChildValue = (child: NavChild): string => child.path;
 
   constructor() {
     this.destroyRef.onDestroy(() => {
@@ -133,25 +92,9 @@ export class ShellComponent implements OnInit {
     window.location.href = `${logoutUrl}?return_to=${returnTo}`;
   }
 
-  protected onProfileMenuSelect(event: TngMenuSelectEvent): void {
-    if (String(event.value) === "logout") {
-      this.signOut();
-    }
-  }
-
   protected onNavValueChange(value: unknown): void {
     if (typeof value !== "string" || value.length === 0) return;
     void this.router.navigateByUrl(value);
-  }
-
-  protected onThemeChange(value: unknown): void {
-    if (typeof value === "string") {
-      this.themeService.setThemeName(value as AppThemeName);
-    }
-  }
-
-  protected onModeChange(isDark: boolean): void {
-    this.themeService.setDarkMode(isDark);
   }
 
   private syncPageTitle(): void {
