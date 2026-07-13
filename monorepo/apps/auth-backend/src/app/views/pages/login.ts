@@ -1,5 +1,5 @@
 import { layout } from "../layout";
-import { DAYBOOK_LOGO } from "../icons";
+import { IDNEST_LOGO } from "../icons";
 import type { FlowHiddenInput, FlowSubmitButton } from "./flow-controls";
 import { renderOidcForm } from "./oidc-form";
 
@@ -21,7 +21,7 @@ export function renderLogin(vm: LoginViewModel): string {
   const body = `<div class="page-center">
   <main class="card">
     <div class="card-header">
-      ${DAYBOOK_LOGO}
+      ${IDNEST_LOGO}
       <p class="brand-tagline">Sign in to continue</p>
     </div>
 
@@ -43,5 +43,5 @@ export function renderLogin(vm: LoginViewModel): string {
   </main>
 </div>`;
 
-  return layout({ title: "Sign in · Daybook.Cloud", body });
+  return layout({ title: "Sign in · Idnest", body });
 }

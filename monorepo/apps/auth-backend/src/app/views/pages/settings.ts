@@ -1,5 +1,5 @@
 import { esc } from "../escape";
-import { DAYBOOK_LOGO } from "../icons";
+import { IDNEST_LOGO } from "../icons";
 import { layout } from "../layout";
 import type { FlowHiddenInput, FlowSubmitButton } from "./flow-controls";
 import { renderOidcForm } from "./oidc-form";
@@ -23,7 +23,7 @@ export function renderSettings(vm: SettingsViewModel): string {
   const body = `<div class="page-center">
   <main class="card">
     <div class="card-header">
-      ${DAYBOOK_LOGO}
+      ${IDNEST_LOGO}
       <p class="brand-tagline">Account settings</p>
     </div>
 
@@ -40,5 +40,5 @@ export function renderSettings(vm: SettingsViewModel): string {
   </main>
 </div>`;
 
-  return layout({ title: "Account settings · Daybook.Cloud", body });
+  return layout({ title: "Account settings · Idnest", body });
 }

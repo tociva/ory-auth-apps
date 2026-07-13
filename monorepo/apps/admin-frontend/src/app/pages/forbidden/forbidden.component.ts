@@ -6,7 +6,7 @@ import {
   TngEmptyDescriptionComponent,
   TngEmptyTitleComponent,
 } from "@tailng-ui/components";
-import { ADMIN_CONFIG } from "../../core/admin-config";
+import { AdminAuthService } from "../../core/admin-auth.service";
 
 @Component({
   selector: "app-forbidden",
@@ -22,9 +22,13 @@ import { ADMIN_CONFIG } from "../../core/admin-config";
   styleUrls: ["./forbidden.component.css"],
 })
 export class ForbiddenComponent {
-  private readonly config = inject(ADMIN_CONFIG);
+  private readonly auth = inject(AdminAuthService);
 
   goSignIn(): void {
-    window.location.href = this.config.authLoginUrl;
+    void this.auth.signIn(window.location.origin);
+  }
+
+  goLogout(): void {
+    void this.auth.signOut();
   }
 }

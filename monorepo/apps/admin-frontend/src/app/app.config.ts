@@ -3,6 +3,7 @@ import { provideRouter } from "@angular/router";
 import { provideHttpClient, withFetch } from "@angular/common/http";
 import { provideTngIcons } from "@tailng-ui/icons";
 import { routes } from "./app.routes";
+import { AdminAuthService } from "./core/admin-auth.service";
 import { ADMIN_CONFIG, type AdminConfig } from "./core/admin-config";
 import { AppThemeService } from "./core/theme/app-theme.service";
 
@@ -20,6 +21,7 @@ export function createAppConfig(config: AdminConfig): ApplicationConfig {
         provide: APP_INITIALIZER,
         useFactory: () => {
           inject(AppThemeService); // side-effect: registers the theme effect
+          inject(AdminAuthService).initialize();
           return () => undefined;
         },
         multi: true,

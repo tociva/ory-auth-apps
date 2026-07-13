@@ -1,30 +1,28 @@
 import { HttpClient, type HttpErrorResponse } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
+import { AdminAuthService } from "./admin-auth.service";
 import { ADMIN_CONFIG } from "./admin-config";
 import { ProgressService } from "./progress/progress.service";
 import type {
   AdminIdentity,
   AdminMe,
+  ClientAccessGrant,
   ClientFormValue,
   HydraClient,
   KratosSession,
 } from "./admin-types";
 
-/**
- * Client for admin-backend. Every call uses `withCredentials: true` so the
- * Kratos session cookie is forwarded; admin-backend enforces authorization on
- * each request (the UI is never the security boundary).
- */
+/** Client for admin-backend. BFF auth uses an HttpOnly session cookie + CSRF. */
 @Injectable({ providedIn: "root" })
 export class AdminApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AdminAuthService);
   private readonly config = inject(ADMIN_CONFIG);
   private readonly progress = inject(ProgressService);
-  private csrfToken = "";
 
   private base(): string {
-    return `${this.config.adminBackendUrl}/admin`;
+    return `${this.config.apiBaseUrl}/admin`;
   }
 
   /** Wraps an async operation with the top-bar progress indicator. */
@@ -38,14 +36,18 @@ export class AdminApiService {
   }
 
   private get<T>(path: string): Promise<T> {
-    return this.withProgress(() =>
-      firstValueFrom(this.http.get<T>(`${this.base()}${path}`, { withCredentials: true })),
-    );
+    return this.withProgress(async () => {
+      const result = await firstValueFrom(
+        this.http.get<T>(`${this.base()}${path}`, { withCredentials: true }),
+      );
+      this.captureCsrf(result);
+      return result;
+    });
   }
 
   private async unsafeHeaders(): Promise<Record<string, string>> {
-    if (!this.csrfToken) await this.me();
-    return { "X-Admin-CSRF": this.csrfToken };
+    const csrfToken = await this.auth.ensureCsrfToken();
+    return csrfToken ? { "X-Admin-CSRF": csrfToken } : {};
   }
 
   private async post<T>(path: string, body: unknown = {}): Promise<T> {
@@ -75,12 +77,16 @@ export class AdminApiService {
     });
   }
 
+  private captureCsrf(value: unknown): void {
+    if (value && typeof value === "object" && "csrfToken" in value) {
+      const csrfToken = (value as { csrfToken?: unknown }).csrfToken;
+      this.auth.setCsrfToken(typeof csrfToken === "string" ? csrfToken : undefined);
+    }
+  }
+
   // --- Authorization probe ---
   me(): Promise<AdminMe> {
-    return this.get<AdminMe>("/me").then((me) => {
-      this.csrfToken = me.csrfToken;
-      return me;
-    });
+    return this.get<AdminMe>("/me");
   }
 
   // --- Identities ---
@@ -103,6 +109,26 @@ export class AdminApiService {
 
   setAdminRole(id: string, admin: boolean): Promise<AdminIdentity> {
     return this.post<AdminIdentity>(`/identities/${encodeURIComponent(id)}/role`, { admin });
+  }
+
+  listIdentityClientAccess(id: string): Promise<ClientAccessGrant[]> {
+    return this.get<ClientAccessGrant[]>(`/identities/${encodeURIComponent(id)}/client-access`);
+  }
+
+  grantIdentityClientAccess(id: string, clientId: string, role = "user"): Promise<ClientAccessGrant> {
+    return this.post<ClientAccessGrant>(
+      `/identities/${encodeURIComponent(id)}/client-access/${encodeURIComponent(clientId)}`,
+      { role },
+    );
+  }
+
+  revokeIdentityClientAccess(
+    id: string,
+    clientId: string,
+  ): Promise<{ revoked: boolean; identity_id: string; client_id: string }> {
+    return this.delete(
+      `/identities/${encodeURIComponent(id)}/client-access/${encodeURIComponent(clientId)}`,
+    );
   }
 
   // --- Sessions ---
@@ -137,6 +163,10 @@ export class AdminApiService {
 
   deleteClient(clientId: string): Promise<{ deleted: boolean; client_id: string }> {
     return this.delete(`/clients/${encodeURIComponent(clientId)}`);
+  }
+
+  listClientIdentityAccess(clientId: string): Promise<ClientAccessGrant[]> {
+    return this.get<ClientAccessGrant[]>(`/clients/${encodeURIComponent(clientId)}/identities`);
   }
 }
 

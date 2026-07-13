@@ -1,7 +1,6 @@
 import { Component, inject, type OnInit } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import {
-  TngBadgeComponent,
   TngButtonComponent,
   TngTableCellTemplate,
   TngTableComponent,
@@ -13,13 +12,12 @@ import {
   type AdminIdentity,
   identityEmail,
   identityName,
-  isAdminRole,
 } from "../../core/admin-types";
 
 @Component({
   selector: "app-identities",
   standalone: true,
-  imports: [RouterLink, TngTableComponent, TngTableCellTemplate, TngBadgeComponent, TngButtonComponent],
+  imports: [RouterLink, TngTableComponent, TngTableCellTemplate, TngButtonComponent],
   templateUrl: "./identities.component.html",
   styleUrls: ["./identities.component.css"],
 })
@@ -35,7 +33,6 @@ export class IdentitiesComponent implements OnInit {
     { id: "name", label: "Name", accessor: (row) => identityName(row) },
     { id: "email", label: "Email", accessor: (row) => identityEmail(row) },
     { id: "state", label: "State", accessor: (row) => row.state ?? "active" },
-    { id: "role", label: "Role" },
     { id: "actions", label: "", align: "end" },
   ];
 
@@ -62,7 +59,4 @@ export class IdentitiesComponent implements OnInit {
     return (row as AdminIdentity).id;
   }
 
-  roleOf(row: unknown): boolean {
-    return isAdminRole(row as AdminIdentity);
-  }
 }

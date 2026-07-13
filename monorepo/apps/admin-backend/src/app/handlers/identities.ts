@@ -94,11 +94,11 @@ export async function deactivateIdentity(input: IdentityIdInput): Promise<Handle
 
 export interface SetRoleInput {
   id?: string;
-  /** true grants `metadata_admin.role = "admin"`, false revokes it. */
+  /** Legacy Kratos metadata role flag; not used for Idnest Admin authorization. */
   admin?: boolean;
 }
 
-/** Grant or revoke the admin role via `metadata_admin` (the runtime source of truth). */
+/** Legacy metadata helper. Idnest Admin authorization is backed by client_access_grants. */
 export async function setAdminRole(input: SetRoleInput): Promise<HandlerResult> {
   try {
     if (!input.id) return { status: 400, body: { error: "Missing identity id" } };

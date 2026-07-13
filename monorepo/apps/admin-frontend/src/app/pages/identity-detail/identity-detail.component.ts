@@ -1,4 +1,5 @@
 import { Component, inject, type OnInit } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import {
   TngBadgeComponent,
@@ -14,10 +15,12 @@ import {
 import { AdminApiService, describeError } from "../../core/admin-api.service";
 import { ToastService } from "../../core/toast/toast.service";
 import {
+  IDNEST_ADMIN_CLIENT_ID,
   type AdminIdentity,
+  type ClientAccessGrant,
+  type HydraClient,
   identityEmail,
   identityName,
-  isAdminRole,
   isEmailVerified,
   type KratosSession,
 } from "../../core/admin-types";
@@ -27,6 +30,7 @@ import {
   standalone: true,
   imports: [
     RouterLink,
+    FormsModule,
     TngBadgeComponent,
     TngButtonComponent,
     TngCardComponent,
@@ -48,6 +52,9 @@ export class IdentityDetailComponent implements OnInit {
 
   identity: AdminIdentity | null = null;
   sessions: KratosSession[] = [];
+  clientGrants: ClientAccessGrant[] = [];
+  clients: HydraClient[] = [];
+  selectedClientId = "";
   loading = true;
   busy = false;
   error = "";
@@ -65,7 +72,7 @@ export class IdentityDetailComponent implements OnInit {
     return this.identity ? isEmailVerified(this.identity) : false;
   }
   get admin(): boolean {
-    return this.identity ? isAdminRole(this.identity) : false;
+    return this.hasClientGrant(IDNEST_ADMIN_CLIENT_ID);
   }
 
   ngOnInit(): void {
@@ -78,7 +85,7 @@ export class IdentityDetailComponent implements OnInit {
     this.error = "";
     try {
       this.identity = await this.api.getIdentity(this.id);
-      await this.loadSessions();
+      await Promise.all([this.loadSessions(), this.loadClientAccess()]);
     } catch (e) {
       this.error = describeError(e);
     } finally {
@@ -94,9 +101,34 @@ export class IdentityDetailComponent implements OnInit {
     }
   }
 
+  private async loadClientAccess(): Promise<void> {
+    try {
+      const [grants, clients] = await Promise.all([
+        this.api.listIdentityClientAccess(this.id),
+        this.api.listClients(),
+      ]);
+      this.clientGrants = grants;
+      this.clients = clients;
+      this.selectedClientId = this.clients.find((client) => !this.hasClientGrant(client.client_id))?.client_id ?? "";
+    } catch {
+      this.clientGrants = [];
+      this.clients = [];
+      this.selectedClientId = "";
+    }
+  }
+
+  hasClientGrant(clientId: string): boolean {
+    return this.clientGrants.some((grant) => grant.client_id === clientId);
+  }
+
   async onToggleRole(next: boolean): Promise<void> {
     await this.run(async () => {
-      this.identity = await this.api.setAdminRole(this.id, next);
+      if (next) {
+        await this.api.grantIdentityClientAccess(this.id, IDNEST_ADMIN_CLIENT_ID, "system-admin");
+      } else {
+        await this.api.revokeIdentityClientAccess(this.id, IDNEST_ADMIN_CLIENT_ID);
+      }
+      await this.loadClientAccess();
       this.notice = next ? "Admin role granted." : "Admin role revoked.";
       this.toast.success(this.notice);
     });
@@ -133,6 +165,26 @@ export class IdentityDetailComponent implements OnInit {
       await this.api.revokeIdentitySessions(this.id);
       await this.loadSessions();
       this.notice = "All sessions revoked.";
+      this.toast.success(this.notice);
+    });
+  }
+
+  async grantClientAccess(): Promise<void> {
+    const clientId = this.selectedClientId.trim();
+    if (!clientId) return;
+    await this.run(async () => {
+      await this.api.grantIdentityClientAccess(this.id, clientId);
+      await this.loadClientAccess();
+      this.notice = `Access granted to ${clientId}.`;
+      this.toast.success(this.notice);
+    });
+  }
+
+  async revokeClientAccess(clientId: string): Promise<void> {
+    await this.run(async () => {
+      await this.api.revokeIdentityClientAccess(this.id, clientId);
+      await this.loadClientAccess();
+      this.notice = `Access revoked from ${clientId}.`;
       this.toast.success(this.notice);
     });
   }

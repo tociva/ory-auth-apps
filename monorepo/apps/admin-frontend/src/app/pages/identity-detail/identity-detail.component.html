@@ -48,8 +48,43 @@
           <span>{{ admin ? "This user is an administrator." : "Standard user." }}</span>
         </div>
         <p class="muted">
-          Backed by Kratos <code>metadata_admin.role</code> — the runtime source of truth.
+          Backed by the Idnest authz grant for <code>idnest-admin-client</code>.
         </p>
+      </tng-card-content>
+    </tng-card>
+
+    <tng-card>
+      <tng-card-header>
+        <tng-card-title>Client access</tng-card-title>
+      </tng-card-header>
+      <tng-card-content>
+        <div class="toolbar">
+          <select class="select" [(ngModel)]="selectedClientId" [disabled]="busy || !clients.length">
+            <option value="">Select client</option>
+            @for (client of clients; track client.client_id) {
+              <option [value]="client.client_id" [disabled]="hasClientGrant(client.client_id)">
+                {{ client.client_name || client.client_id }}
+              </option>
+            }
+          </select>
+          <tng-button size="sm" appearance="solid" tone="primary" [disabled]="busy || !selectedClientId" (click)="grantClientAccess()">
+            Grant access
+          </tng-button>
+        </div>
+
+        @for (grant of clientGrants; track grant.client_id) {
+          <div class="row grant-row">
+            <div>
+              <div>{{ grant.client_id }}</div>
+              <div class="muted">role: {{ grant.role }}</div>
+            </div>
+            <tng-button size="sm" appearance="outline" tone="danger" [disabled]="busy" (click)="revokeClientAccess(grant.client_id)">
+              Revoke
+            </tng-button>
+          </div>
+        } @empty {
+          <p class="muted">No OAuth clients are enabled for this identity.</p>
+        }
       </tng-card-content>
     </tng-card>
 

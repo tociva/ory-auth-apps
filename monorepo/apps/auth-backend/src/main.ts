@@ -10,10 +10,10 @@ function createServer() {
     res.json({ status: "ok" });
   });
 
+  app.use(express.urlencoded({ extended: false }));
+
   // Server-rendered auth pages (login / consent / logout / error). These are
-  // same-origin GET navigations plus a full-page form POST to Kratos, so no
-  // CORS or JSON body parsing is needed — that was only for the old SPA's XHR
-  // proxy under /api/hydra.
+  // same-origin navigations plus full-page form POSTs.
   app.use("/", createPagesRouter());
 
   return app;

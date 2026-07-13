@@ -4,12 +4,30 @@
  * server-side and 302-redirects the browser; only `/login` and `/error` render
  * HTML. The privileged Hydra/Kratos admin work is reused from `./handlers`.
  */
+import { isAllowedOrigin } from "@idnest/shared-types";
 import { Router, type Request, type Response } from "express";
 import { getAuthBaseUrl, getCorsOrigins } from "./config";
 import { getHumanHint, pickSafeDetails } from "./error-utils";
-import { acceptConsent, acceptLogin, acceptLogout } from "./handlers";
+import { acceptLogin, acceptLogout, rejectConsent } from "./handlers";
+import {
+  acceptLoadedConsent,
+  auditDecision,
+  decideConsent,
+  rememberConsent,
+} from "./handlers/consent-decision";
+import { createConsentActionToken, verifyConsentActionToken } from "./handlers/consent-token";
 import * as kratos from "./kratos-public";
-import { renderError, renderLogin, renderSettings } from "./views";
+import {
+  permissionForScope,
+  renderAccessDenied,
+  renderConsent,
+  renderError,
+  renderLogin,
+  renderPrivacy,
+  renderSettings,
+  renderTerms,
+} from "./views";
+import { getConsentActionSecret } from "./config";
 import {
   hiddenInputsFromFlow,
   oidcSubmitButtonsFromFlow,
@@ -27,11 +45,7 @@ function first(value: unknown): string | undefined {
  * open redirect while still letting /settings require login first.
  */
 function isAllowedAppReturnTo(target: string): boolean {
-  try {
-    return getCorsOrigins().includes(new URL(target).origin);
-  } catch {
-    return false;
-  }
+  return isAllowedOrigin(target, getCorsOrigins());
 }
 
 function isAllowedAuthReturnTo(target: string): boolean {
@@ -71,6 +85,25 @@ function withExtraHiddenInput(inputs: FlowHiddenInput[], name: string, value: st
   return value ? [...inputs, { name, value }] : inputs;
 }
 
+function bodyString(req: Request, name: string): string | undefined {
+  const value = (req.body as Record<string, unknown> | undefined)?.[name];
+  return typeof value === "string" ? value : undefined;
+}
+
+function identityEmail(identity: { traits?: Record<string, unknown> }): string {
+  const email = identity.traits?.["email"];
+  return typeof email === "string" ? email : "";
+}
+
+function clientDomain(clientUri: string | undefined): string | undefined {
+  if (!clientUri) return undefined;
+  try {
+    return new URL(clientUri).host;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Render the error page from an arbitrary error payload. */
 function sendError(res: Response, payload: unknown, status = 400): void {
   res.status(status).type("html").send(
@@ -80,6 +113,14 @@ function sendError(res: Response, payload: unknown, status = 400): void {
 
 export function createPagesRouter(): Router {
   const router = Router();
+
+  router.get("/privacy", (_req: Request, res: Response): void => {
+    res.type("html").send(renderPrivacy());
+  });
+
+  router.get("/terms", (_req: Request, res: Response): void => {
+    res.type("html").send(renderTerms());
+  });
 
   /**
    * GET /login
@@ -119,7 +160,8 @@ export function createPagesRouter(): Router {
           providers: oidcSubmitButtonsFromFlow(flowData, "Continue with"),
         }),
       );
-    } catch {
+    } catch (err) {
+      console.error("Failed to load Kratos login flow", err);
       sendError(
         res,
         { error: "login_flow_error", error_description: "Could not load the login flow. Please try again." },
@@ -275,10 +317,7 @@ export function createPagesRouter(): Router {
     res.redirect("/settings");
   });
 
-  /**
-   * GET /consent — auto-accepts the requested scope/audience (social OIDC, no
-   * interactive consent screen), then redirects back to Hydra.
-   */
+  /** GET /consent — risk-based Hydra consent screen. */
   router.get("/consent", async (req: Request, res: Response): Promise<void> => {
     const consentChallenge = first(req.query["consent_challenge"]);
     if (!consentChallenge) {
@@ -286,13 +325,138 @@ export function createPagesRouter(): Router {
       return;
     }
 
-    const result = await acceptConsent({ consent_challenge: consentChallenge });
-    const redirectTo = (result.body as { redirect_to?: string }).redirect_to;
-    if (result.status === 200 && redirectTo) {
-      res.redirect(redirectTo);
+    try {
+      const decision = await decideConsent(consentChallenge);
+      const { loaded } = decision;
+      if (!decision.hasAccess) {
+        res.status(403).type("html").send(
+          renderAccessDenied({
+            clientName: loaded.client.client_name ?? loaded.clientId,
+            email: identityEmail(loaded.identity),
+            reason: "This account is not allowed to use this application.",
+          }),
+        );
+        return;
+      }
+
+      if (decision.canAutoAccept) {
+        await auditDecision(loaded, "auto_accept", decision.autoAcceptReason);
+        const result = await acceptLoadedConsent(loaded);
+        const redirectTo = (result.body as { redirect_to?: string }).redirect_to;
+        if (result.status === 200 && redirectTo) {
+          res.redirect(redirectTo);
+          return;
+        }
+        sendError(res, result.body, result.status);
+        return;
+      }
+
+      await auditDecision(loaded, "prompt", decision.reasons.join(","));
+      const secret = getConsentActionSecret();
+      res.type("html").send(
+        renderConsent({
+          clientName: loaded.client.client_name ?? loaded.clientId,
+          clientDomain: clientDomain(loaded.client.client_uri),
+          logoUri: loaded.client.logo_uri,
+          policyUri: loaded.client.policy_uri,
+          tosUri: loaded.client.tos_uri,
+          email: identityEmail(loaded.identity),
+          trustTier: loaded.trustTier,
+          permissions: loaded.scopes.map(permissionForScope),
+          consentChallenge,
+          acceptToken: createConsentActionToken(
+            { action: "accept", challenge: loaded.challenge, subject: loaded.subject, client_id: loaded.clientId },
+            secret,
+          ),
+          rejectToken: createConsentActionToken(
+            { action: "reject", challenge: loaded.challenge, subject: loaded.subject, client_id: loaded.clientId },
+            secret,
+          ),
+          reason: decision.observeOnly && decision.reasons.includes("missing_client_access_grant")
+            ? "Access is not granted yet; observe mode is allowing this request while grants are migrated."
+            : undefined,
+        }),
+      );
+    } catch (e) {
+      sendError(res, { error: "consent_error", error_description: e instanceof Error ? e.message : "Consent error" }, 500);
+    }
+  });
+
+  router.post("/consent/accept", async (req: Request, res: Response): Promise<void> => {
+    const consentChallenge = bodyString(req, "consent_challenge");
+    const token = bodyString(req, "token");
+    if (!consentChallenge || !token) {
+      sendError(res, { error: "invalid_consent_action", error_description: "Missing consent action token." }, 400);
       return;
     }
-    sendError(res, result.body, result.status);
+
+    try {
+      const decision = await decideConsent(consentChallenge);
+      const { loaded } = decision;
+      const valid = verifyConsentActionToken(
+        token,
+        getConsentActionSecret(),
+        { action: "accept", challenge: loaded.challenge, subject: loaded.subject, client_id: loaded.clientId },
+      );
+      if (!valid) {
+        sendError(res, { error: "invalid_consent_action", error_description: "Consent action expired or changed." }, 400);
+        return;
+      }
+      if (!decision.hasAccess) {
+        res.status(403).type("html").send(
+          renderAccessDenied({
+            clientName: loaded.client.client_name ?? loaded.clientId,
+            email: identityEmail(loaded.identity),
+            reason: "This account is not allowed to use this application.",
+          }),
+        );
+        return;
+      }
+      await rememberConsent(loaded);
+      await auditDecision(loaded, "accept", "interactive_consent");
+      const result = await acceptLoadedConsent(loaded);
+      const redirectTo = (result.body as { redirect_to?: string }).redirect_to;
+      if (result.status === 200 && redirectTo) {
+        res.redirect(redirectTo);
+        return;
+      }
+      sendError(res, result.body, result.status);
+    } catch (e) {
+      sendError(res, { error: "consent_error", error_description: e instanceof Error ? e.message : "Consent error" }, 500);
+    }
+  });
+
+  router.post("/consent/reject", async (req: Request, res: Response): Promise<void> => {
+    const consentChallenge = bodyString(req, "consent_challenge");
+    const token = bodyString(req, "token");
+    if (!consentChallenge || !token) {
+      sendError(res, { error: "invalid_consent_action", error_description: "Missing consent action token." }, 400);
+      return;
+    }
+
+    try {
+      const decision = await decideConsent(consentChallenge);
+      const { loaded } = decision;
+      const valid = verifyConsentActionToken(
+        token,
+        getConsentActionSecret(),
+        { action: "reject", challenge: loaded.challenge, subject: loaded.subject, client_id: loaded.clientId },
+      );
+      if (!valid) {
+        sendError(res, { error: "invalid_consent_action", error_description: "Consent action expired or changed." }, 400);
+        return;
+      }
+      await auditDecision(loaded, "reject", "interactive_deny");
+      const result = await rejectConsent({ consent_challenge: consentChallenge });
+      const redirectTo = (result.body as { redirect_to?: string }).redirect_to;
+      if (result.status === 200 && redirectTo) {
+        res.redirect(redirectTo);
+        return;
+      }
+      sendError(res, result.body, result.status);
+    } catch (e) {
+      sendError(res, { error: "consent_error", error_description: e instanceof Error ? e.message : "Consent error" }, 500);
+    }
   });
 
   /**

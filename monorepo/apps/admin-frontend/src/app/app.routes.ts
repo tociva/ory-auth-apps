@@ -3,6 +3,23 @@ import { adminGuard } from "./core/admin.guard";
 
 export const routes: Routes = [
   {
+    path: "auth/callback",
+    loadComponent: () =>
+      import("./pages/auth-callback/auth-callback.component").then(
+        (m) => m.AuthCallbackComponent,
+      ),
+  },
+  {
+    path: "auth/logout",
+    loadComponent: () =>
+      import("./pages/auth-logout/auth-logout.component").then((m) => m.AuthLogoutComponent),
+  },
+  {
+    path: "auth/pending",
+    loadComponent: () =>
+      import("./pages/auth-pending/auth-pending.component").then((m) => m.AuthPendingComponent),
+  },
+  {
     path: "forbidden",
     loadComponent: () =>
       import("./pages/forbidden/forbidden.component").then((m) => m.ForbiddenComponent),
@@ -46,5 +63,5 @@ export const routes: Routes = [
       { path: "", pathMatch: "full", redirectTo: "identities" },
     ],
   },
-  { path: "**", redirectTo: "" },
+  { path: "**", redirectTo: "forbidden" },
 ];

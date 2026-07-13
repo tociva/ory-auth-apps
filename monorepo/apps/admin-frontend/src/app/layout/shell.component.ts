@@ -2,8 +2,8 @@ import { Component, computed, DestroyRef, inject, signal, type OnInit } from "@a
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router } from "@angular/router";
 import { filter } from "rxjs";
+import { AdminAuthService } from "../core/admin-auth.service";
 import { AdminApiService } from "../core/admin-api.service";
-import { ADMIN_CONFIG } from "../core/admin-config";
 import { identityName } from "../core/admin-types";
 import type { AdminShellNavGroup } from "./admin-shell.types";
 import { AdminShellHeaderComponent } from "./header/admin-shell-header.component";
@@ -19,7 +19,7 @@ import { AdminShellMainContentComponent } from "./main-content/admin-shell-main-
 })
 export class ShellComponent implements OnInit {
   private readonly api = inject(AdminApiService);
-  private readonly config = inject(ADMIN_CONFIG);
+  private readonly auth = inject(AdminAuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private destroyed = false;
@@ -84,9 +84,7 @@ export class ShellComponent implements OnInit {
   }
 
   signOut(): void {
-    const logoutUrl = this.config.authLoginUrl.replace(/\/login\/?$/, "/logout");
-    const returnTo = encodeURIComponent(window.location.origin);
-    window.location.href = `${logoutUrl}?return_to=${returnTo}`;
+    void this.auth.signOut();
   }
 
   protected onNavValueChange(value: unknown): void {

@@ -1,6 +1,7 @@
 import "dotenv/config";
-import express from "express";
+import { isAllowedOrigin } from "@idnest/shared-types";
 import cors from "cors";
+import express from "express";
 import { getAdminCorsOrigins, getPort } from "./app/config";
 import { createAdminRouter } from "./app/routes";
 
@@ -8,9 +9,13 @@ function createServer() {
   const app = express();
   const allowedOrigins = getAdminCorsOrigins();
 
+  app.set("trust proxy", 1);
+
   app.use(
     cors({
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        callback(null, origin === undefined || isAllowedOrigin(origin, allowedOrigins));
+      },
       credentials: true,
     }),
   );

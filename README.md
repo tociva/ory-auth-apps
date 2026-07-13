@@ -15,8 +15,7 @@ Host / port map:
 | `auth.idnest.cloud`     | `auth-local.idnest.cloud`        | `4000` | `auth-backend` (login/consent/logout/error) |
 | `hydra.idnest.cloud`    | `hydra-local.idnest.cloud`       | `4444` | Hydra public (authorize / token / OIDC)   |
 | `kratos.idnest.cloud`   | `kratos-local.idnest.cloud`      | `4433` | Kratos public (self-service, whoami)      |
-| `admin-api.idnest.cloud`| `admin-api-local.idnest.cloud`   | `4100` | `admin-backend` API                       |
-| `admin.idnest.cloud`    | `admin-local.idnest.cloud`       | `4501` | `admin-frontend` console                  |
+| `admin.idnest.cloud`    | `admin-local.idnest.cloud`       | `4501`/`4100` | admin UI + same-origin BFF API     |
 | `api.daybook.cloud`     | `api-local.daybook.cloud`        | `3001` | daybook product backend (OAuth resource server) |
 | `app.daybook.cloud`     | `app-local.daybook.cloud`        | `5173` | daybook product frontend (OAuth client)   |
 
@@ -44,33 +43,51 @@ pnpm build           # builds auth-backend, admin-backend, admin-frontend, share
 
 ## 2. Database details and initial setup
 
-Two PostgreSQL databases, reachable from the containers via
-`host.docker.internal:5432`:
+Three PostgreSQL databases, reachable from the containers via
+`host.docker.internal:5432`, each with a dedicated schema:
 
-| Database | User      | Notes                  |
-| -------- | --------- | ---------------------- |
-| `hydra`  | `hydrau`  | OAuth2 server state    |
-| `kratos` | `kratosu` | identities + sessions  |
+| Database | Schema   | User      | Notes                  |
+| -------- | -------- | --------- | ---------------------- |
+| `hydra`  | `hydra`  | `hydrau`  | OAuth2 server state    |
+| `kratos` | `kratos` | `kratosu` | identities + sessions  |
+| `authz`  | `authz`  | `authzu`  | client access + consent approvals |
 
 Create them as a superuser:
 
 ```sql
 CREATE USER hydrau  WITH PASSWORD '<hydra_db_password>';
 CREATE DATABASE hydra OWNER hydrau;
+CREATE SCHEMA hydra AUTHORIZATION hydrau;
+ALTER ROLE hydrau IN DATABASE hydra SET search_path = hydra, public;
 
 CREATE USER kratosu WITH PASSWORD '<kratos_db_password>';
 CREATE DATABASE kratos OWNER kratosu;
+CREATE SCHEMA kratos AUTHORIZATION kratosu;
+ALTER ROLE kratosu IN DATABASE kratos SET search_path = kratos, public;
+
+CREATE USER authzu WITH PASSWORD '<authz_db_password>';
+CREATE DATABASE authz OWNER authzu;
+CREATE SCHEMA authz AUTHORIZATION authzu;
+ALTER ROLE authzu IN DATABASE authz SET search_path = authz, public;
 ```
 
-Or run the OS-specific helper in [`setup/`](setup/), which creates the
-roles/databases **and** runs the migrations (see §9):
+For a new local machine, use the bootstrap script after filling both env files:
+
+```bash
+cp .env.example .env
+cd monorepo && cp .env.example .env && cd ..
+./scripts/bootstrap-local.sh
+```
+
+Or run the OS-specific helper in [`scripts/setup/`](scripts/setup/), which creates
+the roles/databases/schemas **and** runs the ORY migrations (see §9):
 
 ```bash
 # macOS (Homebrew Postgres — current user is the superuser)
-HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./setup/setup-ory-macos.sh
+HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./scripts/setup/setup-ory-macos.sh
 
 # Linux (apt/yum Postgres with a `postgres` OS user)
-HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./setup/setup-ory-linux.sh
+HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./scripts/setup/setup-ory-linux.sh
 ```
 
 > Always run the migrations (§9) **before** starting Hydra/Kratos.
@@ -81,12 +98,14 @@ HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./setup/setup-ory-linux.sh
 
 Two env files with different consumers:
 
-**`./.env`** (repo root) — consumed by `docker-compose.yml` and rendered into
+**`./.env`** (repo root, copy from `.env.example`) — consumed by
+`scripts/docker/docker-compose.yml` and rendered into
 `config/kratos.yml` via envsubst. Holds the infra config:
 `AUTH_URL`, `CORS_ALLOWED_ORIGINS`, `HYDRA_DSN`, `HYDRA_URLS_*`,
 `HYDRA_SECRETS_SYSTEM`, `KRATOS_DSN`, `KRATOS_SERVE_PUBLIC_BASE_URL`,
 `KRATOS_ADMIN_URL`, `KRATOS_URLS_LOGOUT`, `KRATOS_COOKIES_DOMAIN`,
 `KRATOS_CSRF_COOKIE_SECRET`, `KRATOS_CIPHER_SECRET` (must be **exactly 32 chars**),
+`HYDRA_DB_SCHEMA`, `KRATOS_DB_SCHEMA`, `AUTHZ_DB_SCHEMA`,
 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Apple is optional; the Kratos
 renderer includes the Apple provider only when `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`,
 `APPLE_PRIVATE_KEY_ID`, and `APPLE_PRIVATE_KEY` are all set.
@@ -95,7 +114,9 @@ renderer includes the Apple provider only when `APPLE_CLIENT_ID`, `APPLE_TEAM_ID
 backends:
 `HYDRA_ADMIN_URL`, `KRATOS_ADMIN_URL`, `KRATOS_PUBLIC_URL`, `AUTH_BASE_URL`,
 `AUTH_BACKEND_PORT`, `ADMIN_BACKEND_PORT`, `ADMIN_CORS_ALLOWED_ORIGINS`,
-`ADMIN_CSRF_SECRET`, `ADMIN_BOOTSTRAP_EMAILS`.
+`ADMIN_CSRF_SECRET`, `AUTHZ_DATABASE_URL`, `CONSENT_GATE_MODE`,
+`CONSENT_ACTION_SECRET`, `ADMIN_PUBLIC_ORIGIN`, `ADMIN_OIDC_CLIENT_SECRET`,
+`ADMIN_BOOTSTRAP_IDENTITY_IDS`.
 
 ```bash
 cd monorepo && cp .env.example .env   # then fill in values
@@ -124,7 +145,6 @@ sudo tee -a /etc/hosts >/dev/null <<'EOF'
 127.0.0.1 auth-local.idnest.cloud
 127.0.0.1 hydra-local.idnest.cloud
 127.0.0.1 kratos-local.idnest.cloud
-127.0.0.1 admin-api-local.idnest.cloud
 127.0.0.1 admin-local.idnest.cloud
 127.0.0.1 api-local.daybook.cloud
 127.0.0.1 app-local.daybook.cloud
@@ -141,10 +161,10 @@ sudo mkdir -p /opt/homebrew/etc/nginx/ssl
 cd /opt/homebrew/etc/nginx/ssl
 sudo mkcert -cert-file local.idnest.cloud.pem -key-file local.idnest.cloud-key.pem \
   auth-local.idnest.cloud hydra-local.idnest.cloud kratos-local.idnest.cloud \
-  admin-api-local.idnest.cloud admin-local.idnest.cloud
+  admin-local.idnest.cloud
 
 sudo mkcert -cert-file local.daybook.cloud.pem -key-file local.daybook.cloud-key.pem \
-  api-local.daybook.cloud app-local.daybook.cloud admin-local.daybook.cloud
+  api-local.daybook.cloud app-local.daybook.cloud
 
 # Below section for both idnest and daybook confs
 sudo chown -R $(whoami):admin /opt/homebrew/etc/nginx/ssl
@@ -154,10 +174,10 @@ sudo chmod 600 /opt/homebrew/etc/nginx/ssl/local.idnest.cloud-key.pem
 ```
 
 **3. Reverse proxy** — ready-made configs live in
-[`deploy/nginx/`](deploy/nginx/) (`idnest-local.conf`, `idnest-prod.conf`):
+[`scripts/deploy/nginx/`](scripts/deploy/nginx/):
 
 ```bash
-sudo cp deploy/nginx/idnest-local.conf /opt/homebrew/etc/nginx/servers/
+sudo cp scripts/deploy/nginx/local/*.conf /opt/homebrew/etc/nginx/servers/
 sudo nginx -t && sudo brew services restart nginx
 ```
 
@@ -170,33 +190,22 @@ need it to build correct `https://` URLs).
 
 ```bash
 # 1. Hydra + Kratos (from repo root). Run migrations first — see §9.
-docker compose up -d
-docker compose logs -f ory-kratos          # watch until ready; Ctrl-C to detach
+docker compose -f scripts/docker/docker-compose.yml up -d
+docker compose -f scripts/docker/docker-compose.yml logs -f ory-kratos
 
-# 2. Register the OAuth clients (first run, or after editing tools/apps.config.json)
+# 2. Run authz migrations and seed the first admin Kratos identity ID
 cd monorepo
-HYDRA_ADMIN_URL=http://localhost:4445 pnpm hydra:clients
+pnpm authz:migrate
+ADMIN_BOOTSTRAP_IDENTITY_IDS=<kratos-identity-id> pnpm authz:seed
 
-# 3. Backends — each in its own terminal, from monorepo/
+# 3. Register the confidential admin OAuth client
+HYDRA_ADMIN_URL=http://localhost:4445 ADMIN_OIDC_CLIENT_SECRET=<secret> pnpm hydra:admin-client
+
+# 4. Backends — each in its own terminal, from monorepo/
 pnpm auth-backend:serve     # :4000
-pnpm admin-backend:serve    # :4100  (optional)
-pnpm admin-frontend:serve   # :4501  (optional)
+pnpm admin-backend:serve    # :4100  (required for admin BFF)
+pnpm admin-frontend:serve   # :4501
 ```
-```sh
-cd xxx/monorepo
-nvm use 22
-pnpm nx build auth-backend
-pm2 start dist/apps/auth-backend/main.cjs \
-  --name idnest-auth-backend
-```
-```sh
-cd xxx/monorepo
-nvm use 22
-pnpm nx build admin-backend
-pm2 start dist/apps/admin-backend/main.cjs \
-  --name idnest-admin-backend
-```
-
 Start the daybook **product** apps (backend `:3001`, frontend `:5173`) from their
 own repo.
 
@@ -207,11 +216,11 @@ curl -k https://kratos-local.idnest.cloud/health/ready
 curl http://localhost:4000/health
 
 # stop: Ctrl-C each serve terminal, then from repo root:
-docker compose down
+docker compose -f scripts/docker/docker-compose.yml down
 ```
 
 > After editing `.env` or `config/kratos.tpl.yml`, re-render Kratos:
-> `docker compose up -d --force-recreate ory-kratos`. The `pnpm serve` tasks run
+> `docker compose -f scripts/docker/docker-compose.yml up -d --force-recreate ory-kratos`. The `pnpm serve` tasks run
 > with `tsx watch` / Angular dev-server, so code edits auto-reload.
 
 ---
@@ -223,6 +232,16 @@ cd monorepo
 pnpm build      # backend bundles + admin-frontend static build
 ```
 
+Run backend bundles with PM2 from `monorepo/` so `dotenv/config` loads
+`monorepo/.env`:
+
+```bash
+pm2 delete idnest-auth-backend idnest-admin-backend 2>/dev/null || true
+pm2 start dist/apps/auth-backend/main.cjs --name idnest-auth-backend --cwd "$PWD"
+pm2 start dist/apps/admin-backend/main.cjs --name idnest-admin-backend --cwd "$PWD"
+pm2 save
+```
+
 Production:
 
 - Use the bare `*.idnest.cloud` hosts for auth/Hydra/Kratos/admin; set `AUTH_URL`,
@@ -231,7 +250,7 @@ Production:
   `node dist/apps/auth-backend/main.cjs` and `node dist/apps/admin-backend/main.cjs`
   (pm2/systemd/container).
 - Serve the `admin-frontend` build as static files.
-- Front everything with [`deploy/nginx/idnest-prod.conf`](deploy/nginx/idnest-prod.conf)
+- Front everything with [`scripts/deploy/nginx/prod/`](scripts/deploy/nginx/prod/)
   (wildcard `*.idnest.cloud` cert for auth/admin services; `*.daybook.cloud` cert for product apps).
 - Run migrations (§9) before first start; recreate Kratos after config changes.
 - Keep Hydra admin (`4445`) and Kratos admin (`4434`) on a private network; use
@@ -242,15 +261,19 @@ Production:
 ## 7. Examples for a client project
 
 Each product app is its own Hydra OAuth client (Authorization Code + PKCE) that
-redirects to `auth.idnest.cloud`. Define it in
-[`monorepo/tools/apps.config.json`](monorepo/tools/apps.config.json), then run
-`pnpm hydra:clients`:
+redirects to `auth.idnest.cloud`. Create product clients from the admin portal.
+The bootstrap script only creates the protected Idnest admin client.
 
 ```json
 {
   "client_id": "daybook-user-client",
   "public": true,
   "scope": "openid profile email offline_access",
+  "metadata": {
+    "trust_tier": "first_party",
+    "consent_version": 1,
+    "remember_offline_access": true
+  },
   "redirect_uris": ["https://app.daybook.cloud/auth/callback"],
   "post_logout_redirect_uris": ["https://app.daybook.cloud/auth/logout"],
   "audience": ["daybook.cloud-users"]
@@ -330,9 +353,15 @@ docker run --rm --network host \
   -e DSN='postgres://kratosu:<password>@127.0.0.1:5432/kratos?sslmode=disable' \
   -v "$PWD/config:/etc/config" \
   oryd/kratos:v25.4.0 migrate sql -e --yes
+
+# Authz consent/client-access store
+cd monorepo
+AUTHZ_DATABASE_URL='postgres://authzu:<password>@127.0.0.1:5432/authz?sslmode=disable' pnpm authz:migrate
+AUTHZ_DATABASE_URL='postgres://authzu:<password>@127.0.0.1:5432/authz?sslmode=disable' pnpm authz:seed
 ```
 
-(The `setup/setup-ory-*.sh` helper in §2 runs both for you.)
+(The `scripts/setup/setup-ory-*.sh` helper in §2 runs the ORY migrations for you;
+`scripts/bootstrap-local.sh` also runs authz migration and admin client creation.)
 
 ---
 

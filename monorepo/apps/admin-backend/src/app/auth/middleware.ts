@@ -1,12 +1,21 @@
 /** Express adapter for the admin authorization policy in `authorize.ts`. */
 import type { NextFunction, Request, Response } from "express";
-import { getBootstrapAdminEmails, getKratosAdminUrl, getKratosInternalUrl } from "../config";
-import { authorize, type AdminIdentity } from "./authorize";
+import {
+  getAdminOidcClientId,
+  getAdminSessionIdleTtlSeconds,
+  getAuthzDatabaseUrl,
+  getKratosAdminUrl,
+} from "../config";
+import { authorize, type AdminAuthMode, type AdminIdentity } from "./authorize";
+import { adminSessionTokenFrom } from "./session-cookie";
 
 /** Request augmented with the authorized admin identity. */
 export interface AuthedRequest extends Request {
   adminIdentity?: AdminIdentity;
   adminEmail?: string;
+  adminRole?: string;
+  adminSessionId?: string;
+  adminAuthMode?: AdminAuthMode;
 }
 
 /**
@@ -16,11 +25,12 @@ export interface AuthedRequest extends Request {
  */
 export function requireAdmin() {
   return async (req: AuthedRequest, res: Response, next: NextFunction): Promise<void> => {
-    const result = await authorize(req.headers.cookie, {
-      kratosPublicUrl: getKratosInternalUrl(),
+    const result = await authorize({
       kratosAdminUrl: getKratosAdminUrl(),
-      bootstrapAdminEmails: getBootstrapAdminEmails(),
-    });
+      authzDatabaseUrl: getAuthzDatabaseUrl(),
+      adminOidcClientId: getAdminOidcClientId(),
+      adminSessionIdleTtlSeconds: getAdminSessionIdleTtlSeconds(),
+    }, adminSessionTokenFrom(req));
 
     if (!result.ok) {
       res.status(result.status).json({ error: result.error });
@@ -29,6 +39,9 @@ export function requireAdmin() {
 
     req.adminIdentity = result.identity;
     req.adminEmail = result.email;
+    req.adminRole = result.role;
+    req.adminSessionId = result.session.id;
+    req.adminAuthMode = result.authMode;
     next();
   };
 }

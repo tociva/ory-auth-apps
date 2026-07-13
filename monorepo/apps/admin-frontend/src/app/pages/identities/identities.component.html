@@ -17,13 +17,6 @@
   ariaLabel="Kratos identities"
   density="comfortable"
 >
-  <ng-template tngTableCellTemplate="role" let-row="row">
-    @if (roleOf(row)) {
-      <span tngBadge>admin</span>
-    } @else {
-      <span class="muted">user</span>
-    }
-  </ng-template>
   <ng-template tngTableCellTemplate="actions" let-row="row">
     <a class="cell-link" [routerLink]="['/identities', idOf(row)]">Manage</a>
   </ng-template>

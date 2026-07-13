@@ -1,8 +1,8 @@
 import { inject } from "@angular/core";
 import { type CanActivateFn, Router } from "@angular/router";
 import type { HttpErrorResponse } from "@angular/common/http";
+import { AdminAuthService } from "./admin-auth.service";
 import { AdminApiService } from "./admin-api.service";
-import { ADMIN_CONFIG } from "./admin-config";
 
 /**
  * Route guard backed by the real server-side authorization. It calls
@@ -16,8 +16,8 @@ import { ADMIN_CONFIG } from "./admin-config";
  */
 export const adminGuard: CanActivateFn = async () => {
   const api = inject(AdminApiService);
+  const auth = inject(AdminAuthService);
   const router = inject(Router);
-  const config = inject(ADMIN_CONFIG);
 
   try {
     await api.me();
@@ -27,8 +27,7 @@ export const adminGuard: CanActivateFn = async () => {
     if (status === 403) {
       return router.parseUrl("/forbidden");
     }
-    const returnTo = encodeURIComponent(window.location.href);
-    window.location.href = `${config.authLoginUrl}?return_to=${returnTo}`;
+    auth.signIn(window.location.href);
     return false;
   }
 };

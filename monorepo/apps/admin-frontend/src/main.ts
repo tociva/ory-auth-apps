@@ -14,7 +14,10 @@ async function loadRuntimeConfig(): Promise<AdminConfig> {
     const res = await fetch(new URL("config.json", document.baseURI), { cache: "no-store" });
     if (!res.ok) return DEFAULT_ADMIN_CONFIG;
     const override = (await res.json()) as Partial<AdminConfig>;
-    return { ...DEFAULT_ADMIN_CONFIG, ...override };
+    return {
+      ...DEFAULT_ADMIN_CONFIG,
+      ...override,
+    };
   } catch {
     return DEFAULT_ADMIN_CONFIG;
   }

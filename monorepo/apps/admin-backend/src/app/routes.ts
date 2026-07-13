@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { getAdminCsrfSecret } from "./config";
+import { completeAdminLogin, logoutAdmin, startAdminLogin } from "./auth/bff";
 import { createCsrfToken, requireAdminCsrf } from "./auth/csrf";
 import { requireAdmin, type AuthedRequest } from "./auth/middleware";
 import {
@@ -7,11 +8,15 @@ import {
   deactivateIdentity,
   deleteClient,
   deleteIdentity,
+  grantIdentityClientAccess,
   getClient,
   getIdentity,
+  listClientIdentityGrants,
   listClients,
   listIdentities,
+  listIdentityClientGrants,
   listIdentitySessions,
+  revokeIdentityClientAccess,
   revokeIdentitySessions,
   revokeSession,
   setAdminRole,
@@ -33,17 +38,23 @@ const fromBody = (req: Request) => (req.body ?? {}) as Record<string, unknown>;
 const idFromParams = (req: Request) => ({ id: req.params.id });
 
 /**
- * All admin routes sit behind requireAdmin: every request must carry a valid
- * Kratos session AND pass the authorization policy before any handler runs.
+ * Admin API routes sit behind requireAdmin: every request must carry a valid
+ * BFF session cookie and pass the authorization policy before any handler runs.
  */
 export function createAdminRouter(): Router {
   const router = Router();
+
+  router.get("/auth/login", startAdminLogin);
+  router.get("/auth/callback", completeAdminLogin);
+
   router.use(requireAdmin());
 
   // --- Authorization probe (reaching here means requireAdmin passed) ---
   router.get("/me", (req: AuthedRequest, res: Response) => {
     res.json({
       email: req.adminEmail,
+      role: req.adminRole,
+      sessionId: req.adminSessionId,
       identity: req.adminIdentity,
       csrfToken:
         req.adminIdentity && req.adminEmail
@@ -53,6 +64,8 @@ export function createAdminRouter(): Router {
   });
 
   router.use(requireAdminCsrf());
+
+  router.post("/auth/logout", logoutAdmin);
 
   // --- Identities ---
   router.get(
@@ -69,6 +82,30 @@ export function createAdminRouter(): Router {
     "/identities/:id/role",
     adapt(setAdminRole, (req) => ({ id: req.params.id, admin: fromBody(req).admin === true })),
   );
+  router.get("/identities/:id/client-access", adapt(listIdentityClientGrants, idFromParams));
+  router.post(
+    "/identities/:id/client-access/:clientId",
+    adapt(grantIdentityClientAccess, (req) => {
+      const authed = req as AuthedRequest;
+      return {
+        id: req.params.id,
+        client_id: req.params.clientId,
+        role: typeof fromBody(req).role === "string" ? String(fromBody(req).role) : "user",
+        granted_by: authed.adminIdentity?.id ?? authed.adminEmail ?? null,
+      };
+    }),
+  );
+  router.delete(
+    "/identities/:id/client-access/:clientId",
+    adapt(revokeIdentityClientAccess, (req) => {
+      const authed = req as AuthedRequest;
+      return {
+        id: req.params.id,
+        client_id: req.params.clientId,
+        granted_by: authed.adminIdentity?.id ?? authed.adminEmail ?? null,
+      };
+    }),
+  );
 
   // --- Sessions ---
   router.get("/identities/:id/sessions", adapt(listIdentitySessions, idFromParams));
@@ -81,6 +118,10 @@ export function createAdminRouter(): Router {
   // --- OAuth clients ---
   router.get("/clients", adapt(listClients, () => ({})));
   router.get("/clients/:clientId", adapt(getClient, (req) => ({ client_id: req.params.clientId })));
+  router.get(
+    "/clients/:clientId/identities",
+    adapt(listClientIdentityGrants, (req) => ({ client_id: req.params.clientId })),
+  );
   router.post("/clients", adapt(createClient, fromBody));
   router.put(
     "/clients/:clientId",

@@ -9,6 +9,11 @@
   @if (notice) {
     <div class="alert alert-success">{{ notice }}</div>
   }
+  @if (protectedAdminClient) {
+    <div class="alert alert-success">
+      This admin OAuth client is protected and can only be changed by deployment scripts.
+    </div>
+  }
 
   <div class="stack">
     <tng-card>
@@ -33,12 +38,97 @@
               tngAngularForms
               name="client_name"
               [(ngModel)]="form.client_name"
+              [readonly]="protectedAdminClient"
               placeholder="Dev Daybook User Client"
             />
           </tng-form-field>
           <tng-form-field class="full">
+            <tng-label>Client URL</tng-label>
+            <tng-input
+              tngAngularForms
+              name="client_uri"
+              [(ngModel)]="form.client_uri"
+              [readonly]="protectedAdminClient"
+              placeholder="https://app.daybook.cloud"
+            />
+          </tng-form-field>
+          <tng-form-field class="full">
+            <tng-label>Logo URL</tng-label>
+            <tng-input
+              tngAngularForms
+              name="logo_uri"
+              [(ngModel)]="form.logo_uri"
+              [readonly]="protectedAdminClient"
+              placeholder="https://app.daybook.cloud/logo.png"
+            />
+          </tng-form-field>
+          <tng-form-field class="full">
+            <tng-label>Privacy policy URL</tng-label>
+            <tng-input
+              tngAngularForms
+              name="policy_uri"
+              [(ngModel)]="form.policy_uri"
+              [readonly]="protectedAdminClient"
+              placeholder="https://app.daybook.cloud/privacy"
+            />
+          </tng-form-field>
+          <tng-form-field class="full">
+            <tng-label>Terms URL</tng-label>
+            <tng-input
+              tngAngularForms
+              name="tos_uri"
+              [(ngModel)]="form.tos_uri"
+              [readonly]="protectedAdminClient"
+              placeholder="https://app.daybook.cloud/terms"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Contacts</tng-label>
+            <tng-input
+              tngAngularForms
+              name="contacts"
+              [(ngModel)]="form.contacts"
+              [readonly]="protectedAdminClient"
+              placeholder="support@daybook.cloud"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Trust tier</tng-label>
+            <tng-input
+              tngAngularForms
+              name="trust_tier"
+              [(ngModel)]="form.trust_tier"
+              (ngModelChange)="onTrustTierChange()"
+              [readonly]="protectedAdminClient"
+              placeholder="first_party"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Consent version</tng-label>
+            <tng-input
+              tngAngularForms
+              name="consent_version"
+              [(ngModel)]="form.consent_version"
+              [readonly]="protectedAdminClient"
+              placeholder="1"
+            />
+          </tng-form-field>
+          <div class="row toggle-row full">
+            <tng-switch
+              [(checked)]="form.remember_offline_access"
+              [disabled]="rememberOfflineAccessDisabled"
+              ariaLabel="Remember refresh-token consent"
+            ></tng-switch>
+            <span>Remember refresh-token consent</span>
+          </div>
+          <tng-form-field class="full">
             <tng-label>Scope</tng-label>
-            <tng-input tngAngularForms name="scope" [(ngModel)]="form.scope" />
+            <tng-input
+              tngAngularForms
+              name="scope"
+              [(ngModel)]="form.scope"
+              [readonly]="protectedAdminClient"
+            />
           </tng-form-field>
           <tng-form-field class="full">
             <tng-label>Redirect URIs (comma or newline separated)</tng-label>
@@ -46,6 +136,7 @@
               tngAngularForms
               name="redirect_uris"
               [(ngModel)]="form.redirectUris"
+              [readonly]="protectedAdminClient"
               placeholder="https://app/callback"
             />
           </tng-form-field>
@@ -55,6 +146,7 @@
               tngAngularForms
               name="post_logout"
               [(ngModel)]="form.postLogoutUris"
+              [readonly]="protectedAdminClient"
               placeholder="https://app/logout"
             />
           </tng-form-field>
@@ -64,13 +156,18 @@
               tngAngularForms
               name="audience"
               [(ngModel)]="form.audience"
+              [readonly]="protectedAdminClient"
               placeholder="daybook.cloud-users"
             />
           </tng-form-field>
         </div>
 
         <div class="row toggle-row">
-          <tng-switch [(checked)]="form.public" ariaLabel="Public SPA client (PKCE)"></tng-switch>
+          <tng-switch
+            [(checked)]="form.public"
+            [disabled]="protectedAdminClient"
+            ariaLabel="Public SPA client (PKCE)"
+          ></tng-switch>
           <span>Public SPA client - uses PKCE (<code>token_endpoint_auth_method=none</code>).</span>
         </div>
 
@@ -78,12 +175,12 @@
           <tng-button
             appearance="solid"
             tone="primary"
-            [disabled]="busy || !form.client_id"
+            [disabled]="busy || !form.client_id || protectedAdminClient"
             (click)="submit()"
           >
             {{ createMode ? "Create client" : "Save changes" }}
           </tng-button>
-          @if (!createMode) {
+          @if (!createMode && !protectedAdminClient) {
             <tng-button appearance="outline" tone="danger" [disabled]="busy" (click)="remove()">
               Delete client
             </tng-button>
@@ -91,5 +188,28 @@
         </div>
       </tng-card-content>
     </tng-card>
+
+    @if (!createMode) {
+      <tng-card>
+        <tng-card-header>
+          <tng-card-title>Authorized identities</tng-card-title>
+        </tng-card-header>
+        <tng-card-content>
+          @for (grant of identityGrants; track grant.identity_id) {
+            <div class="row grant-row">
+              <div>
+                <div>{{ grant.identity_id }}</div>
+                <div class="muted">role: {{ grant.role }}</div>
+              </div>
+              <tng-button appearance="outline" tone="danger" size="sm" [disabled]="busy" (click)="revokeIdentity(grant.identity_id)">
+                Revoke
+              </tng-button>
+            </div>
+          } @empty {
+            <p class="muted">No identities have central access to this client yet.</p>
+          }
+        </tng-card-content>
+      </tng-card>
+    }
   </div>
 }

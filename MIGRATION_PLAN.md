@@ -175,19 +175,20 @@ Do these before restructuring; several are correctness/security bugs.
 - [x] Give only `admin-backend` broad Hydra/Kratos admin access (it reads the
       Hydra/Kratos *admin* URLs; `auth-backend` keeps its narrow proxy). URLs
       stay server-side in `admin-backend/src/app/config.ts`.
-- [x] Register admin as its own Hydra OAuth client — added the
-      `dev.idnest.dev-admin-client` (public + PKCE) entry to
-      `tools/apps.config.json`; provision with `pnpm hydra:clients`.
+- [x] Register admin as its own Hydra OAuth client — `idnest-admin-client` is a
+      confidential BFF client owned by `admin-backend`; provision with
+      `pnpm hydra:clients`.
 
 ### 3.3 Authorization (allowlist)
 
-- [x] **(!)** Add bootstrap admin emails (1–2) to `.env`, server-side only
-      (`ADMIN_BOOTSTRAP_EMAILS`, read by `getBootstrapAdminEmails()`).
-- [x] **(!)** Use Kratos `metadata_admin` (`{ "role": "admin" }`) as the
-      runtime source of truth; set only via the admin API (`setAdminRole`).
+- [x] **(!)** Add bootstrap admin Kratos identity IDs to `.env`, server-side
+      only (`ADMIN_BOOTSTRAP_IDENTITY_IDS`, consumed by `authz:seed`).
+- [x] **(!)** Use `client_access_grants` role `system-admin` for
+      `idnest-admin-client` as the runtime source of truth.
 - [x] **(!)** Enforce authorization in `admin-backend` on every request:
-      `requireAdmin()` is mounted with `router.use(...)`, validates the Kratos
-      session via `whoami`, then checks bootstrap list + `metadata_admin`;
+      `requireAdmin()` is mounted with `router.use(...)`, validates the BFF
+      session cookie, loads the Kratos identity, then checks the active
+      `client_access_grants` row;
       rejects with 401 (no session) / 403 (not authorized).
 - [x] Normalize emails (lowercase + trim) and require a verified email
       (`email_verified` via Kratos `verifiable_addresses`).
@@ -197,7 +198,7 @@ Do these before restructuring; several are correctness/security bugs.
 ### 3.4 Admin features (initial)
 
 - [x] List / view / deactivate / delete Kratos identities (`handlers/identities.ts`).
-- [x] Grant / revoke admin role via `metadata_admin` (`setAdminRole`).
+- [x] Grant / revoke admin role via `client_access_grants`.
 - [x] Manage Hydra OAuth clients — create / edit / delete (`handlers/clients.ts`).
 - [x] View / revoke sessions (`handlers/sessions.ts`). Consent-grant
       listing/revocation still TODO (Hydra `/admin/oauth2/auth/sessions/consent`).
@@ -289,12 +290,10 @@ tests N/A.
 ### admin-backend (`apps/admin-backend`)
 
 **authorization middleware** (`__tests__/authorize.test.ts`)
-- [x] Rejects requests with no valid Kratos session (401). (also: no cookie,
-      inactive session.)
-- [x] **(!)** Rejects authenticated-but-not-allowlisted users (403).
-- [x] Allows users in the `.env` bootstrap list.
-- [x] Allows users with `metadata_admin.role === 'admin'`.
-- [x] Email match is case-insensitive and trimmed.
+- [x] Rejects requests with no valid admin BFF session (401).
+- [x] **(!)** Rejects authenticated-but-not-allowlisted identities (403).
+- [x] Allows users with an active `system-admin` grant for `idnest-admin-client`.
+- [x] Uses Kratos identity ID as the authorization key.
 - [x] Rejects when Google `email_verified` is false.
 
 **identity management** (`__tests__/identities.test.ts`)

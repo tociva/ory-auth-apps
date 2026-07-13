@@ -7,6 +7,22 @@
 export interface HydraClient {
   client_id: string;
   client_name?: string;
+  logo_uri?: string;
+  client_uri?: string;
+  policy_uri?: string;
+  tos_uri?: string;
+  contacts?: string[];
+  audience?: string[];
+  metadata?: HydraClientMetadata | null;
+  [key: string]: unknown;
+}
+
+export type HydraClientTrustTier = "first_party" | "partner" | "third_party";
+
+export interface HydraClientMetadata {
+  trust_tier?: HydraClientTrustTier;
+  consent_version?: number;
+  remember_offline_access?: boolean;
   [key: string]: unknown;
 }
 

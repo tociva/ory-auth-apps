@@ -1,9 +1,9 @@
 /**
  * Hydra OAuth client management (Phase 3.4). Talks to the Hydra *admin* API.
- * Mirrors the payload shape used by tools/create-hydra-clients.mjs so clients
- * created here are consistent with those provisioned from apps.config.json.
+ * Mirrors the Hydra client payload shape used by the admin-client bootstrap
+ * script so clients created here stay consistent with provisioned clients.
  */
-import { getHydraAdminUrl } from "../config";
+import { getAdminOidcClientId, getHydraAdminUrl } from "../config";
 import { errorBody, readError, type HandlerResult } from "./types";
 
 const clientsBase = (): string => `${getHydraAdminUrl().replace(/\/+$/, "")}/admin/clients`;
@@ -11,6 +11,17 @@ const clientsBase = (): string => `${getHydraAdminUrl().replace(/\/+$/, "")}/adm
 export interface ClientPayload {
   client_id?: string;
   client_name?: string;
+  client_uri?: string;
+  logo_uri?: string;
+  policy_uri?: string;
+  tos_uri?: string;
+  contacts?: string[];
+  metadata?: {
+    trust_tier?: "first_party" | "partner" | "third_party";
+    consent_version?: number;
+    remember_offline_access?: boolean;
+    [key: string]: unknown;
+  };
   public?: boolean;
   scope?: string;
   redirect_uris?: string[];
@@ -27,6 +38,23 @@ function validateForCreate(input: ClientPayload): string | null {
   return null;
 }
 
+function normalizedMetadata(input: ClientPayload["metadata"]) {
+  return {
+    ...input,
+    trust_tier: input?.trust_tier ?? "first_party",
+    consent_version: input?.consent_version ?? 1,
+    remember_offline_access: input?.remember_offline_access === true,
+  };
+}
+
+function validateRememberOfflineAccess(input: ClientPayload): string | null {
+  const metadata = normalizedMetadata(input.metadata);
+  if (metadata.remember_offline_access === true && metadata.trust_tier !== "first_party") {
+    return "remember_offline_access is only allowed for first_party clients";
+  }
+  return null;
+}
+
 function toHydraPayload(input: ClientPayload) {
   const isPublic = input.public === true;
   return {
@@ -38,8 +66,18 @@ function toHydraPayload(input: ClientPayload) {
     redirect_uris: input.redirect_uris ?? [],
     post_logout_redirect_uris: input.post_logout_redirect_uris ?? [],
     audience: input.audience ?? [],
+    client_uri: input.client_uri || undefined,
+    logo_uri: input.logo_uri || undefined,
+    policy_uri: input.policy_uri || undefined,
+    tos_uri: input.tos_uri || undefined,
+    contacts: input.contacts ?? [],
+    metadata: normalizedMetadata(input.metadata),
     token_endpoint_auth_method: isPublic ? "none" : "client_secret_basic",
   };
+}
+
+function isProtectedAdminClient(clientId: string | undefined): boolean {
+  return clientId === getAdminOidcClientId();
 }
 
 export async function listClients(): Promise<HandlerResult> {
@@ -76,6 +114,8 @@ export async function createClient(input: ClientPayload): Promise<HandlerResult>
   try {
     const invalid = validateForCreate(input);
     if (invalid) return { status: 400, body: { error: invalid } };
+    const invalidPolicy = validateRememberOfflineAccess(input);
+    if (invalidPolicy) return { status: 400, body: { error: invalidPolicy } };
     const res = await fetch(clientsBase(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -93,6 +133,11 @@ export async function createClient(input: ClientPayload): Promise<HandlerResult>
 export async function updateClient(input: ClientPayload): Promise<HandlerResult> {
   try {
     if (!input.client_id) return { status: 400, body: { error: "client_id is required" } };
+    if (isProtectedAdminClient(input.client_id)) {
+      return { status: 403, body: { error: "The admin OAuth client cannot be edited" } };
+    }
+    const invalidPolicy = validateRememberOfflineAccess(input);
+    if (invalidPolicy) return { status: 400, body: { error: invalidPolicy } };
     const res = await fetch(`${clientsBase()}/${encodeURIComponent(input.client_id)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -111,6 +156,9 @@ export async function updateClient(input: ClientPayload): Promise<HandlerResult>
 export async function deleteClient(input: ClientIdInput): Promise<HandlerResult> {
   try {
     if (!input.client_id) return { status: 400, body: { error: "client_id is required" } };
+    if (isProtectedAdminClient(input.client_id)) {
+      return { status: 403, body: { error: "The admin OAuth client cannot be deleted" } };
+    }
     const res = await fetch(`${clientsBase()}/${encodeURIComponent(input.client_id)}`, {
       method: "DELETE",
     });

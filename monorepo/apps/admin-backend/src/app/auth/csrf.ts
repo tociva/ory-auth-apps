@@ -1,7 +1,10 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { isAllowedOrigin } from "@idnest/shared-types";
 import type { NextFunction, Request, Response } from "express";
 import { getAdminCorsOrigins, getAdminCsrfSecret } from "../config";
 import { normalizeEmail, type AdminIdentity } from "./authorize";
+
+export { isAllowedOrigin, normalizeOrigin } from "@idnest/shared-types";
 
 const TOKEN_VERSION = "v1";
 const TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
@@ -29,21 +32,6 @@ function fromBase64Url(input: string): string {
 
 function sign(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
-}
-
-export function normalizeOrigin(origin: string): string | null {
-  try {
-    return new URL(origin).origin;
-  } catch {
-    return null;
-  }
-}
-
-export function isAllowedOrigin(origin: string | undefined, allowedOrigins: string[]): boolean {
-  if (!origin) return false;
-  const normalizedOrigin = normalizeOrigin(origin);
-  if (!normalizedOrigin) return false;
-  return allowedOrigins.some((allowed) => normalizeOrigin(allowed) === normalizedOrigin);
 }
 
 export function createCsrfToken(

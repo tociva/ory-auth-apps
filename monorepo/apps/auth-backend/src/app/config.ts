@@ -43,3 +43,16 @@ export const getCorsOrigins = (): string[] =>
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+
+export const getAuthzDatabaseUrl = (): string => process.env.AUTHZ_DATABASE_URL ?? "";
+
+export type ConsentGateMode = "observe" | "enforce";
+
+export const getConsentGateMode = (): ConsentGateMode =>
+  process.env.CONSENT_GATE_MODE === "observe" ? "observe" : "enforce";
+
+export const getConsentActionSecret = (): string =>
+  process.env.CONSENT_ACTION_SECRET ?? process.env.KRATOS_CSRF_COOKIE_SECRET ?? "dev-consent-action-secret";
+
+export const getAdminOidcClientId = (): string =>
+  process.env.ADMIN_OIDC_CLIENT_ID ?? "idnest-admin-client";

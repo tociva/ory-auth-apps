@@ -46,5 +46,5 @@ export function renderError(vm: ErrorViewModel): string {
       });
     }`;
 
-  return layout({ title: "Error · Daybook.Cloud", body, bodyScript });
+  return layout({ title: "Error · Idnest", body, bodyScript });
 }

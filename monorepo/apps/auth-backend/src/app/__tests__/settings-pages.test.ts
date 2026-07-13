@@ -138,6 +138,21 @@ describe("settings pages", () => {
     );
   });
 
+  it("starts a settings browser flow with a wildcard product return target", async () => {
+    process.env.CORS_ALLOWED_ORIGINS = "https://*.idnest.cloud,https://*.daybook.cloud";
+    mockFetchByUrl([
+      { match: "/sessions/whoami", result: { ok: true, json: { identity: { id: "kratos-id-1", traits: {} } } } },
+    ]);
+
+    const res = await requestPath("/settings?return_to=https%3A%2F%2Fapp-dev.daybook.cloud%2Faccount");
+    const location = new URL(String(res.headers.location));
+
+    expect(res.status).toBe(302);
+    expect(location.searchParams.get("return_to")).toBe(
+      "https://auth-local.idnest.cloud/settings/return?return_to=https%3A%2F%2Fapp-dev.daybook.cloud%2Faccount",
+    );
+  });
+
   it("renders OIDC settings controls from the Kratos settings flow", async () => {
     mockFetchByUrl([{ match: "/self-service/settings/flows", result: { ok: true, json: settingsFlow } }]);
 

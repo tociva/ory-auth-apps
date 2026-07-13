@@ -1,21 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SYSTEM_ADMIN_ROLE, type AdminSession, type ClientAccessGrant, type Db } from "@idnest/authz-store";
 import { authorize, type AdminIdentity } from "../auth/authorize";
 import { mockFetchByUrl } from "./helpers";
 
-const KRATOS = "http://kratos:4433";
 const KRATOS_ADMIN = "http://kratos:4434";
-
-function session(identity: Partial<AdminIdentity>, active = true) {
-  return {
-    active,
-    identity: {
-      id: "u1",
-      traits: { name: "A", email: "admin@example.com" },
-      verifiable_addresses: [{ value: "admin@example.com", verified: true, via: "email" }],
-      ...identity,
-    },
-  };
-}
 
 function adminIdentity(identity: Partial<AdminIdentity> = {}): AdminIdentity {
   return {
@@ -26,127 +14,135 @@ function adminIdentity(identity: Partial<AdminIdentity> = {}): AdminIdentity {
   };
 }
 
-const cfg = (emails: string[] = []) => ({
-  kratosPublicUrl: KRATOS,
+function adminSession(session: Partial<AdminSession> = {}): AdminSession {
+  return {
+    id: "s1",
+    identity_id: "u1",
+    client_id: "idnest-admin-client",
+    role: SYSTEM_ADMIN_ROLE,
+    email: "admin@example.com",
+    created_at: "2026-01-01T00:00:00.000Z",
+    last_seen_at: "2026-01-01T00:00:00.000Z",
+    expires_at: "2026-01-01T08:00:00.000Z",
+    idle_expires_at: "2026-01-01T00:30:00.000Z",
+    revoked_at: null,
+    ...session,
+  };
+}
+
+function adminGrant(grant: Partial<ClientAccessGrant> = {}): ClientAccessGrant {
+  return {
+    id: "g1",
+    identity_id: "u1",
+    client_id: "idnest-admin-client",
+    role: SYSTEM_ADMIN_ROLE,
+    granted_by: "seed",
+    created_at: "2026-01-01T00:00:00.000Z",
+    revoked_at: null,
+    ...grant,
+  };
+}
+
+function dbWith(input: { session?: AdminSession | null; grant?: ClientAccessGrant | null }): Db {
+  return {
+    query: vi.fn(async (sql: string) => {
+      if (sql.includes("UPDATE admin_sessions")) {
+        return { rows: input.session ? [input.session] : [], rowCount: input.session ? 1 : 0 };
+      }
+      if (sql.includes("FROM client_access_grants")) {
+        return { rows: input.grant ? [input.grant] : [], rowCount: input.grant ? 1 : 0 };
+      }
+      return { rows: [], rowCount: 0 };
+    }),
+  } as unknown as Db;
+}
+
+const cfg = (db?: Db) => ({
   kratosAdminUrl: KRATOS_ADMIN,
-  bootstrapAdminEmails: emails,
+  authzDatabaseUrl: db ? "" : "",
+  db,
+  adminOidcClientId: "idnest-admin-client",
+  adminSessionIdleTtlSeconds: 1800,
 });
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("authorize (admin authorization middleware)", () => {
-  it("rejects requests with no session cookie (401)", async () => {
-    mockFetchByUrl([]);
-    const res = await authorize(undefined, cfg(["admin@example.com"]));
-    expect(res).toMatchObject({ ok: false, status: 401 });
+describe("authorize (admin BFF session authorization)", () => {
+  it("rejects requests without an admin session cookie", async () => {
+    const res = await authorize(cfg(dbWith({ session: adminSession(), grant: adminGrant() })));
+    expect(res).toMatchObject({ ok: false, status: 401, error: "Missing admin session" });
   });
 
-  it("rejects when Kratos has no valid session (401)", async () => {
-    mockFetchByUrl([{ match: "/sessions/whoami", result: { ok: false, status: 401 } }]);
-    const res = await authorize("ory_session=x", cfg(["admin@example.com"]));
-    expect(res).toMatchObject({ ok: false, status: 401 });
+  it("rejects when the admin session store is unavailable", async () => {
+    const res = await authorize(cfg(), "session-token");
+    expect(res).toMatchObject({ ok: false, status: 401, error: "Admin session store is not configured" });
   });
 
-  it("rejects an authenticated but non-allowlisted user (403)", async () => {
+  it("rejects expired or revoked sessions", async () => {
+    const res = await authorize(cfg(dbWith({ session: null, grant: adminGrant() })), "session-token");
+    expect(res).toMatchObject({ ok: false, status: 401, error: "Invalid or expired admin session" });
+  });
+
+  it("rejects sessions for the wrong client", async () => {
+    const res = await authorize(
+      cfg(dbWith({ session: adminSession({ client_id: "daybook-user-client" }), grant: adminGrant() })),
+      "session-token",
+    );
+    expect(res).toMatchObject({ ok: false, status: 403, error: "Invalid admin session client" });
+  });
+
+  it("rejects inactive Kratos identities", async () => {
     mockFetchByUrl([
-      { match: "/sessions/whoami", result: { ok: true, json: session({}) } },
-      { match: "/identities/u1", result: { ok: true, json: adminIdentity() } },
+      { match: "/identities/u1", result: { ok: true, json: adminIdentity({ state: "inactive" }) } },
     ]);
-    const res = await authorize("ory_session=x", cfg([])); // empty allowlist, no role
-    expect(res).toMatchObject({ ok: false, status: 403 });
+    const res = await authorize(
+      cfg(dbWith({ session: adminSession(), grant: adminGrant() })),
+      "session-token",
+    );
+    expect(res).toMatchObject({ ok: false, status: 403, error: "Identity is inactive" });
   });
 
-  it("allows a user in the bootstrap allowlist", async () => {
+  it("rejects unverified email identities", async () => {
     mockFetchByUrl([
-      { match: "/sessions/whoami", result: { ok: true, json: session({}) } },
-      { match: "/identities/u1", result: { ok: true, json: adminIdentity() } },
-    ]);
-    const res = await authorize("ory_session=x", cfg(["admin@example.com"]));
-    expect(res.ok).toBe(true);
-  });
-
-  it("allows a user with metadata_admin.role === 'admin' on the admin identity", async () => {
-    mockFetchByUrl([
-      {
-        match: "/sessions/whoami",
-        result: { ok: true, json: session({}) },
-      },
-      {
-        match: "/identities/u1",
-        result: { ok: true, json: adminIdentity({ metadata_admin: { role: "admin" } }) },
-      },
-    ]);
-    const res = await authorize("ory_session=x", cfg([])); // not in list, but has role
-    expect(res.ok).toBe(true);
-  });
-
-  it("does not trust metadata_admin from whoami without the admin identity role", async () => {
-    mockFetchByUrl([
-      {
-        match: "/sessions/whoami",
-        result: { ok: true, json: session({ metadata_admin: { role: "admin" } }) },
-      },
-      { match: "/identities/u1", result: { ok: true, json: adminIdentity() } },
-    ]);
-    const res = await authorize("ory_session=x", cfg([]));
-    expect(res).toMatchObject({ ok: false, status: 403 });
-  });
-
-  it("matches the bootstrap email case-insensitively and trimmed", async () => {
-    mockFetchByUrl([
-      {
-        match: "/sessions/whoami",
-        result: { ok: true, json: session({}) },
-      },
       {
         match: "/identities/u1",
         result: {
           ok: true,
-          json: adminIdentity({
-            traits: { email: "  Admin@Example.COM " },
-            verifiable_addresses: [{ value: "admin@example.com", verified: true }],
-          }),
+          json: adminIdentity({ verifiable_addresses: [{ value: "admin@example.com", verified: false }] }),
         },
       },
     ]);
-    const res = await authorize("ory_session=x", cfg(["admin@example.com"]));
-    expect(res.ok).toBe(true);
-  });
-
-  it("rejects when the email is not verified (403)", async () => {
-    mockFetchByUrl([
-      {
-        match: "/sessions/whoami",
-        result: { ok: true, json: session({}) },
-      },
-      {
-        match: "/identities/u1",
-        result: {
-          ok: true,
-          json: adminIdentity({
-            verifiable_addresses: [{ value: "admin@example.com", verified: false }],
-          }),
-        },
-      },
-    ]);
-    const res = await authorize("ory_session=x", cfg(["admin@example.com"]));
+    const res = await authorize(
+      cfg(dbWith({ session: adminSession(), grant: adminGrant() })),
+      "session-token",
+    );
     expect(res).toMatchObject({ ok: false, status: 403, error: "Email not verified" });
   });
 
-  it("rejects an inactive session (401)", async () => {
+  it("rejects identities without an active system-admin grant", async () => {
     mockFetchByUrl([
-      { match: "/sessions/whoami", result: { ok: true, json: session({}, false) } },
+      { match: "/identities/u1", result: { ok: true, json: adminIdentity() } },
     ]);
-    const res = await authorize("ory_session=x", cfg(["admin@example.com"]));
-    expect(res).toMatchObject({ ok: false, status: 401 });
+    const res = await authorize(
+      cfg(dbWith({ session: adminSession(), grant: adminGrant({ role: "user" }) })),
+      "session-token",
+    );
+    expect(res).toMatchObject({ ok: false, status: 403, error: "Not authorized" });
   });
 
-  it("rejects when the admin identity lookup fails", async () => {
+  it("allows valid sessions for identities with an active system-admin grant", async () => {
     mockFetchByUrl([
-      { match: "/sessions/whoami", result: { ok: true, json: session({}) } },
-      { match: "/identities/u1", result: { ok: false, status: 404 } },
+      { match: "/identities/u1", result: { ok: true, json: adminIdentity() } },
     ]);
-    const res = await authorize("ory_session=x", cfg(["admin@example.com"]));
-    expect(res).toMatchObject({ ok: false, status: 401, error: "Identity lookup failed" });
+    const res = await authorize(
+      cfg(dbWith({ session: adminSession(), grant: adminGrant() })),
+      "session-token",
+    );
+    expect(res).toMatchObject({
+      ok: true,
+      authMode: "bff-session",
+      email: "admin@example.com",
+      role: SYSTEM_ADMIN_ROLE,
+    });
   });
 });

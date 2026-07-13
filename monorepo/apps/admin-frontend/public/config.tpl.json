@@ -1,4 +1,3 @@
 {
-  "adminBackendUrl": "${ADMIN_BACKEND_URL}",
-  "authLoginUrl": "${AUTH_LOGIN_URL}"
+  "apiBaseUrl": "${ADMIN_API_BASE_URL}"
 }

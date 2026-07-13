@@ -18,6 +18,15 @@ export {
   type ClientIdInput,
 } from "./clients";
 export {
+  grantIdentityClientAccess,
+  listClientIdentityGrants,
+  listIdentityClientGrants,
+  revokeIdentityClientAccess,
+  type ClientIdentityAccessInput,
+  type GrantClientAccessInput,
+  type IdentityClientAccessInput,
+} from "./client-access";
+export {
   listIdentitySessions,
   revokeIdentitySessions,
   revokeSession,

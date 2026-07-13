@@ -5,3 +5,8 @@
 .actions-row {
   margin-top: 1rem;
 }
+
+.grant-row {
+  justify-content: space-between;
+  padding: 0.45rem 0;
+}
