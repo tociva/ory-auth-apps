@@ -150,7 +150,17 @@ ${dialogs}`;
   return layout({ title: `Authorize ${vm.clientName} · Idnest`, body, bodyScript: dialogScript });
 }
 
-export function renderAccessDenied(vm: { clientName: string; email: string; reason: string }): string {
+export function renderAccessDenied(vm: {
+  clientName: string;
+  email: string;
+  reason: string;
+  switchAccountUrl?: string;
+}): string {
+  const switchAccountAction = vm.switchAccountUrl
+    ? `<div class="consent-actions">
+      <a class="btn btn-primary" href="${esc(vm.switchAccountUrl)}">Use a different account</a>
+    </div>`
+    : "";
   const body = `<div class="page-center">
   <main class="card card-error">
     <div class="card-header">
@@ -161,6 +171,7 @@ export function renderAccessDenied(vm: { clientName: string; email: string; reas
     <p class="hint-body">
       ${esc(vm.clientName)} is not enabled for ${esc(vm.email || "this account")}. Contact an administrator to grant access.
     </p>
+    ${switchAccountAction}
   </main>
 </div>`;
   return layout({ title: "Access denied · Idnest", body });

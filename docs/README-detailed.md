@@ -293,6 +293,7 @@ AUTH_BASE_URL=https://auth-local.idnest.cloud
 
 AUTH_BACKEND_PORT=4000
 ADMIN_BACKEND_PORT=4100
+CORS_ALLOWED_ORIGINS=https://admin-local.idnest.cloud,https://app-local.daybook.cloud
 ADMIN_CORS_ALLOWED_ORIGINS=https://admin-local.idnest.cloud
 ADMIN_CSRF_SECRET=<random_32+_char_secret>
 ADMIN_PUBLIC_ORIGIN=https://admin-local.idnest.cloud
@@ -300,10 +301,12 @@ ADMIN_BOOTSTRAP_IDENTITY_IDS=<kratos_identity_id>
 ADMIN_OIDC_CLIENT_ID=idnest-admin-client
 ADMIN_OIDC_CLIENT_SECRET=<random_admin_client_secret>
 ADMIN_OIDC_AUTHORITY=https://hydra-local.idnest.cloud/
+ADMIN_OIDC_TOKEN_URL=http://localhost:4444/oauth2/token
 ADMIN_OIDC_REDIRECT_URI=https://admin-local.idnest.cloud/api/admin/auth/callback
 ADMIN_OIDC_SCOPE="openid profile email"
 ADMIN_OIDC_AUDIENCE=idnest-admin
 ADMIN_API_BASE_URL=/api
+ADMIN_AUTH_LOGOUT_URL=https://auth-local.idnest.cloud/logout
 ```
 
 **Key wiring at a glance**

@@ -12,6 +12,8 @@ import { InjectionToken } from "@angular/core";
 export interface AdminConfig {
   /** BFF API base, normally same-origin `/api` (admin routes live under `${apiBaseUrl}/admin`). */
   apiBaseUrl: string;
+  /** Browser-facing auth-backend logout URL used to clear Kratos/Hydra SSO state. */
+  authLogoutUrl?: string;
 }
 
 export const ADMIN_CONFIG = new InjectionToken<AdminConfig>("ADMIN_CONFIG");

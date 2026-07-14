@@ -18,7 +18,7 @@ cd "$REPO_ROOT"
 
 # 1. stop backends
 pm2 stop 'ory-auth-dev' 2>/dev/null || true
-pm2 stop 'ory-admin-api-dev' 2>/dev/null || true
+pm2 stop 'ory-admin-backend-dev' 2>/dev/null || true
 
 # 2. docker compose down
 docker compose -f "$COMPOSE_FILE" down --remove-orphans
@@ -43,7 +43,7 @@ docker compose -f "$COMPOSE_FILE" up -d --build
 # (KRATOS_PUBLIC_URL, AUTH_BASE_URL, ...). delete+start because pm2 restart
 # keeps the old working directory.
 MONO="$PWD/monorepo"
-pm2 delete 'ory-auth-dev' 'ory-admin-api-dev' 2>/dev/null || true
+pm2 delete 'ory-auth-dev' 'ory-admin-backend-dev' 2>/dev/null || true
 pm2 start "$MONO/dist/apps/auth-backend/main.cjs"  --name 'ory-auth-dev'      --cwd "$MONO"
-pm2 start "$MONO/dist/apps/admin-backend/main.cjs" --name 'ory-admin-api-dev' --cwd "$MONO"
+pm2 start "$MONO/dist/apps/admin-backend/main.cjs" --name 'ory-admin-backend-dev' --cwd "$MONO"
 pm2 save

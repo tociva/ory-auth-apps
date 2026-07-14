@@ -80,6 +80,8 @@ async function requestPath(path: string): Promise<RouteResult> {
 
 afterEach(() => {
   vi.clearAllMocks();
+  delete process.env.CORS_ALLOWED_ORIGINS;
+  delete process.env.ADMIN_PUBLIC_ORIGIN;
 });
 
 describe("consent page route", () => {
@@ -106,6 +108,32 @@ describe("consent page route", () => {
       loaded,
       "auto_accept",
       "remembered_first_party_offline_access_consent",
+    );
+  });
+
+  it("renders a switch-account logout link on access denied for allowed client roots", async () => {
+    process.env.ADMIN_PUBLIC_ORIGIN = "https://admin-local.idnest.cloud";
+    consentDecisionMocks.decideConsent.mockResolvedValue({
+      loaded: {
+        ...loaded,
+        identity: { traits: { email: "other@example.com" } },
+        client: {
+          client_name: "Idnest Admin Console",
+          client_uri: "https://admin-local.idnest.cloud",
+        },
+      } as LoadedConsent,
+      hasAccess: false,
+      canAutoAccept: false,
+      reasons: ["missing_client_access_grant"],
+      observeOnly: false,
+    });
+
+    const res = await requestPath("/consent?consent_challenge=cc_1");
+
+    expect(res.status).toBe(403);
+    expect(res.body).toContain("Use a different account");
+    expect(res.body).toContain(
+      "/logout?return_to=https%3A%2F%2Fadmin-local.idnest.cloud%2F",
     );
   });
 });

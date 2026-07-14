@@ -81,6 +81,18 @@ function loginUrl(returnTo: string): string {
   return `/login?${params.toString()}`;
 }
 
+function switchAccountUrl(clientUri: string | undefined): string | undefined {
+  if (!clientUri) return undefined;
+  try {
+    const clientRoot = new URL("/", clientUri).toString();
+    if (!isAllowedReturnTo(clientRoot)) return undefined;
+    const params = new URLSearchParams({ return_to: clientRoot });
+    return `/logout?${params.toString()}`;
+  } catch {
+    return undefined;
+  }
+}
+
 function withExtraHiddenInput(inputs: FlowHiddenInput[], name: string, value: string | undefined): FlowHiddenInput[] {
   return value ? [...inputs, { name, value }] : inputs;
 }
@@ -334,6 +346,7 @@ export function createPagesRouter(): Router {
             clientName: loaded.client.client_name ?? loaded.clientId,
             email: identityEmail(loaded.identity),
             reason: "This account is not allowed to use this application.",
+            switchAccountUrl: switchAccountUrl(loaded.client.client_uri),
           }),
         );
         return;
@@ -408,6 +421,7 @@ export function createPagesRouter(): Router {
             clientName: loaded.client.client_name ?? loaded.clientId,
             email: identityEmail(loaded.identity),
             reason: "This account is not allowed to use this application.",
+            switchAccountUrl: switchAccountUrl(loaded.client.client_uri),
           }),
         );
         return;

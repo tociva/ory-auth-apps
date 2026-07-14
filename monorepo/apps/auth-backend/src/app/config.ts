@@ -39,7 +39,13 @@ export const getPort = (): number => Number(process.env.AUTH_BACKEND_PORT ?? 400
 
 /** Comma-separated allowlist of browser origins permitted to call this API. */
 export const getCorsOrigins = (): string[] =>
-  (process.env.CORS_ALLOWED_ORIGINS ?? "")
+  [
+    process.env.CORS_ALLOWED_ORIGINS,
+    process.env.ADMIN_CORS_ALLOWED_ORIGINS,
+    process.env.ADMIN_PUBLIC_ORIGIN,
+  ]
+    .filter(Boolean)
+    .join(",")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);

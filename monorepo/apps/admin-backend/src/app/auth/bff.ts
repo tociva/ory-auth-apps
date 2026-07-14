@@ -16,6 +16,7 @@ import {
   getAdminOidcClientId,
   getAdminOidcClientSecret,
   getAdminOidcScope,
+  getAdminOidcTokenUrl,
   getAdminPublicOrigin,
   getAdminRedirectUri,
   getAdminSessionIdleTtlSeconds,
@@ -79,6 +80,7 @@ export async function startAdminLogin(req: Request, res: Response): Promise<void
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
       audience: getAdminOidcAudience(),
+      prompt: "login",
     }).toString();
     res.redirect(authorizeUrl.toString());
   } catch (err) {
@@ -189,7 +191,7 @@ export async function logoutAdmin(req: AuthedRequest, res: Response): Promise<vo
 async function exchangeCode(code: string, codeVerifier: string): Promise<TokenResponse> {
   const clientSecret = getAdminOidcClientSecret();
   if (!clientSecret) throw new Error("ADMIN_OIDC_CLIENT_SECRET is required");
-  const res = await fetch(new URL("oauth2/token", normalizedAuthority()), {
+  const res = await fetch(getAdminOidcTokenUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",

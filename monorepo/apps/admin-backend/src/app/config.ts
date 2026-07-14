@@ -18,6 +18,15 @@ export const getAdminOidcClientSecret = (): string =>
   process.env.ADMIN_OIDC_CLIENT_SECRET ?? "";
 export const getAdminOidcAuthority = (): string =>
   process.env.ADMIN_OIDC_AUTHORITY ?? process.env.ADMIN_AUTH_AUTHORITY ?? "https://hydra-local.idnest.cloud/";
+export const getAdminOidcTokenUrl = (): string => {
+  if (process.env.ADMIN_OIDC_TOKEN_URL) return process.env.ADMIN_OIDC_TOKEN_URL;
+  const authority = getAdminOidcAuthority().replace(/\/?$/, "/");
+  const url = new URL("oauth2/token", authority);
+  if (url.hostname === "hydra-local.idnest.cloud") {
+    return "http://localhost:4444/oauth2/token";
+  }
+  return url.toString();
+};
 export const getAdminOidcScope = (): string =>
   process.env.ADMIN_OIDC_SCOPE ?? "openid profile email";
 export const getAdminPublicOrigin = (): string =>

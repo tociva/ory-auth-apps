@@ -1,3 +1,4 @@
 {
-  "apiBaseUrl": "${ADMIN_API_BASE_URL}"
+  "apiBaseUrl": "${ADMIN_API_BASE_URL}",
+  "authLogoutUrl": "${ADMIN_AUTH_LOGOUT_URL}"
 }

@@ -80,7 +80,11 @@ export class AuthLogoutComponent implements OnInit {
   private readonly auth = inject(AdminAuthService);
 
   ngOnInit(): void {
-    this.auth.clearLocalSession();
+    if (new URLSearchParams(window.location.search).get("sso") === "done") {
+      this.auth.clearLocalSession();
+      return;
+    }
+    void this.auth.signOut();
   }
 
   loginAgain(): void {

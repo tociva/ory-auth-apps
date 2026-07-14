@@ -41,21 +41,23 @@ export class AdminAuthService {
   }
 
   async signOut(): Promise<void> {
+    await this.endAdminSession();
+    window.location.href = this.upstreamLogoutUrl();
+  }
+
+  async endAdminSession(): Promise<void> {
     const csrf = await this.ensureCsrfToken();
     const headers: Record<string, string> = { Accept: "application/json" };
     if (csrf) headers["X-Admin-CSRF"] = csrf;
-    const res = await fetch(`${this.adminBase()}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-      headers,
-    });
-    this.clearLocalSession();
-    if (res.ok) {
-      const body = (await res.json().catch(() => null)) as { redirect_to?: string } | null;
-      window.location.href = body?.redirect_to || "/auth/logout";
-      return;
+    try {
+      await fetch(`${this.adminBase()}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers,
+      });
+    } finally {
+      this.clearLocalSession();
     }
-    window.location.href = "/auth/logout";
   }
 
   clearLocalSession(): void {
@@ -73,6 +75,17 @@ export class AdminAuthService {
   private adminBase(): string {
     return `${this.config.apiBaseUrl.replace(/\/+$/, "")}/admin`;
   }
+
+  private upstreamLogoutUrl(): string {
+    const returnTo = new URL("/auth/logout", window.location.origin);
+    returnTo.searchParams.set("sso", "done");
+    const configuredLogoutUrl = this.config.authLogoutUrl?.includes("${")
+      ? undefined
+      : this.config.authLogoutUrl;
+    const logoutUrl = new URL(configuredLogoutUrl || defaultAuthLogoutUrl(), window.location.origin);
+    logoutUrl.searchParams.set("return_to", returnTo.toString());
+    return logoutUrl.toString();
+  }
 }
 
 function sameOriginPath(url: string): string | null {
@@ -83,4 +96,19 @@ function sameOriginPath(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+function defaultAuthLogoutUrl(): string {
+  const url = new URL(window.location.href);
+  if (url.hostname.startsWith("admin-local.")) {
+    url.hostname = url.hostname.replace(/^admin-local\./, "auth-local.");
+  } else if (url.hostname.startsWith("admin.")) {
+    url.hostname = url.hostname.replace(/^admin\./, "auth.");
+  } else {
+    return "/logout";
+  }
+  url.pathname = "/logout";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
 }
