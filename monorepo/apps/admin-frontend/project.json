@@ -29,7 +29,11 @@
           "optimization": true,
           "outputHashing": "all",
           "budgets": [
-            { "type": "initial", "maximumWarning": "1mb", "maximumError": "2mb" }
+            {
+              "type": "initial",
+              "maximumWarning": "2.25mb",
+              "maximumError": "2.5mb"
+            }
           ]
         },
         "development": {

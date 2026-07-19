@@ -1,4 +1,4 @@
 {
   "apiBaseUrl": "/api",
-  "authLogoutUrl": "https://auth-local.idnest.cloud/logout"
+  "authLogoutUrl": "https://auth-dev.idnest.cloud/logout"
 }

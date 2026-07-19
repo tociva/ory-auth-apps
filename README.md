@@ -378,6 +378,9 @@ Run workspace commands from `monorepo/`:
 
 ```bash
 pnpm build
+pnpm auth-backend:build
+pnpm admin-backend:build
+pnpm admin-frontend:build
 pnpm test
 pnpm typecheck
 pnpm lint
@@ -549,8 +552,13 @@ The complete server-rendered flow is:
 
 ```bash
 cd monorepo
-pnpm build
+pnpm auth-backend:build
+pnpm admin-backend:build
+pnpm admin-frontend:build
 ```
+
+`pnpm build` remains available when both backend and frontend artifacts should
+be built together.
 
 Production requirements:
 
