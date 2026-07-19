@@ -57,7 +57,7 @@ echo "==> Running authz migrations..."
 echo "==> Starting Hydra and Kratos containers..."
 docker compose -f "$COMPOSE_FILE" up -d --build
 
-wait_for_url "Hydra" "http://localhost:4444/health/ready"
+wait_for_url "Hydra" "http://localhost:4445/health/ready"
 wait_for_url "Kratos" "http://localhost:4433/health/ready"
 
 if [ -z "${ADMIN_OIDC_CLIENT_SECRET:-}" ]; then

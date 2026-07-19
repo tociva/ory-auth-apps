@@ -353,7 +353,7 @@ The default direct ports are defined in code: auth backend `4000`, admin backend
 Verify the services:
 
 ```bash
-curl http://localhost:4444/health/ready
+curl http://localhost:4445/health/ready
 curl http://localhost:4433/health/ready
 curl http://localhost:4000/health
 curl -I https://admin-local.idnest.cloud
@@ -581,7 +581,7 @@ pm2 save
 ### Service health and logs
 
 ```bash
-curl http://localhost:4444/health/ready
+curl http://localhost:4445/health/ready
 curl http://localhost:4433/health/ready
 curl http://localhost:4000/health
 docker compose -f scripts/docker/docker-compose.yml ps
