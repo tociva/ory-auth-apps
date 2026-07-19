@@ -7,7 +7,7 @@
     "build": "nx run-many -t build",
     "auth-backend:build": "nx build auth-backend",
     "admin-backend:build": "nx build admin-backend",
-    "admin-frontend:build": "nx build admin-frontend --configuration=production",
+    "admin-frontend:build": "nx build admin-frontend --configuration=production --skip-nx-cache",
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck",
