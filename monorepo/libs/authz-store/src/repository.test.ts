@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bootstrapFirstSystemAdmin,
   canonicalList,
   createAdminSession,
   listHash,
@@ -95,5 +96,40 @@ describe("authz consent key helpers", () => {
     expect(sql.some((query) => query.includes("UPDATE client_access_grants"))).toBe(true);
     expect(sql.some((query) => query.includes("UPDATE consent_approvals"))).toBe(true);
     expect(sql.some((query) => query.includes("UPDATE admin_sessions"))).toBe(true);
+  });
+
+  it("serializes and grants only the first system administrator", async () => {
+    const calls: Array<{ sql: string; values: unknown[] }> = [];
+    const db = {
+      query: async (sql: string, values: unknown[]) => {
+        calls.push({ sql, values });
+        return {
+          rows: [{
+            id: "g1",
+            identity_id: values[0],
+            client_id: values[1],
+            role: values[2],
+            granted_by: values[3],
+            created_at: "now",
+          }],
+        };
+      },
+    } as unknown as Db;
+
+    const grant = await bootstrapFirstSystemAdmin(db, {
+      identityId: "u1",
+      clientId: "idnest-admin-client",
+      grantedBy: "bootstrap-email",
+    });
+
+    expect(grant?.role).toBe(SYSTEM_ADMIN_ROLE);
+    expect(calls[0].sql).toContain("pg_advisory_xact_lock");
+    expect(calls[0].sql).toContain("WHERE NOT EXISTS");
+    expect(calls[0].values).toEqual([
+      "u1",
+      "idnest-admin-client",
+      SYSTEM_ADMIN_ROLE,
+      "bootstrap-email",
+    ]);
   });
 });

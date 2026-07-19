@@ -1,5 +1,6 @@
 import {
   auditConsentEvent,
+  bootstrapFirstSystemAdmin,
   canonicalList,
   findConsentApproval,
   getAuthzPool,
@@ -15,6 +16,7 @@ import {
   type KratosUser,
 } from "@idnest/shared-types";
 import {
+  getAdminBootstrapEmails,
   getAuthzDatabaseUrl,
   getAdminOidcClientId,
   getConsentGateMode,
@@ -163,6 +165,15 @@ export async function decideConsent(consentChallenge: string): Promise<ConsentDe
       reasons: ["authz_store_unavailable"],
       observeOnly,
     };
+  }
+
+  const identityEmail = String(loaded.identity.traits?.email ?? "").trim().toLowerCase();
+  if (loaded.clientId === getAdminOidcClientId() && getAdminBootstrapEmails().includes(identityEmail)) {
+    await bootstrapFirstSystemAdmin(pool, {
+      identityId: loaded.subject,
+      clientId: loaded.clientId,
+      grantedBy: "bootstrap-email",
+    });
   }
 
   const hasAccess = await hasActiveClientAccess(pool, loaded.subject, loaded.clientId);

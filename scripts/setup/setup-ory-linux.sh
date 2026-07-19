@@ -1,41 +1,32 @@
 #!/usr/bin/env bash
 #
 # ORY bootstrap for Linux (apt/yum Postgres with a `postgres` OS user).
-# Creates Hydra/Kratos roles, databases, dedicated schemas and runs ORY migrations.
-# Optionally creates the authz role/database/schema when AUTHZ_DB_PASSWORD is set.
+# Creates Hydra/Kratos/Authz roles, databases and schemas, then runs ORY
+# migrations. Database credentials are derived from the project DSNs.
 #
-# Usage:
-#   HYDRA_DB_PASSWORD=... KRATOS_DB_PASSWORD=... ./scripts/setup/setup-ory-linux.sh
+# Usage: ./scripts/setup/setup-ory-linux.sh
 #
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ENV_HELPER="$SCRIPT_DIR/load-project-env.sh"
 
-HYDRA_DB_USER="${HYDRA_DB_USER:-hydrau}"
-HYDRA_DB_NAME="${HYDRA_DB_NAME:-hydra}"
-HYDRA_DB_SCHEMA="${HYDRA_DB_SCHEMA:-hydra}"
-HYDRA_DB_PASSWORD="${HYDRA_DB_PASSWORD:?set HYDRA_DB_PASSWORD}"
-
-KRATOS_DB_USER="${KRATOS_DB_USER:-kratosu}"
-KRATOS_DB_NAME="${KRATOS_DB_NAME:-kratos}"
-KRATOS_DB_SCHEMA="${KRATOS_DB_SCHEMA:-kratos}"
-KRATOS_DB_PASSWORD="${KRATOS_DB_PASSWORD:?set KRATOS_DB_PASSWORD}"
-
-AUTHZ_DB_USER="${AUTHZ_DB_USER:-authzu}"
-AUTHZ_DB_NAME="${AUTHZ_DB_NAME:-authz}"
-AUTHZ_DB_SCHEMA="${AUTHZ_DB_SCHEMA:-authz}"
+# shellcheck source=scripts/setup/load-project-env.sh
+. "$ENV_HELPER"
+load_project_env "$REPO_ROOT"
 
 HYDRA_IMAGE="${HYDRA_IMAGE:-oryd/hydra:v26.2.0}"
 KRATOS_IMAGE="${KRATOS_IMAGE:-oryd/kratos:v25.4.0}"
 KRATOS_CONFIG_DIR="${KRATOS_CONFIG_DIR:-$REPO_ROOT/config}"
-PG_HOST="${PG_HOST:-127.0.0.1}"
-PG_PORT="${PG_PORT:-5432}"
 
 require_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Error: '$1' not found." >&2; exit 1; }; }
 require_cmd psql
 require_cmd docker
 require_cmd sudo
+require_cmd node
+
+derive_database_env
 
 psql_super() { sudo -u postgres psql -v ON_ERROR_STOP=1 "$@"; }
 
@@ -62,22 +53,19 @@ SQL
 
 ensure_role_db_schema "$HYDRA_DB_USER" "$HYDRA_DB_PASSWORD" "$HYDRA_DB_NAME" "$HYDRA_DB_SCHEMA"
 ensure_role_db_schema "$KRATOS_DB_USER" "$KRATOS_DB_PASSWORD" "$KRATOS_DB_NAME" "$KRATOS_DB_SCHEMA"
-
-if [ -n "${AUTHZ_DB_PASSWORD:-}" ]; then
-  ensure_role_db_schema "$AUTHZ_DB_USER" "$AUTHZ_DB_PASSWORD" "$AUTHZ_DB_NAME" "$AUTHZ_DB_SCHEMA"
-else
-  echo "==> AUTHZ_DB_PASSWORD not set; skipping authz role/database/schema creation."
-fi
+ensure_role_db_schema "$AUTHZ_DB_USER" "$AUTHZ_DB_PASSWORD" "$AUTHZ_DB_NAME" "$AUTHZ_DB_SCHEMA"
 
 echo "==> Running Hydra migrations..."
-docker run --rm --network host \
-  -e "DSN=postgres://${HYDRA_DB_USER}:${HYDRA_DB_PASSWORD}@${PG_HOST}:${PG_PORT}/${HYDRA_DB_NAME}?sslmode=disable" \
+docker run --rm \
+  --add-host "host.docker.internal:host-gateway" \
+  -e "DSN=$HYDRA_DSN" \
   "$HYDRA_IMAGE" migrate sql up -e --yes
 
 echo "==> Running Kratos migrations..."
 [ -d "$KRATOS_CONFIG_DIR" ] || { echo "Error: KRATOS_CONFIG_DIR='$KRATOS_CONFIG_DIR' not found." >&2; exit 1; }
-docker run --rm --network host \
-  -e "DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@${PG_HOST}:${PG_PORT}/${KRATOS_DB_NAME}?sslmode=disable" \
+docker run --rm \
+  --add-host "host.docker.internal:host-gateway" \
+  -e "DSN=$KRATOS_DSN" \
   -v "${KRATOS_CONFIG_DIR}:/etc/config" \
   "$KRATOS_IMAGE" migrate sql -e --yes
 

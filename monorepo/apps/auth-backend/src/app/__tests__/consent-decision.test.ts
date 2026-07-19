@@ -8,6 +8,7 @@ import { mockFetchByUrl } from "./helpers";
 
 const authzMocks = vi.hoisted(() => ({
   auditConsentEvent: vi.fn(),
+  bootstrapFirstSystemAdmin: vi.fn(),
   findConsentApproval: vi.fn(),
   getAuthzPool: vi.fn(),
   hasActiveClientAccess: vi.fn(),
@@ -93,6 +94,7 @@ async function decide(input?: {
     input?.hasApproval === false ? null : { ...approval, client_id: input?.clientId ?? "idnest-admin-client" },
   );
   authzMocks.auditConsentEvent.mockResolvedValue(undefined);
+  authzMocks.bootstrapFirstSystemAdmin.mockResolvedValue(null);
 
   return decideConsent("cc_1");
 }
@@ -102,6 +104,7 @@ beforeEach(() => {
   process.env.KRATOS_ADMIN_URL = "http://kratos-admin";
   process.env.AUTHZ_DATABASE_URL = "postgres://authz";
   delete process.env.CONSENT_GATE_MODE;
+  delete process.env.ADMIN_BOOTSTRAP_EMAILS;
 });
 
 afterEach(() => {
@@ -223,5 +226,29 @@ describe("remembered offline consent", () => {
     expect(adminDecision.observeOnly).toBe(false);
     expect(adminDecision.hasAccess).toBe(false);
     expect(adminDecision.reasons).toContain("missing_client_access_grant");
+  });
+
+  it("bootstraps the first allowlisted administrator before enforcing admin consent", async () => {
+    process.env.ADMIN_BOOTSTRAP_EMAILS = "other@example.com, ADA@example.com";
+    authzMocks.bootstrapFirstSystemAdmin.mockResolvedValue({
+      id: "grant-1",
+      identity_id: "kratos-id-1",
+      client_id: "idnest-admin-client",
+      role: "system-admin",
+      created_at: "now",
+    });
+
+    const decision = await decide({
+      clientId: "idnest-admin-client",
+      hasAccess: true,
+      hasApproval: false,
+    });
+
+    expect(authzMocks.bootstrapFirstSystemAdmin).toHaveBeenCalledWith(pool, {
+      identityId: "kratos-id-1",
+      clientId: "idnest-admin-client",
+      grantedBy: "bootstrap-email",
+    });
+    expect(decision.hasAccess).toBe(true);
   });
 });

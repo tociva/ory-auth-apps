@@ -36,7 +36,7 @@ export default tseslint.config(
           depConstraints: [
             { sourceTag: "scope:shared", onlyDependOnLibsWithTags: ["scope:shared"] },
             { sourceTag: "scope:auth", onlyDependOnLibsWithTags: ["scope:auth", "scope:shared"] },
-            { sourceTag: "type:app", onlyDependOnLibsWithTags: ["type:types", "type:util"] },
+            { sourceTag: "type:app", onlyDependOnLibsWithTags: ["type:types", "type:util", "type:data"] },
             { sourceTag: "type:types", onlyDependOnLibsWithTags: ["type:types"] },
             { sourceTag: "*", onlyDependOnLibsWithTags: ["*"] },
           ],

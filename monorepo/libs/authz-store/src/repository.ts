@@ -156,6 +156,39 @@ export async function grantClientAccess(
   return res.rows[0];
 }
 
+/**
+ * Grant the first system administrator atomically.
+ *
+ * The advisory transaction lock prevents two simultaneous first logins from
+ * both becoming the initial administrator. Once any active system-admin grant
+ * exists for the admin client, this function returns null.
+ */
+export async function bootstrapFirstSystemAdmin(
+  db: Db,
+  input: { identityId: string; clientId: string; grantedBy?: string | null },
+): Promise<ClientAccessGrant | null> {
+  const res = await db.query<ClientAccessGrant>(
+    `WITH bootstrap_lock AS MATERIALIZED (
+       SELECT pg_advisory_xact_lock(hashtextextended($2, 0))
+     ), eligible AS (
+       SELECT 1
+       FROM bootstrap_lock
+       WHERE NOT EXISTS (
+         SELECT 1
+         FROM client_access_grants
+         WHERE client_id = $2 AND role = $3 AND revoked_at IS NULL
+       )
+     )
+     INSERT INTO client_access_grants(identity_id, client_id, role, granted_by)
+     SELECT $1, $2, $3, $4 FROM eligible
+     ON CONFLICT (identity_id, client_id) WHERE revoked_at IS NULL
+     DO UPDATE SET role = EXCLUDED.role, granted_by = EXCLUDED.granted_by
+     RETURNING id::text, identity_id, client_id, role, granted_by, created_at::text, revoked_at::text`,
+    [input.identityId, input.clientId, SYSTEM_ADMIN_ROLE, input.grantedBy ?? null],
+  );
+  return res.rows[0] ?? null;
+}
+
 export async function revokeClientAccess(
   db: Db,
   input: { identityId: string; clientId: string; revokedBy?: string | null },

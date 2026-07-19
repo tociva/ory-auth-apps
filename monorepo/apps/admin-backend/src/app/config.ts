@@ -31,6 +31,11 @@ export const getAdminOidcScope = (): string =>
   process.env.ADMIN_OIDC_SCOPE ?? "openid profile email";
 export const getAdminPublicOrigin = (): string =>
   (process.env.ADMIN_PUBLIC_ORIGIN ?? "https://admin-local.idnest.cloud").replace(/\/+$/, "");
+export const getAdminBootstrapEmails = (): string[] =>
+  (process.env.ADMIN_BOOTSTRAP_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
 export const getAdminRedirectUri = (): string =>
   process.env.ADMIN_OIDC_REDIRECT_URI ??
   `${getAdminPublicOrigin()}/api/admin/auth/callback`;

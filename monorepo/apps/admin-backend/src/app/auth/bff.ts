@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import type { Request, Response } from "express";
 import {
+  bootstrapFirstSystemAdmin,
   createAdminOAuthTransaction,
   createAdminSession,
   consumeAdminOAuthTransaction,
@@ -10,6 +11,7 @@ import {
   SYSTEM_ADMIN_ROLE,
 } from "@idnest/authz-store";
 import {
+  getAdminBootstrapEmails,
   getAdminOAuthTransactionTtlSeconds,
   getAdminOidcAudience,
   getAdminOidcAuthority,
@@ -135,17 +137,33 @@ export async function completeAdminLogin(req: Request, res: Response): Promise<v
       return;
     }
 
-    const identityResult = await loadIdentity(introspection.sub!, getKratosAdminUrl());
+    const subject = introspection.sub;
+    if (!subject) {
+      res.status(401).send("Inactive or invalid access token");
+      return;
+    }
+    const identityResult = await loadIdentity(subject, getKratosAdminUrl());
     if (!identityResult.ok) {
       res.status(identityResult.status).send(identityResult.error);
       return;
     }
 
-    const grant = await getActiveClientAccessGrant(
+    let grant = await getActiveClientAccessGrant(
       pool,
       identityResult.identity.id,
       getAdminOidcClientId(),
     );
+    if (
+      (!grant || grant.role !== SYSTEM_ADMIN_ROLE) &&
+      getAdminBootstrapEmails().includes(identityResult.email)
+    ) {
+      const bootstrappedGrant = await bootstrapFirstSystemAdmin(pool, {
+        identityId: identityResult.identity.id,
+        clientId: getAdminOidcClientId(),
+        grantedBy: "bootstrap-email",
+      });
+      grant = bootstrappedGrant ?? grant;
+    }
     if (!grant || grant.role !== SYSTEM_ADMIN_ROLE) {
       res.status(403).send("Not authorized");
       return;

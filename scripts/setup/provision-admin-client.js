@@ -1,10 +1,12 @@
-// Register/refresh the Idnest admin Hydra OAuth client.
+// Provision the Idnest Admin console's own Hydra OAuth client.
+// Product clients are created and managed through the admin UI.
 // Requires Node.js 18+ for built-in fetch.
 
 const { existsSync, readFileSync } = require("node:fs");
 const { resolve } = require("node:path");
 
-for (const envFile of [resolve(process.cwd(), ".env"), resolve(__dirname, "../../monorepo/.env")]) {
+const repoRoot = resolve(__dirname, "../..");
+for (const envFile of [resolve(repoRoot, ".env"), resolve(repoRoot, "monorepo/.env")]) {
   if (existsSync(envFile)) {
     loadEnvFile(envFile);
   }

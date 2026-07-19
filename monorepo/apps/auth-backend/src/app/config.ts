@@ -62,3 +62,9 @@ export const getConsentActionSecret = (): string =>
 
 export const getAdminOidcClientId = (): string =>
   process.env.ADMIN_OIDC_CLIENT_ID ?? "idnest-admin-client";
+
+export const getAdminBootstrapEmails = (): string[] =>
+  (process.env.ADMIN_BOOTSTRAP_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
