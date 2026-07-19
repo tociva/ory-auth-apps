@@ -5,15 +5,18 @@
 #   2. docker compose down (remove orphans)
 #   3. git pull
 #   4. pnpm build
-#   5. copy env files from ../ory.root.env and ../ory.monorepo.env
-#   6. docker compose up -d
-#   7. pm2 (re)start backends
+#   5. deploy admin frontend static files
+#   6. copy env files from ../ory.root.env and ../ory.monorepo.env
+#   7. docker compose up -d
+#   8. pm2 (re)start backends
 #
 # Usage:  ./scripts/deploy/deploy-dev.sh
 #
 set -eu
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/scripts/docker/docker-compose.yml"
+ADMIN_FRONTEND_DIST="$REPO_ROOT/monorepo/dist/apps/admin-frontend/browser"
+ADMIN_FRONTEND_ROOT="/var/www/admin-frontend-dev"
 cd "$REPO_ROOT"
 
 # 1. stop backends
@@ -31,14 +34,18 @@ cd monorepo
 pnpm build
 cd ..
 
-# 5. copy env files
+# 5. deploy admin frontend static files
+install -d -m 0755 "$ADMIN_FRONTEND_ROOT"
+rsync -a --delete "$ADMIN_FRONTEND_DIST/" "$ADMIN_FRONTEND_ROOT/"
+
+# 6. copy env files
 cp -f ../ory.root.env .env
 cp -f ../ory.monorepo.env monorepo/.env
 
-# 6. docker compose up
+# 7. docker compose up
 docker compose -f "$COMPOSE_FILE" up -d --build
 
-# 7. (re)start backends
+# 8. (re)start backends
 # Run from monorepo/ so the bundle's `dotenv/config` loads monorepo/.env
 # (KRATOS_PUBLIC_URL, AUTH_BASE_URL, ...). delete+start because pm2 restart
 # keeps the old working directory.
