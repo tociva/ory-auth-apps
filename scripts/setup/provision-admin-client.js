@@ -39,8 +39,8 @@ const CLIENT_ID = env.ADMIN_OIDC_CLIENT_ID || "idnest-admin-client";
 const CLIENT_NAME = env.ADMIN_AUTH_CLIENT_NAME || "Idnest Admin Console";
 const CLIENT_AUDIENCE = env.ADMIN_OIDC_AUDIENCE || "idnest-admin";
 const CLIENT_SECRET = env.ADMIN_OIDC_CLIENT_SECRET;
-const DEFAULT_ADMIN_ORIGIN = "https://admin-local.idnest.cloud";
-const DEFAULT_AUTH_ORIGIN = "https://auth-local.idnest.cloud";
+const DEFAULT_ADMIN_ORIGIN = "https://admin-dev.idnest.cloud";
+const DEFAULT_AUTH_ORIGIN = "https://auth-dev.idnest.cloud";
 
 function csv(value, fallback) {
   const values = String(value || "")
