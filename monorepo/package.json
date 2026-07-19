@@ -11,7 +11,7 @@
     "auth-backend:serve": "nx serve auth-backend",
     "admin-backend:serve": "nx serve admin-backend",
     "admin-frontend:serve": "nx serve admin-frontend",
-    "authz:migrate": "tsx ../scripts/authz/authz-migrate.ts"
+    "authz:migrate": "tsx scripts/authz/authz-migrate.ts"
   },
   "dependencies": {
     "@angular/common": "^21.2.0",

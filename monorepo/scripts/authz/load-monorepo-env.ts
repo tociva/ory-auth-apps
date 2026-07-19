@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 function parseEnvValue(raw: string): string {
   const value = raw.trim();
   if (value.length >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
-    return value.slice(1, -1).replace(/\\n/g, "\n").replace(/\\"/g, "\"").replace(/\\\\/g, "\\");
+    return value.slice(1, -1).replace(/\\n/g, "\n").replace(/\\\"/g, "\"").replace(/\\\\/g, "\\");
   }
   if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) {
     return value.slice(1, -1);
@@ -15,7 +15,7 @@ function parseEnvValue(raw: string): string {
 
 export function loadMonorepoEnv(): void {
   const scriptDir = dirname(fileURLToPath(import.meta.url));
-  const envPath = resolve(scriptDir, "../../monorepo/.env");
+  const envPath = resolve(scriptDir, "../../.env");
   if (!existsSync(envPath)) return;
 
   for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
