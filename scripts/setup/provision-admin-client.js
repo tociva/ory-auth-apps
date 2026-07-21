@@ -98,11 +98,11 @@ async function deleteHydraClient() {
   });
 
   if (res.ok) {
-    console.log(`Client "${CLIENT_ID}" deleted.`);
+    .log(`Client "${CLIENT_ID}" deleted.`);
     return;
   }
   if (res.status === 404) {
-    console.log(`Client "${CLIENT_ID}" does not exist.`);
+    .log(`Client "${CLIENT_ID}" does not exist.`);
     return;
   }
 
@@ -121,17 +121,17 @@ async function createHydraClient() {
   }
 
   const created = await response.json();
-  console.log(`Client "${created.client_id || CLIENT_ID}" created.`);
+  .log(`Client "${created.client_id || CLIENT_ID}" created.`);
 }
 
 (async () => {
   if (!CLIENT_SECRET) {
     throw new Error("ADMIN_OIDC_CLIENT_SECRET is required to register the confidential admin client.");
   }
-  console.log(`Registering admin Hydra client "${CLIENT_ID}" against ${ADMIN_CLIENTS_BASE}`);
+  .log(`Registering admin Hydra client "${CLIENT_ID}" against ${ADMIN_CLIENTS_BASE}`);
   await deleteHydraClient();
   await createHydraClient();
 })().catch((err) => {
-  console.error(err);
+  .error(err);
   process.exit(1);
 });
