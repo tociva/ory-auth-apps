@@ -7,11 +7,22 @@ import { ProgressService } from "./progress/progress.service";
 import type {
   AdminIdentity,
   AdminMe,
+  AuthBrandRecord,
+  AuthConfigurationVersion,
   ClientAccessGrant,
   ClientFormValue,
   HydraClient,
   KratosSession,
+  LoginPolicyRecord,
+  OAuthClientAuthConfigRecord,
 } from "./admin-types";
+import type {
+  AuthBrandDefinition,
+  AuthBrandStatus,
+  AuthClientConfigStatus,
+  ConsentMode,
+  LoginPolicyDefinition,
+} from "@idnest/shared-types";
 
 /** Client for admin-backend. BFF auth uses an HttpOnly session cookie + CSRF. */
 @Injectable({ providedIn: "root" })
@@ -64,6 +75,15 @@ export class AdminApiService {
       const headers = await this.unsafeHeaders();
       return firstValueFrom(
         this.http.put<T>(`${this.base()}${path}`, body, { headers, withCredentials: true }),
+      );
+    });
+  }
+
+  private async patch<T>(path: string, body: unknown): Promise<T> {
+    return this.withProgress(async () => {
+      const headers = await this.unsafeHeaders();
+      return firstValueFrom(
+        this.http.patch<T>(`${this.base()}${path}`, body, { headers, withCredentials: true }),
       );
     });
   }
@@ -167,6 +187,114 @@ export class AdminApiService {
 
   listClientIdentityAccess(clientId: string): Promise<ClientAccessGrant[]> {
     return this.get<ClientAccessGrant[]>(`/clients/${encodeURIComponent(clientId)}/identities`);
+  }
+
+  // --- Authentication configuration ---
+  listAuthBrands(): Promise<AuthBrandRecord[]> {
+    return this.get<AuthBrandRecord[]>("/auth-brands");
+  }
+
+  listAuthBrandHistory(
+    id: string,
+  ): Promise<AuthConfigurationVersion<AuthBrandDefinition>[]> {
+    return this.get(`/auth-brands/${encodeURIComponent(id)}/history`);
+  }
+
+  createAuthBrand(
+    status: AuthBrandStatus,
+    definition: AuthBrandDefinition,
+    reason?: string,
+  ): Promise<AuthBrandRecord> {
+    return this.post<AuthBrandRecord>("/auth-brands", { status, definition, reason });
+  }
+
+  updateAuthBrand(
+    id: string,
+    expectedVersion: number,
+    status: AuthBrandStatus,
+    definition: AuthBrandDefinition,
+    reason?: string,
+  ): Promise<AuthBrandRecord> {
+    return this.patch<AuthBrandRecord>(`/auth-brands/${encodeURIComponent(id)}`, {
+      expectedVersion,
+      status,
+      definition,
+      reason,
+    });
+  }
+
+  archiveAuthBrand(id: string): Promise<{ archived: boolean; id: string }> {
+    return this.delete(`/auth-brands/${encodeURIComponent(id)}`);
+  }
+
+  listLoginPolicies(): Promise<LoginPolicyRecord[]> {
+    return this.get<LoginPolicyRecord[]>("/login-policies");
+  }
+
+  listLoginPolicyHistory(
+    id: string,
+  ): Promise<AuthConfigurationVersion<LoginPolicyDefinition>[]> {
+    return this.get(`/login-policies/${encodeURIComponent(id)}/history`);
+  }
+
+  createLoginPolicy(
+    status: AuthBrandStatus,
+    definition: LoginPolicyDefinition,
+    reason?: string,
+  ): Promise<LoginPolicyRecord> {
+    return this.post<LoginPolicyRecord>("/login-policies", { status, definition, reason });
+  }
+
+  updateLoginPolicy(
+    id: string,
+    expectedVersion: number,
+    status: AuthBrandStatus,
+    definition: LoginPolicyDefinition,
+    reason?: string,
+  ): Promise<LoginPolicyRecord> {
+    return this.patch<LoginPolicyRecord>(`/login-policies/${encodeURIComponent(id)}`, {
+      expectedVersion,
+      status,
+      definition,
+      reason,
+    });
+  }
+
+  archiveLoginPolicy(id: string): Promise<{ archived: boolean; id: string }> {
+    return this.delete(`/login-policies/${encodeURIComponent(id)}`);
+  }
+
+  listClientAuthConfigs(): Promise<OAuthClientAuthConfigRecord[]> {
+    return this.get<OAuthClientAuthConfigRecord[]>("/client-auth-configs");
+  }
+
+  listClientAuthConfigHistory(
+    clientId: string,
+  ): Promise<AuthConfigurationVersion<Record<string, unknown>>[]> {
+    return this.get(`/client-auth-configs/${encodeURIComponent(clientId)}/history`);
+  }
+
+  saveClientAuthConfig(
+    clientId: string,
+    value: {
+      brandId: string;
+      loginPolicyId: string;
+      status: AuthClientConfigStatus;
+      isFirstParty: boolean;
+      consentMode: ConsentMode;
+      reason?: string;
+    },
+  ): Promise<OAuthClientAuthConfigRecord> {
+    return this.put(
+      `/client-auth-configs/${encodeURIComponent(clientId)}`,
+      value,
+    );
+  }
+
+  archiveClientAuthConfig(
+    clientId: string,
+  ): Promise<{ archived: boolean; clientId: string }> {
+    return this.delete(`/client-auth-configs/${encodeURIComponent(clientId)}`);
   }
 }
 

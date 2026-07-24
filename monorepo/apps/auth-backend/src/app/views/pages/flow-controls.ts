@@ -13,6 +13,26 @@ export interface FlowSubmitButton {
   disabled: boolean;
 }
 
+export type FactorSettingsNode =
+  | { kind: "text"; text: string; messageType?: string }
+  | { kind: "img"; src: string; alt: string }
+  | {
+      kind: "input";
+      name: string;
+      value: string;
+      inputType: string;
+      label: string;
+      required: boolean;
+      disabled: boolean;
+    }
+  | {
+      kind: "submit";
+      name: string;
+      value: string;
+      label: string;
+      disabled: boolean;
+    };
+
 function stringValue(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
@@ -60,4 +80,61 @@ export function oidcSubmitButtonsFromFlow(
       };
     })
     .filter((button): button is FlowSubmitButton => button !== null);
+}
+
+/** TOTP / lookup-secret nodes from a Kratos settings flow for enrollment UI. */
+export function factorSettingsNodesFromFlow(flow: Pick<KratosFlow, "ui">): FactorSettingsNode[] {
+  const nodes: FactorSettingsNode[] = [];
+  for (const node of flow.ui.nodes) {
+    if (node.group !== "totp" && node.group !== "lookup_secret") continue;
+
+    if (node.type === "text") {
+      const text = node.meta?.label?.text || node.attributes.value;
+      if (typeof text === "string" && text.trim()) {
+        nodes.push({ kind: "text", text, messageType: node.messages?.[0]?.type });
+      }
+      continue;
+    }
+
+    if (node.type === "img") {
+      const src = typeof node.attributes.src === "string" ? node.attributes.src : "";
+      if (!src) continue;
+      const alt =
+        (typeof node.meta?.label?.text === "string" && node.meta.label.text) ||
+        "Authenticator QR code";
+      nodes.push({ kind: "img", src, alt });
+      continue;
+    }
+
+    if (node.type !== "input") continue;
+    const name = node.attributes.name;
+    if (typeof name !== "string" || !name) continue;
+    const value = stringValue(node.attributes.value);
+    const label =
+      (typeof node.meta?.label?.text === "string" && node.meta.label.text) || name;
+    if (node.attributes.type === "hidden") continue;
+    if (node.attributes.type === "submit") {
+      nodes.push({
+        kind: "submit",
+        name,
+        value: value || "true",
+        label,
+        disabled: node.attributes.disabled === true,
+      });
+      continue;
+    }
+    nodes.push({
+      kind: "input",
+      name,
+      value,
+      inputType:
+        node.attributes.type === "password" || node.attributes.type === "text"
+          ? String(node.attributes.type)
+          : "text",
+      label,
+      required: node.attributes.required === true,
+      disabled: node.attributes.disabled === true,
+    });
+  }
+  return nodes;
 }

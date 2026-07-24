@@ -2,7 +2,8 @@
 
 This repository contains the Idnest authentication platform used by
 `daybook.cloud`. It combines Ory Hydra, Ory Kratos, PostgreSQL, two Express
-backends, and an Angular administration console.
+backends, a dedicated Angular authentication surface, and an Angular
+administration console.
 
 This is the authoritative setup and operations guide for the entire repository,
 including the Nx workspace under `monorepo/`.
@@ -11,7 +12,8 @@ including the Nx workspace under `monorepo/`.
 
 | Component | Local URL | Direct port | Purpose |
 | --- | --- | ---: | --- |
-| Auth backend | `https://auth-local.idnest.cloud` | `4000` | Server-rendered login, consent, logout, settings, and error pages |
+| Auth backend | `https://auth-local.idnest.cloud` | `4000` | Trusted Hydra/Kratos orchestration plus legacy rollback pages |
+| Auth frontend | `https://auth-local.idnest.cloud/auth/` | `4502` | Client-branded login, consent, and neutral error pages |
 | Hydra public | `https://hydra-local.idnest.cloud` | `4444` | OAuth 2.0 and OpenID Connect endpoints |
 | Hydra admin | Server-side only | `4445` | Privileged Hydra API |
 | Kratos public | `https://kratos-local.idnest.cloud` | `4433` | Identity self-service and session endpoints |
@@ -34,7 +36,8 @@ Repository layout:
 │   ├── docker/                # Hydra/Kratos Compose stack
 │   └── setup/                 # Shared env loader and OS setup scripts
 ├── monorepo/
-│   ├── apps/auth-backend/     # Express auth UI/backend
+│   ├── apps/auth-backend/     # Express trusted auth orchestrator
+│   ├── apps/auth-frontend/    # Angular client-branded auth UI
 │   ├── apps/admin-backend/    # Express admin BFF/API
 │   ├── apps/admin-frontend/   # Angular admin console
 │   └── libs/                  # Shared types and authorization store
@@ -341,14 +344,17 @@ Use three terminals from `monorepo/`:
 pnpm auth-backend:serve
 
 # Terminal 2
-pnpm admin-backend:serve
+pnpm auth-frontend:serve
 
 # Terminal 3
+pnpm admin-backend:serve
+
+# Terminal 4
 pnpm admin-frontend:serve
 ```
 
-The default direct ports are defined in code: auth backend `4000`, admin backend
-`4100`, and admin frontend `4501`.
+The default direct ports are auth backend `4000`, auth frontend `4502`, admin
+backend `4100`, and admin frontend `4501`.
 
 Verify the services:
 
@@ -516,10 +522,11 @@ server-side.
 ```text
 Product app
   → Hydra authorization endpoint
-  → auth-backend login page
+  → auth-backend trusted login orchestrator
+  → client-specific Angular login page
   → Kratos social login
-  → auth-backend login return
-  → Hydra consent
+  → single-use auth-backend completion
+  → branded consent (when required)
   → product callback with authorization code
 ```
 
@@ -527,23 +534,32 @@ Public browser clients must use Authorization Code + PKCE. Resource servers
 must validate issuer, signature, expiration, and audience rather than trusting
 browser state.
 
-The complete server-rendered flow is:
+The trusted flow is:
 
 1. The product sends an authorization request to Hydra with its client,
    redirect URI, scopes, audience, state, and PKCE challenge.
-2. Hydra sends a `login_challenge` to `auth-backend` at `/login`.
-3. The auth backend starts a Kratos browser login flow and renders the available
-   Google/Apple provider buttons from that flow.
-4. After social login, Kratos returns to `/login/return`. The backend resolves
-   the Kratos session, forwards the session cookie server-side, and accepts the
-   Hydra login challenge.
-5. Hydra sends a `consent_challenge` to `/consent`. The backend checks the
-   identity's client access and accepts only the requested scopes and registered
-   audiences.
-6. Hydra returns an authorization code to the product callback, where the
+2. Hydra sends a `login_challenge` to `/oauth2/login`. The backend retrieves the
+   request from Hydra's admin API and uses only its trusted `client_id`.
+3. The backend resolves the active brand, login policy, and consent mode, then
+   freezes their versions in an encrypted, expiring, single-use transaction.
+4. Kratos owns credentials and sessions. The Angular UI receives only a
+   sanitized flow and the frozen public brand/policy context.
+5. After authentication, Kratos returns an opaque transaction token to
+   `/oauth2/login/complete`. The backend re-fetches Hydra state, validates the
+   Kratos session, AAL, method, verified email, freshness, and client access,
+   then accepts or rejects the Hydra challenge exactly once.
+6. Hydra sends a `consent_challenge` to `/oauth2/consent`. The backend reuses
+   the frozen login snapshot, validates the subject and session, and either
+   auto-accepts according to policy or shows branded consent.
+7. Hydra returns an authorization code to the product callback, where the
    product exchanges it with its PKCE verifier.
-7. Logout terminates the Kratos session, relays the cookie-clearing response,
+8. Logout terminates the Kratos session, relays the cookie-clearing response,
    and then accepts Hydra's logout challenge.
+
+Authentication brands, policies, and OAuth client mappings are managed from
+the admin console's **Authentication** page. Definitions have immutable version
+history and optimistic concurrency; new transactions use the current active
+versions while in-flight transactions keep their frozen snapshots.
 
 ## 6. Build and deployment
 
@@ -561,7 +577,10 @@ Production requirements:
 - Use managed TLS certificates; `mkcert` is development-only.
 - Use persistent PostgreSQL storage with backups.
 - Keep ports `4445` and `4434` private.
+- Keep all direct Ory ports loopback-bound; nginx is the public edge.
 - Run database migrations before starting new application versions.
+- Publish `dist/apps/auth-frontend/browser` at `/var/www/auth-frontend/browser`
+  (or set `AUTH_FRONTEND_ROOT` for `deploy-dev.sh`).
 - Render `apps/admin-frontend/public/config.tpl.json` into `config.json` during
   deployment.
 - Run backend bundles from `monorepo/` so `dotenv/config` loads

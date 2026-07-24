@@ -5,9 +5,10 @@
 #   2. docker compose down (remove orphans)
 #   3. git pull
 #   4. pnpm build
-#   5. copy env files from ../ory.root.env and ../ory.monorepo.env
-#   6. docker compose up -d
-#   7. pm2 (re)start backends
+#   5. publish the auth frontend
+#   6. copy env files from ../ory.root.env and ../ory.monorepo.env
+#   7. docker compose up -d
+#   8. pm2 (re)start backends
 #
 # Usage:  ./scripts/deploy/deploy-dev.sh
 #
@@ -31,14 +32,19 @@ cd monorepo
 pnpm build
 cd ..
 
-# 5. copy env files
+# 5. publish auth frontend (override for a non-standard nginx document root)
+AUTH_FRONTEND_ROOT="${AUTH_FRONTEND_ROOT:-/var/www/auth-frontend/browser}"
+install -d "$AUTH_FRONTEND_ROOT"
+cp -R monorepo/dist/apps/auth-frontend/browser/. "$AUTH_FRONTEND_ROOT/"
+
+# 6. copy env files
 cp -f ../ory.root.env .env
 cp -f ../ory.monorepo.env monorepo/.env
 
-# 6. docker compose up
+# 7. docker compose up
 docker compose -f "$COMPOSE_FILE" up -d --build
 
-# 7. (re)start backends
+# 8. (re)start backends
 # Run from monorepo/ so the bundle's `dotenv/config` loads monorepo/.env
 # (KRATOS_PUBLIC_URL, AUTH_BASE_URL, ...). delete+start because pm2 restart
 # keeps the old working directory.

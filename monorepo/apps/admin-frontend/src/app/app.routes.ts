@@ -60,6 +60,13 @@ export const routes: Routes = [
             (m) => m.ClientDetailComponent,
           ),
       },
+      {
+        path: "authentication",
+        loadComponent: () =>
+          import("./pages/auth-configuration/auth-configuration.component").then(
+            (m) => m.AuthConfigurationComponent,
+          ),
+      },
       { path: "", pathMatch: "full", redirectTo: "identities" },
     ],
   },

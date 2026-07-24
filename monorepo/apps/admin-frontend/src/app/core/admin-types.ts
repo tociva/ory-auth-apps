@@ -1,4 +1,12 @@
-import type { KratosUser, KratosVerifiableAddress } from "@idnest/shared-types";
+import type {
+  AuthBrandDefinition,
+  AuthBrandStatus,
+  AuthClientConfigStatus,
+  ConsentMode,
+  KratosUser,
+  KratosVerifiableAddress,
+  LoginPolicyDefinition,
+} from "@idnest/shared-types";
 
 export const IDNEST_ADMIN_CLIENT_ID = "idnest-admin-client";
 
@@ -69,6 +77,48 @@ export interface ClientAccessGrant {
   role: string;
   granted_by?: string | null;
   created_at?: string;
+}
+
+export interface AuthBrandRecord {
+  id: string;
+  key: string;
+  status: AuthBrandStatus;
+  version: number;
+  definition: AuthBrandDefinition;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoginPolicyRecord {
+  id: string;
+  name: string;
+  status: AuthBrandStatus;
+  version: number;
+  definition: LoginPolicyDefinition;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OAuthClientAuthConfigRecord {
+  hydra_client_id: string;
+  brand_id: string;
+  brand_key: string;
+  login_policy_id: string;
+  login_policy_name: string;
+  status: AuthClientConfigStatus;
+  is_first_party: boolean;
+  consent_mode: ConsentMode;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuthConfigurationVersion<T> {
+  version: number;
+  value: T;
+  created_by?: string | null;
+  reason?: string | null;
+  created_at: string;
 }
 
 /** A Kratos session (subset). */

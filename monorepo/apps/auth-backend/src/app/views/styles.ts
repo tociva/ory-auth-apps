@@ -125,6 +125,44 @@ html, body {
 .btn-outline { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
 .btn-outline:hover { background: var(--brand); color: #fff; }
 
+.settings-section { display: flex; flex-direction: column; gap: 0.875rem; }
+.settings-heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+.settings-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--fg-muted);
+}
+.settings-factor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--fg-secondary);
+}
+.field input {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+.totp-qr {
+  display: block;
+  margin: 0.25rem auto;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.5rem;
+}
+
 .oidc-form {
   display: flex;
   flex-direction: column;

@@ -8,13 +8,10 @@
  * so the browser already sends those cookies to us.
  */
 import type { Request } from "express";
-import type { KratosFlow, KratosUser } from "@idnest/shared-types";
+import type { KratosFlow, KratosSession } from "@idnest/shared-types";
 import { getKratosInternalUrl, getKratosPublicUrl } from "./config";
 
-export interface KratosWhoami {
-  identity: KratosUser;
-  [k: string]: unknown;
-}
+export type KratosWhoami = KratosSession;
 
 export interface KratosLogoutInit {
   logout_token?: string;
@@ -24,8 +21,15 @@ export interface KratosLogoutInit {
 const cookieHeader = (req: Request): string => req.headers.cookie ?? "";
 
 /** Build the browser login URL Kratos should start the flow at. */
-export function browserLoginUrl(returnTo: string): string {
-  return `${getKratosPublicUrl()}/self-service/login/browser?return_to=${encodeURIComponent(returnTo)}`;
+export function browserLoginUrl(
+  returnTo: string,
+  options: { refresh?: boolean; aal?: "aal1" | "aal2"; loginChallenge?: string } = {},
+): string {
+  const params = new URLSearchParams({ return_to: returnTo });
+  if (options.refresh) params.set("refresh", "true");
+  if (options.aal) params.set("aal", options.aal);
+  if (options.loginChallenge) params.set("login_challenge", options.loginChallenge);
+  return `${getKratosPublicUrl()}/self-service/login/browser?${params.toString()}`;
 }
 
 /** Build the browser settings URL Kratos should start the flow at. */

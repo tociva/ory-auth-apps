@@ -26,6 +26,30 @@ export interface HydraClientMetadata {
   [key: string]: unknown;
 }
 
+export interface HydraOpenIdConnectContext {
+  acr_values?: string[];
+  display?: string;
+  id_token_hint_claims?: Record<string, unknown>;
+  login_hint?: string;
+  max_age?: number;
+  prompt?: string[];
+  ui_locales?: string[];
+  [key: string]: unknown;
+}
+
+export interface HydraLoginRequest {
+  challenge: string;
+  client: HydraClient;
+  oidc_context?: HydraOpenIdConnectContext;
+  request_url?: string;
+  requested_access_token_audience?: string[];
+  requested_scope?: string[];
+  session_id?: string;
+  skip: boolean;
+  subject?: string;
+  [key: string]: unknown;
+}
+
 export interface HydraConsentRequest {
   challenge: string;
   client: HydraClient;
@@ -33,6 +57,13 @@ export interface HydraConsentRequest {
   requested_access_token_audience: string[];
   skip: boolean;
   subject: string;
+  acr?: string;
+  amr?: string[];
+  context?: Record<string, unknown>;
+  login_challenge?: string;
+  login_session_id?: string;
+  oidc_context?: HydraOpenIdConnectContext;
+  request_url?: string;
   [key: string]: unknown;
 }
 
@@ -58,9 +89,26 @@ function isStringArray(value: unknown): value is string[] {
  */
 export function isHydraConsentRequest(value: unknown): value is HydraConsentRequest {
   if (!isRecord(value)) return false;
+  if (!isRecord(value.client) || typeof value.client.client_id !== "string") return false;
   if (typeof value.subject !== "string") return false;
   if (!isStringArray(value.requested_scope)) return false;
   if (!isStringArray(value.requested_access_token_audience)) return false;
+  return true;
+}
+
+export function isHydraLoginRequest(value: unknown): value is HydraLoginRequest {
+  if (!isRecord(value)) return false;
+  if (!isRecord(value.client) || typeof value.client.client_id !== "string") return false;
+  if (typeof value.skip !== "boolean") return false;
+  if (value.challenge !== undefined && typeof value.challenge !== "string") return false;
+  if (value.subject !== undefined && typeof value.subject !== "string") return false;
+  if (value.requested_scope !== undefined && !isStringArray(value.requested_scope)) return false;
+  if (
+    value.requested_access_token_audience !== undefined &&
+    !isStringArray(value.requested_access_token_audience)
+  ) {
+    return false;
+  }
   return true;
 }
 

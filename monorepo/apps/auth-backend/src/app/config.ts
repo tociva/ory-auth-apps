@@ -52,13 +52,48 @@ export const getCorsOrigins = (): string[] =>
 
 export const getAuthzDatabaseUrl = (): string => process.env.AUTHZ_DATABASE_URL ?? "";
 
+export type AuthBrandingMode = "off" | "observe" | "enforce";
+
+export const getAuthBrandingMode = (): AuthBrandingMode => {
+  const mode = process.env.AUTH_BRANDING_MODE;
+  return mode === "off" || mode === "observe" ? mode : "enforce";
+};
+
+export const getAuthTransactionTtlSeconds = (): number =>
+  positiveInt(process.env.AUTH_TRANSACTION_TTL_SECONDS, 10 * 60);
+
+export const getAuthTransactionEncryptionSecret = (): string =>
+  requiredProductionSecret(
+    process.env.AUTH_TRANSACTION_SECRET ??
+      process.env.AUTH_TRANSACTION_ENCRYPTION_SECRET ??
+      process.env.CONSENT_ACTION_SECRET ??
+      process.env.KRATOS_CSRF_COOKIE_SECRET ??
+      "development-only-auth-transaction-secret",
+    "AUTH_TRANSACTION_SECRET",
+  );
+
+export const getAuthAuditHashSecret = (): string =>
+  process.env.AUTH_AUDIT_HASH_SECRET ?? getAuthTransactionEncryptionSecret();
+
+export const getStrictUnmappedClients = (): boolean =>
+  process.env.AUTH_STRICT_UNMAPPED_CLIENTS === "true" ||
+  process.env.AUTH_UNMAPPED_CLIENT_MODE === "reject";
+
+export const getAuthUiBasePath = (): string =>
+  (process.env.AUTH_UI_BASE_PATH ?? "/auth").replace(/\/+$/, "");
+
 export type ConsentGateMode = "observe" | "enforce";
 
 export const getConsentGateMode = (): ConsentGateMode =>
   process.env.CONSENT_GATE_MODE === "observe" ? "observe" : "enforce";
 
 export const getConsentActionSecret = (): string =>
-  process.env.CONSENT_ACTION_SECRET ?? process.env.KRATOS_CSRF_COOKIE_SECRET ?? "dev-consent-action-secret";
+  requiredProductionSecret(
+    process.env.CONSENT_ACTION_SECRET ??
+      process.env.KRATOS_CSRF_COOKIE_SECRET ??
+      "dev-consent-action-secret",
+    "CONSENT_ACTION_SECRET",
+  );
 
 export const getAdminOidcClientId = (): string =>
   process.env.ADMIN_OIDC_CLIENT_ID ?? "idnest-admin-client";
@@ -68,3 +103,26 @@ export const getAdminBootstrapEmails = (): string[] =>
     .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
+
+export function validateAuthRuntimeConfiguration(): void {
+  if (process.env.NODE_ENV !== "production") return;
+  getAuthTransactionEncryptionSecret();
+  getConsentActionSecret();
+  if (getAuthBrandingMode() !== "off" && !getAuthzDatabaseUrl()) {
+    throw new Error("AUTHZ_DATABASE_URL is required when trusted authentication is enabled");
+  }
+  if (!getHydraAdminUrl()) throw new Error("HYDRA_ADMIN_URL is required");
+  if (!getKratosAdminUrl()) throw new Error("KRATOS_ADMIN_URL is required");
+}
+
+function positiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function requiredProductionSecret(value: string, name: string): string {
+  if (process.env.NODE_ENV === "production" && value.length < 32) {
+    throw new Error(`${name} must be configured with at least 32 characters`);
+  }
+  return value;
+}

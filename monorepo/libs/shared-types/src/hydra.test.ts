@@ -22,6 +22,8 @@ describe("isHydraConsentRequest", () => {
   it("rejects malformed payloads", () => {
     expect(isHydraConsentRequest(null)).toBe(false);
     expect(isHydraConsentRequest({})).toBe(false);
+    expect(isHydraConsentRequest({ ...consentRequest, client: undefined })).toBe(false);
+    expect(isHydraConsentRequest({ ...consentRequest, client: { client_id: 42 } })).toBe(false);
     expect(isHydraConsentRequest({ ...consentRequest, subject: 1 })).toBe(false);
     expect(
       isHydraConsentRequest({ ...consentRequest, requested_scope: "openid" }),

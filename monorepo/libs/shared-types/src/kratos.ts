@@ -38,14 +38,24 @@ export interface KratosUiNodeAttributes {
   value?: unknown;
   type?: string;
   disabled?: boolean;
+  required?: boolean;
+  autocomplete?: string;
+  href?: string;
+  id?: string;
+  node_type?: string;
+  [key: string]: unknown;
+}
+
+export interface KratosUiText {
+  id?: number;
+  text: string;
+  type?: "info" | "error" | "success";
+  context?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
 export interface KratosUiNodeMeta {
-  label?: {
-    text?: string;
-    [key: string]: unknown;
-  };
+  label?: KratosUiText;
   [key: string]: unknown;
 }
 
@@ -54,6 +64,7 @@ export interface KratosUiNode {
   group: string;
   attributes: KratosUiNodeAttributes;
   meta?: KratosUiNodeMeta;
+  messages?: KratosUiText[];
   [key: string]: unknown;
 }
 
@@ -64,8 +75,33 @@ export interface KratosFlow {
     action: string;
     method: string;
     nodes: KratosUiNode[];
+    messages?: KratosUiText[];
     [key: string]: unknown;
   };
+  expires_at?: string;
+  issued_at?: string;
+  request_url?: string;
+  return_to?: string;
+  state?: string;
+  [key: string]: unknown;
+}
+
+export interface KratosAuthenticationMethod {
+  method: string;
+  aal: string;
+  completed_at: string;
+  provider?: string;
+  organization?: string;
+}
+
+export interface KratosSession {
+  id: string;
+  active: boolean;
+  expires_at?: string;
+  authenticated_at?: string;
+  authenticator_assurance_level?: string;
+  authentication_methods?: KratosAuthenticationMethod[];
+  identity: KratosUser;
   [key: string]: unknown;
 }
 
@@ -99,9 +135,13 @@ export function isKratosUser(value: unknown): value is KratosUser {
 export function hasVerifiedEmailAddress(user: KratosUser): boolean {
   const email = user.traits.email;
   if (typeof email !== "string" || email.length === 0) return false;
+  const normalizedEmail = email.trim().toLowerCase();
 
   return (user.verifiable_addresses ?? []).some(
-    (address) => address.via === "email" && address.value === email && address.verified === true,
+    (address) =>
+      address.via === "email" &&
+      address.value?.trim().toLowerCase() === normalizedEmail &&
+      address.verified === true,
   );
 }
 

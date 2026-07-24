@@ -25,14 +25,15 @@ serve:
     base_url: ${KRATOS_ADMIN_URL}
 
 cookies:
-  same_site: None
+  same_site: Lax
   domain: ${KRATOS_COOKIES_DOMAIN}
 
 selfservice:
-  # auth pages are server-rendered by auth-backend; after login Kratos returns
-  # the browser to /login/return, which accepts the Hydra login challenge.
-  default_browser_return_url: ${AUTH_URL}/login/return
+  # OAuth transactions provide the opaque transaction callback explicitly.
+  # Non-orchestrated browser flows fall back to a safe error surface.
+  default_browser_return_url: ${AUTH_URL}/auth/error
   allowed_return_urls:
+    - ${AUTH_URL}/oauth2/login/complete
     - ${AUTH_URL}/login/return
     - ${AUTH_URL}/settings
     - ${AUTH_URL}/settings/return
@@ -84,7 +85,7 @@ selfservice:
 
   flows:
     error:
-      ui_url: ${AUTH_URL}/error
+      ui_url: ${AUTH_URL}/auth/error
 
     settings:
       ui_url: ${AUTH_URL}/settings
@@ -111,7 +112,7 @@ selfservice:
         default_browser_return_url: ${KRATOS_URLS_LOGOUT}
 
     login:
-      ui_url: ${AUTH_URL}/login
+      ui_url: ${AUTH_URL}/auth/login
       lifespan: 10m
 
     registration:
@@ -142,7 +143,7 @@ ciphers:
 hashers:
   algorithm: bcrypt
   bcrypt:
-    cost: 8
+    cost: 12
 
 identity:
   default_schema_id: default

@@ -1,0 +1,403 @@
+<div class="page-heading">
+  <div>
+    <h1 class="page-title">Authentication Configuration</h1>
+    <p class="muted">Versioned client branding, login policy, and consent behavior.</p>
+  </div>
+  <button class="secondary-button" type="button" [disabled]="loading" (click)="reload()">
+    Reload
+  </button>
+</div>
+
+@if (error) {
+  <div class="alert alert-error">{{ error }}</div>
+}
+
+@if (loading) {
+  <div class="loading-panel" role="status">Loading authentication configuration…</div>
+} @else {
+  <section class="config-section">
+    <div class="section-heading">
+      <div>
+        <h2>Brands</h2>
+        <p>Visual identity and copy shown throughout the authentication journey.</p>
+      </div>
+      <button class="secondary-button" type="button" (click)="selectBrand()">New brand</button>
+    </div>
+
+    <div class="record-list">
+      @for (record of brands; track record.id) {
+        <button
+          type="button"
+          class="record-card"
+          [class.selected]="record.id === brandId"
+          (click)="selectBrand(record)"
+        >
+          <span class="color-dot" [style.background]="record.definition.primaryColor"></span>
+          <span>
+            <strong>{{ record.definition.productName }}</strong>
+            <small>
+              {{ record.key }} · v{{ record.version }} · {{ clientsUsingBrand(record.id) }} clients
+            </small>
+          </span>
+          <span class="status" [attr.data-status]="record.status">{{ record.status }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="editor">
+      <div class="editor-heading">
+        <h3>{{ brandId ? "Edit brand" : "Create brand" }}</h3>
+        @if (brandId) {
+          <div class="row-actions">
+            <button class="secondary-button compact" type="button" (click)="duplicateSelectedBrand()">
+              Duplicate
+            </button>
+            <button class="danger-link" type="button" (click)="archiveSelectedBrand()">
+              Archive
+            </button>
+          </div>
+        }
+      </div>
+
+      <div
+        class="brand-preview"
+        [style.--preview-primary]="brand.primaryColor"
+        [style.--preview-surface]="brand.surfaceColor"
+        [style.--preview-text]="brand.textColor"
+        [style.--preview-radius]="brand.borderRadius"
+      >
+        <span class="preview-badge">Preview only</span>
+        <div class="preview-mark">{{ brand.productName.charAt(0) || "I" }}</div>
+        <strong>{{ brand.loginHeading || "Sign in to continue" }}</strong>
+        <small>{{ brand.loginDescription || "Use your identity to continue." }}</small>
+        <span class="preview-button">Continue with identity provider</span>
+      </div>
+      <div class="form-grid">
+        <label>
+          <span>Key</span>
+          <input [(ngModel)]="brand.key" [disabled]="brandId !== null" placeholder="example-product" />
+        </label>
+        <label>
+          <span>Status</span>
+          <select [(ngModel)]="brandStatus">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </label>
+        <label>
+          <span>Product name</span>
+          <input [(ngModel)]="brand.productName" />
+        </label>
+        <label>
+          <span>Display name</span>
+          <input [(ngModel)]="brand.displayName" />
+        </label>
+        <label>
+          <span>Legal name</span>
+          <input [(ngModel)]="brand.legalName" />
+        </label>
+        <label>
+          <span>Default locale</span>
+          <input [(ngModel)]="brand.defaultLocale" />
+        </label>
+        <label class="wide">
+          <span>Login heading</span>
+          <input [(ngModel)]="brand.loginHeading" />
+        </label>
+        <label class="wide">
+          <span>Login description</span>
+          <input [(ngModel)]="brand.loginDescription" />
+        </label>
+        <label>
+          <span>Registration heading</span>
+          <input [(ngModel)]="brand.registrationHeading" />
+        </label>
+        <label>
+          <span>Recovery heading</span>
+          <input [(ngModel)]="brand.recoveryHeading" />
+        </label>
+        <label class="wide">
+          <span>Consent heading</span>
+          <input [(ngModel)]="brand.consentHeading" />
+        </label>
+      </div>
+
+      <h4>Appearance</h4>
+      <div class="color-grid">
+        <label><span>Primary</span><input type="color" [(ngModel)]="brand.primaryColor" /></label>
+        <label><span>Secondary</span><input type="color" [(ngModel)]="brand.secondaryColor" /></label>
+        <label><span>Surface</span><input type="color" [(ngModel)]="brand.surfaceColor" /></label>
+        <label><span>Text</span><input type="color" [(ngModel)]="brand.textColor" /></label>
+        <label><span>Muted</span><input type="color" [(ngModel)]="brand.mutedTextColor" /></label>
+        <label><span>Error</span><input type="color" [(ngModel)]="brand.errorColor" /></label>
+      </div>
+      <div class="form-grid">
+        <label>
+          <span>Border radius</span>
+          <input [(ngModel)]="brand.borderRadius" placeholder="16px" />
+        </label>
+        <label>
+          <span>Font family</span>
+          <select [(ngModel)]="brand.fontFamily">
+            <option value="system">System</option>
+            <option value="roboto">Roboto</option>
+          </select>
+        </label>
+      </div>
+
+      <h4>Assets and legal links</h4>
+      <div class="form-grid">
+        <label><span>Light logo URL</span><input [(ngModel)]="brand.logoLightUrl" /></label>
+        <label><span>Dark logo URL</span><input [(ngModel)]="brand.logoDarkUrl" /></label>
+        <label><span>Compact logo URL</span><input [(ngModel)]="brand.logoCompactUrl" /></label>
+        <label><span>Favicon URL</span><input [(ngModel)]="brand.faviconUrl" /></label>
+        <label><span>Background URL</span><input [(ngModel)]="brand.backgroundImageUrl" /></label>
+        <label><span>Illustration URL</span><input [(ngModel)]="brand.illustrationUrl" /></label>
+        <label><span>Support URL</span><input [(ngModel)]="brand.supportUrl" /></label>
+        <label><span>Privacy URL</span><input [(ngModel)]="brand.privacyUrl" /></label>
+        <label><span>Terms URL</span><input [(ngModel)]="brand.termsUrl" /></label>
+        <label><span>Copyright</span><input [(ngModel)]="brand.copyrightText" /></label>
+      </div>
+      <div class="editor-actions">
+        <button class="primary-button" type="button" [disabled]="saving" (click)="saveBrand()">
+          {{ saving ? "Saving…" : "Save brand" }}
+        </button>
+      </div>
+      @if (brandHistory.length) {
+        <details class="history">
+          <summary>Change history ({{ brandHistory.length }})</summary>
+          @for (version of brandHistory; track version.version) {
+            <div class="history-entry">
+              <strong>Version {{ version.version }}</strong>
+              <span>{{ version.reason || "No reason supplied" }}</span>
+              <small>{{ version.created_by || "system" }} · {{ version.created_at }}</small>
+            </div>
+          }
+        </details>
+      }
+    </div>
+  </section>
+
+  <section class="config-section">
+    <div class="section-heading">
+      <div>
+        <h2>Login policies</h2>
+        <p>Allowed methods, identity gates, session freshness, and registration behavior.</p>
+      </div>
+      <button class="secondary-button" type="button" (click)="selectPolicy()">New policy</button>
+    </div>
+
+    <div class="record-list">
+      @for (record of policies; track record.id) {
+        <button
+          type="button"
+          class="record-card"
+          [class.selected]="record.id === policyId"
+          (click)="selectPolicy(record)"
+        >
+          <span class="policy-icon" aria-hidden="true">P</span>
+          <span>
+            <strong>{{ record.definition.name }}</strong>
+            <small>{{ record.definition.minimumAal }} · v{{ record.version }}</small>
+          </span>
+          <span class="status" [attr.data-status]="record.status">{{ record.status }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="editor">
+      <div class="editor-heading">
+        <h3>{{ policyId ? "Edit policy" : "Create policy" }}</h3>
+        @if (policyId) {
+          <div class="row-actions">
+            <button class="secondary-button compact" type="button" (click)="duplicateSelectedPolicy()">
+              Duplicate
+            </button>
+            <button class="danger-link" type="button" (click)="archiveSelectedPolicy()">
+              Archive
+            </button>
+          </div>
+        }
+      </div>
+      <div class="form-grid">
+        <label>
+          <span>Name</span>
+          <input [(ngModel)]="policy.name" [disabled]="policyId !== null" />
+        </label>
+        <label>
+          <span>Status</span>
+          <select [(ngModel)]="policyStatus">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </label>
+        <label>
+          <span>Minimum AAL</span>
+          <select [(ngModel)]="policy.minimumAal">
+            <option value="aal1">AAL1</option>
+            <option value="aal2">AAL2</option>
+          </select>
+        </label>
+        <label>
+          <span>Session maximum age (seconds)</span>
+          <input type="number" min="60" max="2592000" [(ngModel)]="policy.sessionMaximumAgeSeconds" />
+        </label>
+        <label>
+          <span>Registration</span>
+          <select [(ngModel)]="policy.registrationMode">
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+            <option value="invitation-only">Invitation only</option>
+          </select>
+        </label>
+        <label>
+          <span>Client access</span>
+          <select [(ngModel)]="policy.accessMode">
+            <option value="open">Open</option>
+            <option value="grant-required">Grant required</option>
+          </select>
+        </label>
+        <label class="wide">
+          <span>OIDC providers (one per line)</span>
+          <textarea rows="3" [(ngModel)]="policy.providersText"></textarea>
+        </label>
+        <label>
+          <span>Allowed domains</span>
+          <textarea rows="4" [(ngModel)]="policy.domainsText"></textarea>
+        </label>
+        <label>
+          <span>Allowed emails</span>
+          <textarea rows="4" [(ngModel)]="policy.emailsText"></textarea>
+        </label>
+      </div>
+      <div class="check-grid">
+        <label><input type="checkbox" [(ngModel)]="policy.passwordEnabled" /> Password</label>
+        <label><input type="checkbox" [(ngModel)]="policy.passkeyEnabled" /> Passkey</label>
+        <label><input type="checkbox" [(ngModel)]="policy.totpEnabled" /> TOTP</label>
+        <label><input type="checkbox" [(ngModel)]="policy.requireVerifiedEmail" /> Verified email</label>
+        <label>
+          <input type="checkbox" [(ngModel)]="policy.forceReauthentication" /> Force reauthentication
+        </label>
+      </div>
+      <div class="editor-actions">
+        <button class="primary-button" type="button" [disabled]="saving" (click)="savePolicy()">
+          {{ saving ? "Saving…" : "Save policy" }}
+        </button>
+      </div>
+      @if (policyHistory.length) {
+        <details class="history">
+          <summary>Change history ({{ policyHistory.length }})</summary>
+          @for (version of policyHistory; track version.version) {
+            <div class="history-entry">
+              <strong>Version {{ version.version }}</strong>
+              <span>{{ version.reason || "No reason supplied" }}</span>
+              <small>{{ version.created_by || "system" }} · {{ version.created_at }}</small>
+            </div>
+          }
+        </details>
+      }
+    </div>
+  </section>
+
+  <section class="config-section">
+    <div class="section-heading">
+      <div>
+        <h2>Client mappings</h2>
+        <p>Freeze the selected brand and policy on every new OAuth transaction.</p>
+      </div>
+      <label class="mapping-search">
+        <span class="sr-only">Search client mappings</span>
+        <input [(ngModel)]="mappingSearch" type="search" placeholder="Search OAuth clients" />
+      </label>
+    </div>
+
+    <div class="mapping-table">
+      <div class="mapping-row mapping-header" aria-hidden="true">
+        <span>OAuth client</span><span>Brand</span><span>Policy</span><span>Consent</span
+        ><span>Flags</span><span></span>
+      </div>
+      @for (mapping of visibleMappings(); track mapping.clientId) {
+        <div class="mapping-row">
+          <strong>{{ mapping.clientId }}</strong>
+          <select [(ngModel)]="mapping.brandId" [attr.aria-label]="'Brand for ' + mapping.clientId">
+            @for (brandOption of brands; track brandOption.id) {
+              <option [value]="brandOption.id">{{ brandOption.definition.productName }}</option>
+            }
+          </select>
+          <select
+            [(ngModel)]="mapping.loginPolicyId"
+            [attr.aria-label]="'Policy for ' + mapping.clientId"
+          >
+            @for (policyOption of policies; track policyOption.id) {
+              <option [value]="policyOption.id">{{ policyOption.definition.name }}</option>
+            }
+          </select>
+          <select [(ngModel)]="mapping.consentMode" aria-label="Consent mode">
+            <option value="always-show">Always show</option>
+            <option value="skip-for-first-party">Skip first party</option>
+            <option value="follow-hydra">Follow Hydra</option>
+          </select>
+          <div class="mapping-flags">
+            <select [(ngModel)]="mapping.status" aria-label="Mapping status">
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+            </select>
+            <label>
+              <input type="checkbox" [(ngModel)]="mapping.isFirstParty" /> First party
+            </label>
+          </div>
+          <div class="row-actions">
+            <button class="primary-button compact" type="button" (click)="saveMapping(mapping)">
+              Save
+            </button>
+            <button class="danger-link" type="button" (click)="archiveMapping(mapping)">
+              Remove
+            </button>
+            <details class="mapping-history" (toggle)="loadMappingHistory(mapping.clientId)">
+              <summary>History</summary>
+              @for (
+                version of mappingHistory[mapping.clientId] || [];
+                track version.version
+              ) {
+                <small>v{{ version.version }} · {{ version.reason || "Updated" }}</small>
+              }
+            </details>
+          </div>
+        </div>
+      }
+
+      @if (unmappedClients().length) {
+        <div class="mapping-row new-row">
+          <select [(ngModel)]="newMapping.clientId" aria-label="OAuth client">
+            @for (client of unmappedClients(); track client.client_id) {
+              <option [value]="client.client_id">{{ client.client_name || client.client_id }}</option>
+            }
+          </select>
+          <select [(ngModel)]="newMapping.brandId" aria-label="Brand">
+            @for (brandOption of brands; track brandOption.id) {
+              <option [value]="brandOption.id">{{ brandOption.definition.productName }}</option>
+            }
+          </select>
+          <select [(ngModel)]="newMapping.loginPolicyId" aria-label="Policy">
+            @for (policyOption of policies; track policyOption.id) {
+              <option [value]="policyOption.id">{{ policyOption.definition.name }}</option>
+            }
+          </select>
+          <select [(ngModel)]="newMapping.consentMode" aria-label="Consent mode">
+            <option value="always-show">Always show</option>
+            <option value="skip-for-first-party">Skip first party</option>
+            <option value="follow-hydra">Follow Hydra</option>
+          </select>
+          <label class="first-party">
+            <input type="checkbox" [(ngModel)]="newMapping.isFirstParty" /> First party
+          </label>
+          <button class="primary-button compact" type="button" (click)="addMapping()">
+            Add mapping
+          </button>
+        </div>
+      }
+    </div>
+  </section>
+}
