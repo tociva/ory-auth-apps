@@ -7,10 +7,28 @@
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/scripts/docker/docker-compose.yml"
-ENV_HELPER="$REPO_ROOT/scripts/setup/load-project-env.sh"
-ADMIN_CLIENT_PROVISIONER="$REPO_ROOT/scripts/setup/provision-admin-client.js"
+ENV_HELPER="$SCRIPT_DIR/load-project-env.sh"
+ADMIN_CLIENT_PROVISIONER="$SCRIPT_DIR/provision-admin-client.js"
+
+usage() {
+  echo "Usage: pnpm bootstrap:local"
+}
+
+case "${1:-}" in
+  "")
+    ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Error: unknown argument '$1'." >&2
+    usage >&2
+    exit 2
+    ;;
+esac
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {

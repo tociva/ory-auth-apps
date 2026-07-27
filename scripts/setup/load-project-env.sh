@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Shared environment loading and database derivation for local setup scripts.
-# This file is sourced by bootstrap-local.sh and the OS-specific setup helpers.
+# This file is sourced by setup/bootstrap-local.sh and the OS setup helpers.
 
 load_env_file() {
   local file="$1"

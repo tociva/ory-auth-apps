@@ -19,7 +19,7 @@
     "authz:migrate": "pnpm --dir=monorepo authz:migrate",
     "db:migrate": "./scripts/deploy/run-migrations.sh",
     "nx": "pnpm --dir=monorepo nx",
-    "bootstrap:local": "./scripts/bootstrap-local.sh",
+    "bootstrap:local": "./scripts/setup/bootstrap-local.sh",
     "frontends:publish": "./scripts/deploy/publish-nginx-frontends.sh",
     "deploy:dev": "./scripts/deploy/deploy-dev.sh"
   },

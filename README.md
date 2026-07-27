@@ -33,11 +33,10 @@ Repository layout:
 .
 ├── config/                    # Kratos templates, schemas, and OIDC mappers
 ├── scripts/
-│   ├── bootstrap-local.sh     # One-shot database + Ory bootstrap
 │   ├── authz/                 # Authorization database migration scripts
 │   ├── deploy/                # nginx and deployment files
 │   ├── docker/                # Hydra/Kratos Compose stack
-│   └── setup/                 # Shared env loader and OS setup scripts
+│   └── setup/                 # Bootstrap, shared env loader, and OS setup scripts
 ├── monorepo/
 │   ├── apps/auth-backend/     # Express trusted auth orchestrator
 │   ├── apps/auth-frontend/    # Angular client-branded auth UI
@@ -302,7 +301,7 @@ Key cross-file wiring:
 Run from the repository root:
 
 ```bash
-./scripts/bootstrap-local.sh
+pnpm bootstrap:local
 ```
 
 The bootstrap performs these operations:
