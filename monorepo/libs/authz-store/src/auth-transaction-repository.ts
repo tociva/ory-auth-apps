@@ -174,6 +174,7 @@ export async function bindAuthTransactionFlow(
   db: Db,
   tokenHash: string,
   flowId: string,
+  options: { allowStepUpRebind?: boolean } = {},
 ): Promise<AuthTransactionRecord | null> {
   const res = await db.query<AuthTransactionRecord>(
     `UPDATE auth_transactions
@@ -181,9 +182,13 @@ export async function bindAuthTransactionFlow(
      WHERE token_hash = $1
        AND expires_at > now()
        AND status IN ('created', 'awaiting-authentication')
-       AND (kratos_flow_id IS NULL OR kratos_flow_id = $2)
+       AND (
+         kratos_flow_id IS NULL
+         OR kratos_flow_id = $2
+         OR ($3::boolean AND status = 'awaiting-authentication')
+       )
      RETURNING ${AUTH_TRANSACTION_COLUMNS}`,
-    [tokenHash, flowId],
+    [tokenHash, flowId, options.allowStepUpRebind === true],
   );
   return res.rows[0] ?? null;
 }

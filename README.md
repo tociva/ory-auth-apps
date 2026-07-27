@@ -321,6 +321,33 @@ The bootstrap performs these operations:
 Product OAuth clients are not seeded by scripts. They are created in the admin
 UI after the first administrator signs in.
 
+### Product access policy
+
+Taskmesh remains invitation-only until subscription provisioning is available.
+Its login policy uses `registrationMode: invitation-only` and
+`accessMode: grant-required`, so Google sign-in alone does not grant Taskmesh
+access. An Idnest administrator must grant each approved identity access to
+`taskmesh-console` from **Identities → [identity] → Client access**.
+
+Do not switch Taskmesh to open access until subscription provisioning can
+automatically authorize eligible users.
+
+If Kratos identities were reset while Authz data was retained, inspect the
+seeded administrator grants whose identities no longer exist:
+
+```bash
+node ./scripts/setup/provision-admin-client.js --repair-stale-admin-grants --dry-run
+```
+
+Then repair the reported stale grants before signing in:
+
+```bash
+node ./scripts/setup/provision-admin-client.js --repair-stale-admin-grants
+```
+
+The next verified login matching `ADMIN_BOOTSTRAP_EMAILS` then receives the
+first `system-admin` grant. The repair command does not recreate the OAuth client.
+
 The OS-specific setup scripts can also be run directly:
 
 ```bash
@@ -581,8 +608,8 @@ Production requirements:
 - Run database migrations before starting new application versions.
 - Publish `dist/apps/auth-frontend/browser` at `/var/www/auth-frontend/browser`
   (or set `AUTH_FRONTEND_ROOT` for `deploy-dev.sh`).
-- Render `apps/admin-frontend/public/config.tpl.json` into `config.json` during
-  deployment.
+- Render `apps/admin-frontend/public/config/config.tpl.json` into
+  `config/config.json` during deployment.
 - Run backend bundles from `monorepo/` so `dotenv/config` loads
   `monorepo/.env`.
 
@@ -638,6 +665,8 @@ docker compose -f scripts/docker/docker-compose.yml logs ory-kratos
 - Confirm `ADMIN_OIDC_CLIENT_SECRET` matches the provisioned admin client.
 - Confirm Authz migrations completed and `admin-backend` can reach
   `AUTHZ_DATABASE_URL`.
+- If a deleted seeded identity still holds the only active administrator grant,
+  run `node ./scripts/setup/provision-admin-client.js --repair-stale-admin-grants`.
 
 ### Force Google to show account selection
 

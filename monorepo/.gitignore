@@ -11,4 +11,4 @@ coverage
 !.env.example
 
 # Runtime config (generated from config.tpl.json during CI)
-apps/admin-frontend/public/config.json
+apps/admin-frontend/public/config/config.json

@@ -235,6 +235,14 @@ function transactionTokenFromFlow(flow: KratosFlow): string | null {
   return transactionTokenFromBoundFlow(flow, getAuthBaseUrl());
 }
 
+function isAal2StepUpFlow(flow: KratosFlow): boolean {
+  try {
+    return new URL(flow.request_url ?? "").searchParams.get("aal") === "aal2";
+  } catch {
+    return false;
+  }
+}
+
 /** Permissive policy for privileged settings re-auth (OIDC + any enrolled factors). */
 const SETTINGS_REAUTH_POLICY: LoginPolicyDefinition = {
   ...DEFAULT_LOGIN_POLICY,
@@ -662,6 +670,7 @@ export function createOrchestratorRouter(): Router {
           database(),
           hashOpaqueValue(token),
           flow.id,
+          { allowStepUpRebind: isAal2StepUpFlow(flow) },
         );
         if (!transaction) {
           res.status(410).json({ error: "expired_or_reused_transaction" });

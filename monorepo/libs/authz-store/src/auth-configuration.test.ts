@@ -5,6 +5,7 @@ import {
   resolveAuthConfiguration,
 } from "./auth-config-repository";
 import {
+  bindAuthTransactionFlow,
   claimAuthTransactionCompletion,
   expireAuthTransactions,
   releaseAuthTransactionForStepUp,
@@ -96,6 +97,23 @@ describe("authentication configuration repository", () => {
 });
 
 describe("authentication transaction lifecycle repository", () => {
+  it("allows an AAL2 step-up flow to replace its initial flow binding", async () => {
+    const calls: Array<{ sql: string; values: unknown[] }> = [];
+    const db = {
+      query: async (sql: string, values: unknown[]) => {
+        calls.push({ sql, values });
+        return { rows: [{ id: "transaction-1", kratos_flow_id: "flow-aal2" }] };
+      },
+    } as unknown as Db;
+
+    await bindAuthTransactionFlow(db, "opaque-token-hash", "flow-aal2", {
+      allowStepUpRebind: true,
+    });
+
+    expect(calls[0].sql).toContain("$3::boolean");
+    expect(calls[0].values).toEqual(["opaque-token-hash", "flow-aal2", true]);
+  });
+
   it("claims completion only through the guarded one-time SQL transition", async () => {
     const calls: Array<{ sql: string; values: unknown[] }> = [];
     const db = {

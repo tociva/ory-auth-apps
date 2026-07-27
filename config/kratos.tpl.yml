@@ -28,6 +28,10 @@ cookies:
   same_site: Lax
   domain: ${KRATOS_COOKIES_DOMAIN}
 
+session:
+  whoami:
+    required_aal: aal1
+
 selfservice:
   # OAuth transactions provide the opaque transaction callback explicitly.
   # Non-orchestrated browser flows fall back to a safe error surface.

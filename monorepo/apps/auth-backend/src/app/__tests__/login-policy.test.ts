@@ -115,17 +115,17 @@ describe("shouldRequireFreshLogin", () => {
 describe("requestedKratosAal", () => {
   const aal2Policy = { ...policy, minimumAal: "aal2" as const, totpEnabled: true };
 
-  it("omits aal for aal1 policies", () => {
-    expect(requestedKratosAal(null, policy)).toBeUndefined();
-    expect(requestedKratosAal(session(), policy)).toBeUndefined();
+  it("requests AAL1 for AAL1 policies", () => {
+    expect(requestedKratosAal(null, policy)).toBe("aal1");
+    expect(requestedKratosAal(session(), policy)).toBe("aal1");
   });
 
-  it("omits aal for aal2 policies when no session exists yet", () => {
-    expect(requestedKratosAal(null, aal2Policy)).toBeUndefined();
-    expect(requestedKratosAal(undefined, aal2Policy)).toBeUndefined();
+  it("starts AAL2 policies at AAL1 when no session exists yet", () => {
+    expect(requestedKratosAal(null, aal2Policy)).toBe("aal1");
+    expect(requestedKratosAal(undefined, aal2Policy)).toBe("aal1");
     expect(
       requestedKratosAal(session({ active: false }), aal2Policy),
-    ).toBeUndefined();
+    ).toBe("aal1");
   });
 
   it("requests aal2 only when an active session is already present", () => {

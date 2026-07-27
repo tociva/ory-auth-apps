@@ -41,7 +41,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate config.json from template
-        run: envsubst < apps/admin-frontend/public/config.tpl.json > apps/admin-frontend/public/config.json
+        run: envsubst < apps/admin-frontend/public/config/config.tpl.json > apps/admin-frontend/public/config/config.json
         env:
           ADMIN_BACKEND_URL: ${{ vars.ADMIN_BACKEND_URL }}
           AUTH_LOGIN_URL: ${{ vars.AUTH_LOGIN_URL }}
@@ -59,7 +59,7 @@ jobs:
 
       - name: Remove config template from dist
         working-directory: ${{ github.workspace }}
-        run: rm -f ${{ env.DIST }}/config.tpl.json
+        run: rm -f ${{ env.DIST }}/config/config.tpl.json
 
       - name: Deploy to Cloudflare Pages
         working-directory: ${{ github.workspace }}

@@ -131,17 +131,13 @@ export function shouldRequireFreshLogin(
 }
 
 /**
- * Choose the Kratos `aal` query param for a browser login start.
- *
- * Kratos rejects `aal=aal2` when no session exists (`session_aal1_required`).
- * So AAL2 policies always start primary (AAL1) auth first; AAL2 is only
- * requested once an active session is already present (step-up).
+ * Choose the Kratos `aal` query param for a browser login start. Explicitly
+ * request AAL1 unless this AAL2 policy already has an active session to step up.
  */
 export function requestedKratosAal(
   session: KratosSession | null | undefined,
   policy: LoginPolicyDefinition,
-): "aal1" | "aal2" | undefined {
-  if (policy.minimumAal !== "aal2") return undefined;
-  if (!session?.active) return undefined;
-  return "aal2";
+): "aal1" | "aal2" {
+  if (policy.minimumAal === "aal2" && session?.active) return "aal2";
+  return "aal1";
 }

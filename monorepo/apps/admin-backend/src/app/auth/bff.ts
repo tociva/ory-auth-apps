@@ -91,6 +91,17 @@ export async function startAdminLogin(req: Request, res: Response): Promise<void
 }
 
 export async function completeAdminLogin(req: Request, res: Response): Promise<void> {
+  const oauthError = typeof req.query.error === "string" ? req.query.error : "";
+  const oauthErrorDescription =
+    typeof req.query.error_description === "string" ? req.query.error_description : "";
+  if (oauthError) {
+    res
+      .status(403)
+      .type("text")
+      .send(oauthErrorDescription || "OAuth authorization was denied.");
+    return;
+  }
+
   const code = typeof req.query.code === "string" ? req.query.code : "";
   const state = typeof req.query.state === "string" ? req.query.state : "";
   if (!code || !state) {

@@ -6,6 +6,22 @@ const { existsSync, readFileSync } = require("node:fs");
 const { resolve } = require("node:path");
 
 const repoRoot = resolve(__dirname, "../..");
+const args = new Set(process.argv.slice(2));
+const shouldRepairStaleAdminGrants = args.has("--repair-stale-admin-grants");
+const dryRun = args.has("--dry-run");
+if (args.has("--help")) {
+  console.log(
+    "Usage: node scripts/setup/provision-admin-client.js [--repair-stale-admin-grants [--dry-run]]",
+  );
+  process.exit(0);
+}
+if (!shouldRepairStaleAdminGrants && dryRun) {
+  throw new Error("--dry-run requires --repair-stale-admin-grants.");
+}
+if (args.size > (shouldRepairStaleAdminGrants ? 1 + Number(dryRun) : 0)) {
+  throw new Error("Unknown argument. Use --help for usage.");
+}
+
 for (const envFile of [resolve(repoRoot, ".env"), resolve(repoRoot, "monorepo/.env")]) {
   if (existsSync(envFile)) {
     loadEnvFile(envFile);
@@ -35,6 +51,8 @@ function unquote(value) {
 }
 
 const HYDRA_ADMIN_URL = env.HYDRA_ADMIN_URL || "http://localhost:4445";
+const KRATOS_ADMIN_URL = env.KRATOS_ADMIN_URL || "http://localhost:4434";
+const AUTHZ_DATABASE_URL = env.AUTHZ_DATABASE_URL;
 const CLIENT_ID = env.ADMIN_OIDC_CLIENT_ID || "idnest-admin-client";
 const CLIENT_NAME = env.ADMIN_AUTH_CLIENT_NAME || "Idnest Admin Console";
 const CLIENT_AUDIENCE = env.ADMIN_OIDC_AUDIENCE || "idnest-admin";
@@ -124,7 +142,66 @@ async function createHydraClient() {
   console.log(`Client "${created.client_id || CLIENT_ID}" created.`);
 }
 
+async function repairStaleAdminGrants() {
+  if (!AUTHZ_DATABASE_URL) {
+    throw new Error("AUTHZ_DATABASE_URL is required to repair stale admin grants.");
+  }
+  const { Pool } = require(resolve(repoRoot, "monorepo/node_modules/pg"));
+  const pool = new Pool({ connectionString: AUTHZ_DATABASE_URL });
+  try {
+    const grants = await pool.query(
+      `SELECT identity_id
+       FROM client_access_grants
+       WHERE client_id = $1
+         AND role = 'system-admin'
+         AND granted_by = 'authz-seed'
+         AND revoked_at IS NULL`,
+      [CLIENT_ID],
+    );
+    let repaired = 0;
+    for (const { identity_id: identityId } of grants.rows) {
+      const identityResponse = await fetch(
+        `${KRATOS_ADMIN_URL.replace(/\/+$/, "")}/identities/${encodeURIComponent(identityId)}`,
+      );
+      if (identityResponse.ok) continue;
+      if (identityResponse.status !== 404) {
+        throw new Error(
+          `Failed to verify seeded administrator ${identityId}: ${identityResponse.status} ${identityResponse.statusText}`,
+        );
+      }
+      if (dryRun) {
+        console.log(`Would revoke stale seeded administrator grant for ${identityId}.`);
+        repaired += 1;
+        continue;
+      }
+      const result = await pool.query(
+        `UPDATE client_access_grants
+         SET revoked_at = now(), revoked_by = 'stale-identity-repair'
+         WHERE identity_id = $1
+           AND client_id = $2
+           AND role = 'system-admin'
+           AND granted_by = 'authz-seed'
+           AND revoked_at IS NULL`,
+        [identityId, CLIENT_ID],
+      );
+      repaired += result.rowCount ?? 0;
+      console.log(`Revoked stale seeded administrator grant for ${identityId}.`);
+    }
+    console.log(
+      repaired
+        ? `${dryRun ? "Found" : "Repaired"} ${repaired} stale seeded administrator grant${repaired === 1 ? "" : "s"}.`
+        : "No stale seeded administrator grants found.",
+    );
+  } finally {
+    await pool.end();
+  }
+}
+
 (async () => {
+  if (shouldRepairStaleAdminGrants) {
+    await repairStaleAdminGrants();
+    return;
+  }
   if (!CLIENT_SECRET) {
     throw new Error("ADMIN_OIDC_CLIENT_SECRET is required to register the confidential admin client.");
   }

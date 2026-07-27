@@ -4,9 +4,32 @@ import type {
   AuthBrandDefinition,
   AuthBrandStatus,
   AuthClientConfigStatus,
+  AuthenticatorAssuranceLevel,
+  ClientAccessMode,
   ConsentMode,
   LoginPolicyDefinition,
+  RegistrationMode,
 } from "@idnest/shared-types";
+import {
+  TngBadgeComponent,
+  TngButtonComponent,
+  TngCardComponent,
+  TngCardContentComponent,
+  TngCardDescriptionComponent,
+  TngCardHeaderComponent,
+  TngCardTitleComponent,
+  TngCheckboxAngularFormsAdapter,
+  TngCheckboxComponent,
+  TngCollapsibleComponent,
+  TngFormFieldComponent,
+  TngInputAngularFormsAdapter,
+  TngInputComponent,
+  TngLabelComponent,
+  TngProgressSpinnerComponent,
+  TngSelectComponent,
+  TngSwitchComponent,
+  TngTextareaComponent,
+} from "@tailng-ui/components";
 import { AdminApiService, describeError } from "../../core/admin-api.service";
 import type {
   AuthBrandRecord,
@@ -31,6 +54,11 @@ interface MappingDraft {
   isFirstParty: boolean;
   consentMode: ConsentMode;
   version?: number;
+}
+
+interface SelectOption<T extends string = string> {
+  value: T;
+  label: string;
 }
 
 const NEW_BRAND: AuthBrandDefinition = {
@@ -73,7 +101,27 @@ const NEW_POLICY: LoginPolicyDefinition = {
 @Component({
   selector: "app-auth-configuration",
   standalone: true,
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    TngBadgeComponent,
+    TngButtonComponent,
+    TngCardComponent,
+    TngCardContentComponent,
+    TngCardDescriptionComponent,
+    TngCardHeaderComponent,
+    TngCardTitleComponent,
+    TngCheckboxAngularFormsAdapter,
+    TngCheckboxComponent,
+    TngCollapsibleComponent,
+    TngFormFieldComponent,
+    TngInputAngularFormsAdapter,
+    TngInputComponent,
+    TngLabelComponent,
+    TngProgressSpinnerComponent,
+    TngSelectComponent,
+    TngSwitchComponent,
+    TngTextareaComponent,
+  ],
   templateUrl: "./auth-configuration.component.html",
   styleUrls: ["./auth-configuration.component.css"],
 })
@@ -114,6 +162,47 @@ export class AuthConfigurationComponent implements OnInit {
     consentMode: "follow-hydra",
   };
 
+  readonly statusOptions: SelectOption<AuthBrandStatus>[] = [
+    { value: "draft", label: "Draft" },
+    { value: "active", label: "Active" },
+    { value: "disabled", label: "Disabled" },
+  ];
+
+  readonly fontFamilyOptions: SelectOption<"system" | "roboto">[] = [
+    { value: "system", label: "System" },
+    { value: "roboto", label: "Roboto" },
+  ];
+
+  readonly aalOptions: SelectOption<AuthenticatorAssuranceLevel>[] = [
+    { value: "aal1", label: "AAL1" },
+    { value: "aal2", label: "AAL2" },
+  ];
+
+  readonly registrationModeOptions: SelectOption<RegistrationMode>[] = [
+    { value: "enabled", label: "Enabled" },
+    { value: "disabled", label: "Disabled" },
+    { value: "invitation-only", label: "Invitation only" },
+  ];
+
+  readonly accessModeOptions: SelectOption<ClientAccessMode>[] = [
+    { value: "open", label: "Open" },
+    { value: "grant-required", label: "Grant required" },
+  ];
+
+  readonly consentModeOptions: SelectOption<ConsentMode>[] = [
+    { value: "always-show", label: "Always show" },
+    { value: "skip-for-first-party", label: "Skip first party" },
+    { value: "follow-hydra", label: "Follow Hydra" },
+  ];
+
+  readonly mappingStatusOptions: SelectOption<"active" | "disabled">[] = [
+    { value: "active", label: "Active" },
+    { value: "disabled", label: "Disabled" },
+  ];
+
+  readonly getSelectValue = <T extends string>(option: SelectOption<T>): T => option.value;
+  readonly getSelectLabel = (option: SelectOption): string => option.label;
+
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
@@ -122,6 +211,27 @@ export class AuthConfigurationComponent implements OnInit {
 
   ngOnInit(): void {
     void this.reload();
+  }
+
+  brandSelectOptions(): SelectOption[] {
+    return this.brands.map((brand) => ({
+      value: brand.id,
+      label: brand.definition.productName,
+    }));
+  }
+
+  policySelectOptions(): SelectOption[] {
+    return this.policies.map((policy) => ({
+      value: policy.id,
+      label: policy.definition.name,
+    }));
+  }
+
+  unmappedClientOptions(): SelectOption[] {
+    return this.unmappedClients().map((client) => ({
+      value: client.client_id,
+      label: client.client_name || client.client_id,
+    }));
   }
 
   async reload(): Promise<void> {
@@ -344,6 +454,10 @@ export class AuthConfigurationComponent implements OnInit {
     return this.mappings.filter((mapping) => mapping.brandId === brandId).length;
   }
 
+  onMappingHistoryOpen(clientId: string, open: boolean): void {
+    if (open) void this.loadMappingHistory(clientId);
+  }
+
   async loadMappingHistory(clientId: string): Promise<void> {
     if (this.mappingHistory[clientId]) return;
     try {
@@ -410,14 +524,10 @@ export class AuthConfigurationComponent implements OnInit {
         .split(/[\n,]/)
         .map((entry) => entry.trim())
         .filter(Boolean);
-    const {
-      providersText,
-      domainsText,
-      emailsText,
-      ...definition
-    } = draft;
+    const { providersText, domainsText, emailsText, ...definition } = draft;
     return {
       ...definition,
+      sessionMaximumAgeSeconds: Number(definition.sessionMaximumAgeSeconds) || 3600,
       allowedOidcProviders: lines(providersText),
       allowedEmailDomains: lines(domainsText),
       allowedEmails: lines(emailsText),
