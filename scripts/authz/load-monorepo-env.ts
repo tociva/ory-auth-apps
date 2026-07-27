@@ -15,7 +15,7 @@ function parseEnvValue(raw: string): string {
 
 export function loadMonorepoEnv(): void {
   const scriptDir = dirname(fileURLToPath(import.meta.url));
-  const envPath = resolve(scriptDir, "../../.env");
+  const envPath = resolve(scriptDir, "../../monorepo/.env");
   if (!existsSync(envPath)) return;
 
   for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {

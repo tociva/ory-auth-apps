@@ -2,5 +2,26 @@
   "name": "ory-auth-apps",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "workspace:install": "pnpm --dir=monorepo install",
+    "build": "pnpm --dir=monorepo build",
+    "auth-backend:build": "pnpm --dir=monorepo auth-backend:build",
+    "auth-frontend:build": "pnpm --dir=monorepo auth-frontend:build",
+    "admin-backend:build": "pnpm --dir=monorepo admin-backend:build",
+    "admin-frontend:build": "pnpm --dir=monorepo admin-frontend:build",
+    "test": "pnpm --dir=monorepo test",
+    "lint": "pnpm --dir=monorepo lint",
+    "typecheck": "pnpm --dir=monorepo typecheck",
+    "auth-backend:serve": "pnpm --dir=monorepo auth-backend:serve",
+    "auth-frontend:serve": "pnpm --dir=monorepo auth-frontend:serve",
+    "admin-backend:serve": "pnpm --dir=monorepo admin-backend:serve",
+    "admin-frontend:serve": "pnpm --dir=monorepo admin-frontend:serve",
+    "authz:migrate": "pnpm --dir=monorepo authz:migrate",
+    "db:migrate": "./scripts/deploy/run-migrations.sh",
+    "nx": "pnpm --dir=monorepo nx",
+    "bootstrap:local": "./scripts/bootstrap-local.sh",
+    "frontends:publish": "./scripts/deploy/publish-nginx-frontends.sh",
+    "deploy:dev": "./scripts/deploy/deploy-dev.sh"
+  },
   "packageManager": "pnpm@9.15.0"
 }

@@ -8,7 +8,6 @@ set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-MONOREPO_DIR="$REPO_ROOT/monorepo"
 COMPOSE_FILE="$REPO_ROOT/scripts/docker/docker-compose.yml"
 ENV_HELPER="$REPO_ROOT/scripts/setup/load-project-env.sh"
 ADMIN_CLIENT_PROVISIONER="$REPO_ROOT/scripts/setup/provision-admin-client.js"
@@ -44,15 +43,15 @@ require_cmd pnpm
 load_project_env "$REPO_ROOT"
 
 case "$(uname -s)" in
-  Darwin) SETUP_SCRIPT="$REPO_ROOT/scripts/setup/setup-ory-macos.sh" ;;
-  Linux) SETUP_SCRIPT="$REPO_ROOT/scripts/setup/setup-ory-linux.sh" ;;
+  Darwin) SETUP_SCRIPT="$REPO_ROOT/scripts/setup/setup-ory-db-macos.sh" ;;
+  Linux) SETUP_SCRIPT="$REPO_ROOT/scripts/setup/setup-ory-db-linux.sh" ;;
   *) echo "Error: unsupported OS '$(uname -s)'." >&2; exit 1 ;;
 esac
 
 "$SETUP_SCRIPT"
 
 echo "==> Running authz migrations..."
-(cd "$MONOREPO_DIR" && pnpm authz:migrate)
+pnpm --dir="$REPO_ROOT" authz:migrate
 
 echo "==> Starting Hydra and Kratos containers..."
 docker compose -f "$COMPOSE_FILE" up -d --build

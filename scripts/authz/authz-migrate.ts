@@ -1,4 +1,7 @@
-import { createAuthzPool, migrateAuthzSchema } from "@idnest/authz-store";
+import {
+  createAuthzPool,
+  migrateAuthzSchema,
+} from "../../monorepo/libs/authz-store/src/index";
 import { loadMonorepoEnv } from "./load-monorepo-env";
 
 loadMonorepoEnv();

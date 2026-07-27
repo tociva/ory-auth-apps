@@ -5,9 +5,9 @@ import { InjectionToken } from "@angular/core";
  * and the confidential admin OAuth client secret never reach the browser. The
  * SPA talks to the same-origin admin BFF, which owns OAuth and session state.
  *
- * Loaded at runtime from `public/config/config.json` (see `main.ts`) so a single
- * build can be deployed to many environments — the deploy just swaps the
- * `config.json` file. Values are merged over DEFAULT_ADMIN_CONFIG.
+ * Loaded at runtime from `/config/config.json` (see `main.ts`) so a single build
+ * can be deployed to many environments. Nginx returns the environment-specific
+ * values, which are merged over DEFAULT_ADMIN_CONFIG.
  */
 export interface AdminConfig {
   /** BFF API base, normally same-origin `/api` (admin routes live under `${apiBaseUrl}/admin`). */

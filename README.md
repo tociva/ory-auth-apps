@@ -21,7 +21,9 @@ including the Nx workspace under `monorepo/`.
 | Admin backend | `https://admin-local.idnest.cloud/api` | `4100` | Confidential BFF and administration API |
 | Admin frontend | `https://admin-local.idnest.cloud` | `4501` | Angular administration console |
 
-The browser reaches the public services through nginx and locally trusted HTTPS.
+The browser reaches every public service through nginx and HTTPS. The admin and
+auth Angular applications share their public origins with their Express
+backends, so host-only cookies and browser API requests remain same-origin.
 Hydra/Kratos admin endpoints remain bound to localhost and are used only by the
 backends.
 
@@ -32,6 +34,7 @@ Repository layout:
 ├── config/                    # Kratos templates, schemas, and OIDC mappers
 ├── scripts/
 │   ├── bootstrap-local.sh     # One-shot database + Ory bootstrap
+│   ├── authz/                 # Authorization database migration scripts
 │   ├── deploy/                # nginx and deployment files
 │   ├── docker/                # Hydra/Kratos Compose stack
 │   └── setup/                 # Shared env loader and OS setup scripts
@@ -52,7 +55,7 @@ Complete the shared steps and then the operating-system block for your machine.
 ### 2.1 Shared prerequisites
 
 - Git
-- Node.js `22.22.0` (the version in `monorepo/.nvmrc`)
+- Node.js `22.22.0` (the version in the root `.nvmrc`)
 - pnpm `9.15.0` through Corepack
 - PostgreSQL
 - Docker with the Compose plugin
@@ -94,12 +97,10 @@ that `docker info` succeeds.
 Install Node with your preferred version manager. With `nvm`:
 
 ```bash
-cd monorepo
 nvm install
 nvm use
 corepack enable
 corepack prepare pnpm@9.15.0 --activate
-cd ..
 ```
 
 ### 2.3 Linux prerequisites
@@ -132,12 +133,10 @@ Install Node `22.22.0` with your preferred version manager, then enable the
 pinned pnpm version:
 
 ```bash
-cd monorepo
 nvm install
 nvm use
 corepack enable
 corepack prepare pnpm@9.15.0 --activate
-cd ..
 ```
 
 ### 2.4 Install repository dependencies
@@ -145,10 +144,8 @@ cd ..
 From the repository root:
 
 ```bash
-cd monorepo
-pnpm install
+pnpm workspace:install
 pnpm build
-cd ..
 ```
 
 ### 2.5 Configure local DNS
@@ -352,10 +349,10 @@ The OS-specific setup scripts can also be run directly:
 
 ```bash
 # macOS
-./scripts/setup/setup-ory-macos.sh
+./scripts/setup/setup-ory-db-macos.sh
 
 # Linux
-./scripts/setup/setup-ory-linux.sh
+./scripts/setup/setup-ory-db-linux.sh
 ```
 
 Those scripts perform database provisioning and Ory migrations, but the full
@@ -364,7 +361,7 @@ starts the containers, and provisions the admin infrastructure client.
 
 ### 2.10 Start the applications
 
-Use three terminals from `monorepo/`:
+Use four terminals from the repository root:
 
 ```bash
 # Terminal 1
@@ -389,6 +386,7 @@ Verify the services:
 curl http://localhost:4445/health/ready
 curl http://localhost:4433/health/ready
 curl http://localhost:4000/health
+curl http://localhost:4100/health
 curl -I https://admin-local.idnest.cloud
 ```
 
@@ -407,11 +405,12 @@ OAuth clients are managed from the admin UI.
 
 ## 3. Daily development commands
 
-Run workspace commands from `monorepo/`:
+Run all workspace commands from the repository root:
 
 ```bash
 pnpm build
 pnpm auth-backend:build
+pnpm auth-frontend:build
 pnpm admin-backend:build
 pnpm admin-frontend:build
 pnpm test
@@ -594,14 +593,81 @@ versions while in-flight transactions keep their frozen snapshots.
 ## 6. Build and deployment
 
 ```bash
-cd monorepo
 pnpm auth-backend:build
+pnpm auth-frontend:build
 pnpm admin-backend:build
 pnpm admin-frontend:build
 ```
 
 `pnpm build` remains available when both backend and frontend artifacts should
 be built together.
+
+Nginx is the only frontend hosting model. The checked-in virtual hosts are:
+
+| Environment | Nginx configuration | Static document roots |
+| --- | --- | --- |
+| Development server | `scripts/deploy/nginx/dev/*.conf` | Auth: `/var/www/auth-frontend/browser`; Admin: `/var/www/admin-frontend-dev` |
+| Production | `scripts/deploy/nginx/prod/*.conf` | Auth: `/var/www/auth-frontend/browser`; Admin: `/var/www/admin-frontend` |
+
+Cloudflare may remain enabled as a DNS/TLS proxy in front of nginx; Cloudflare
+Pages is not used. Virtual hosts that reference a Cloudflare Origin certificate
+must stay proxied. For DNS-only records, replace those certificate paths with a
+publicly trusted certificate such as Let's Encrypt.
+
+Run the complete development-server deployment from the repository root:
+
+```bash
+pnpm deploy:dev
+```
+
+The deployment performs a fast-forward-only pull, validates both server env
+files, installs the locked workspace dependencies, stops PM2 and Docker,
+builds all four applications, runs the Hydra/Kratos/Authz migrations, publishes
+both Angular builds, restarts the services, and checks all four health
+endpoints.
+
+Deployment secrets are kept outside the repository by default:
+
+| Environment | Default source | Installed location | Contract |
+| --- | --- | --- | --- |
+| Ory infrastructure | `../ory.root.env` | `.env` | `.env.example` |
+| Application/Authz | `../ory.monorepo.env` | `monorepo/.env` | `monorepo/.env.example` |
+
+Every example key must be present. A key is allowed to be blank only when its
+example value is blank (the optional Apple OIDC settings); required blank or
+placeholder values stop the deployment before any service is stopped. Source
+paths and document roots can be overridden when the server uses another
+layout:
+
+```bash
+ROOT_ENV_SOURCE=/run/secrets/ory.root.env \
+MONOREPO_ENV_SOURCE=/run/secrets/ory.monorepo.env \
+AUTH_FRONTEND_ROOT=/var/www/auth-frontend/browser \
+ADMIN_FRONTEND_ROOT=/var/www/admin-frontend-dev \
+pnpm deploy:dev
+```
+
+The validated env files are installed atomically before migrations so
+migrations and the restarted services use the same database configuration.
+Database roles and databases are a one-time prerequisite handled by
+`scripts/setup/setup-ory-db-linux.sh`; all release migrations can also be run
+independently from the root with `pnpm db:migrate`.
+
+If a phase fails after shutdown, the script reports the exact phase and does
+not attempt an unsafe migration rollback or restore the previous release.
+Inspect Docker/PM2 state, fix the reported error, and rerun `pnpm deploy:dev`.
+
+For a production release, build and publish the static applications before
+restarting the backends:
+
+```bash
+pnpm build
+pnpm frontends:publish
+```
+
+The admin frontend requests `/config/config.json`; nginx returns the
+environment-specific same-origin `/api` and auth logout configuration directly.
+No generated frontend configuration file or separate frontend host is required.
 
 Production requirements:
 
@@ -614,19 +680,21 @@ Production requirements:
 - Keep ports `4445` and `4434` private.
 - Keep all direct Ory ports loopback-bound; nginx is the public edge.
 - Run database migrations before starting new application versions.
-- Publish `dist/apps/auth-frontend/browser` at `/var/www/auth-frontend/browser`
-  (or set `AUTH_FRONTEND_ROOT` for `deploy-dev.sh`).
-- Render `apps/admin-frontend/public/config/config.tpl.json` into
-  `config/config.json` during deployment.
+- Publish `monorepo/dist/apps/auth-frontend/browser` at
+  `/var/www/auth-frontend/browser`.
+- Publish `monorepo/dist/apps/admin-frontend/browser` at
+  `/var/www/admin-frontend`.
+- Enable exactly one nginx virtual host for each of `auth`, `admin`, `hydra`,
+  and `kratos`; do not expose ports `4000`, `4100`, `4433`, or `4444` directly.
 - Run backend bundles from `monorepo/` so `dotenv/config` loads
   `monorepo/.env`.
 
 Example PM2 startup:
 
 ```bash
-cd monorepo
-pm2 start dist/apps/auth-backend/main.cjs --name idnest-auth-backend --cwd "$PWD"
-pm2 start dist/apps/admin-backend/main.cjs --name idnest-admin-backend --cwd "$PWD"
+MONOREPO_DIR="$PWD/monorepo"
+pm2 start "$MONOREPO_DIR/dist/apps/auth-backend/main.cjs" --name idnest-auth-backend --cwd "$MONOREPO_DIR"
+pm2 start "$MONOREPO_DIR/dist/apps/admin-backend/main.cjs" --name idnest-admin-backend --cwd "$MONOREPO_DIR"
 pm2 save
 ```
 
@@ -638,6 +706,7 @@ pm2 save
 curl http://localhost:4445/health/ready
 curl http://localhost:4433/health/ready
 curl http://localhost:4000/health
+curl http://localhost:4100/health
 docker compose -f scripts/docker/docker-compose.yml ps
 docker compose -f scripts/docker/docker-compose.yml logs ory-hydra ory-kratos
 ```

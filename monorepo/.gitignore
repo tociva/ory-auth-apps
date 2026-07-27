@@ -10,5 +10,5 @@ coverage
 .env.*
 !.env.example
 
-# Runtime config (generated from config.tpl.json during CI)
+# Optional local runtime config; deployed environments serve this through nginx.
 apps/admin-frontend/public/config/config.json
