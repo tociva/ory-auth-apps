@@ -662,12 +662,14 @@ restarting the backends:
 
 ```bash
 pnpm build
-pnpm frontends:publish
+ADMIN_FRONTEND_AUTH_LOGOUT_URL=https://auth.idnest.cloud/logout \
+  pnpm frontends:publish
 ```
 
-The admin frontend requests `/config/config.json`; nginx returns the
-environment-specific same-origin `/api` and auth logout configuration directly.
-No generated frontend configuration file or separate frontend host is required.
+The admin frontend requests `/config/config.json`. Frontend publishing renders
+that file from `monorepo/apps/admin-frontend/public/config/config.tpl.json`;
+`ADMIN_FRONTEND_API_BASE_URL` defaults to the same-origin `/api`, while
+`ADMIN_FRONTEND_AUTH_LOGOUT_URL` is required for standalone publishing.
 
 Production requirements:
 

@@ -9,6 +9,3 @@ coverage
 .env
 .env.*
 !.env.example
-
-# Optional local runtime config; deployed environments serve this through nginx.
-apps/admin-frontend/public/config/config.json

@@ -6,8 +6,9 @@ import { InjectionToken } from "@angular/core";
  * SPA talks to the same-origin admin BFF, which owns OAuth and session state.
  *
  * Loaded at runtime from `/config/config.json` (see `main.ts`) so a single build
- * can be deployed to many environments. Nginx returns the environment-specific
- * values, which are merged over DEFAULT_ADMIN_CONFIG.
+ * can be deployed to many environments. Deployment renders the
+ * environment-specific file from `config.tpl.json`; the values are merged over
+ * DEFAULT_ADMIN_CONFIG.
  */
 export interface AdminConfig {
   /** BFF API base, normally same-origin `/api` (admin routes live under `${apiBaseUrl}/admin`). */

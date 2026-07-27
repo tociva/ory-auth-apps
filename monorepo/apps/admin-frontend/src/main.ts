@@ -6,7 +6,7 @@ import { type AdminConfig, DEFAULT_ADMIN_CONFIG } from "./app/core/admin-config"
 /**
  * Build-once / deploy-many: the runtime config is fetched from
  * `/config/config.json` before the app bootstraps, then provided to Angular.
- * Nginx serves the environment-specific response on the frontend's origin.
+ * Deployment renders the environment-specific file on the frontend's origin.
  * The URL is resolved against `<base href>` so it works on deep routes too.
  * Falls back to same-origin API defaults if the endpoint is unavailable.
  */

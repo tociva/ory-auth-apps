@@ -10,6 +10,9 @@ coverage
 dist
 build
 
+# generated browser runtime configuration
+monorepo/apps/admin-frontend/public/config/config.json
+
 # misc
 .DS_Store
 *.pem
