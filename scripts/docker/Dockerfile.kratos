@@ -1,4 +1,4 @@
-FROM oryd/kratos:v25.4.0
+FROM oryd/kratos:v26.2.0
 
 # Install gettext (provides `envsubst`) for both Alpine or Debian variants
 USER root

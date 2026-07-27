@@ -17,7 +17,7 @@ ENV_HELPER="$SCRIPT_DIR/load-project-env.sh"
 load_project_env "$REPO_ROOT"
 
 HYDRA_IMAGE="${HYDRA_IMAGE:-oryd/hydra:v26.2.0}"
-KRATOS_IMAGE="${KRATOS_IMAGE:-oryd/kratos:v25.4.0}"
+KRATOS_IMAGE="${KRATOS_IMAGE:-oryd/kratos:v26.2.0}"
 KRATOS_CONFIG_DIR="${KRATOS_CONFIG_DIR:-$REPO_ROOT/config}"
 PG_SUPERDB="${PG_SUPERDB:-postgres}"
 

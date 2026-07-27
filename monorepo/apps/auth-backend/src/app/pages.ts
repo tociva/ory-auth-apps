@@ -29,6 +29,7 @@ import {
 } from "./views";
 import { getConsentActionSecret } from "./config";
 import {
+  factorSettingsNodesFromFlow,
   hiddenInputsFromFlow,
   oidcSubmitButtonsFromFlow,
   type FlowHiddenInput,
@@ -53,6 +54,18 @@ function isAllowedAuthReturnTo(target: string): boolean {
     const url = new URL(target);
     const auth = new URL(getAuthBaseUrl());
     return url.origin === auth.origin && url.pathname === "/settings";
+  } catch {
+    return false;
+  }
+}
+
+/** Product apps plus the trusted OAuth completion URL used after AAL2 enrollment. */
+function isAllowedSettingsReturnTo(target: string): boolean {
+  if (isAllowedAppReturnTo(target)) return true;
+  try {
+    const url = new URL(target);
+    const auth = new URL(getAuthBaseUrl());
+    return url.origin === auth.origin && url.pathname === "/oauth2/login/complete";
   } catch {
     return false;
   }
@@ -246,7 +259,7 @@ export function createPagesRouter(): Router {
     const flow = first(req.query["flow"]);
     const returnTo = first(req.query["return_to"]);
 
-    if (returnTo && !isAllowedAppReturnTo(returnTo)) {
+    if (returnTo && !isAllowedSettingsReturnTo(returnTo)) {
       sendError(
         res,
         {
@@ -286,6 +299,7 @@ export function createPagesRouter(): Router {
           actionUrl: flowData.ui.action,
           hiddenInputs: hiddenInputsFromFlow(flowData),
           providers: oidcSubmitButtonsFromFlow(flowData, "Link"),
+          factorNodes: factorSettingsNodesFromFlow(flowData),
           returnTo,
         }),
       );
@@ -309,7 +323,7 @@ export function createPagesRouter(): Router {
    */
   router.get("/settings/return", async (req: Request, res: Response): Promise<void> => {
     const returnTo = first(req.query["return_to"]);
-    if (returnTo && isAllowedAppReturnTo(returnTo)) {
+    if (returnTo && isAllowedSettingsReturnTo(returnTo)) {
       res.redirect(returnTo);
       return;
     }

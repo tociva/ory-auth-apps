@@ -34,7 +34,7 @@ describe("Social OIDC Kratos config", () => {
     expect(googleMapper).toContain("verified_addresses");
   });
 
-  it("uses Kratos v25.4-compatible Google and Apple provider config", () => {
+  it("uses Kratos v26.2-compatible Google and Apple provider config", () => {
     const google = providerBlock("google");
     const apple = providerBlock("apple");
 

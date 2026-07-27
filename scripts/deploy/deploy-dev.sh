@@ -5,7 +5,7 @@
 #   2. docker compose down (remove orphans)
 #   3. git pull
 #   4. pnpm build
-#   5. deploy admin frontend static files
+#   5. publish the auth frontend
 #   6. copy env files from ../ory.root.env and ../ory.monorepo.env
 #   7. docker compose up -d
 #   8. pm2 (re)start backends
@@ -34,9 +34,10 @@ cd monorepo
 pnpm build
 cd ..
 
-# 5. deploy admin frontend static files
-install -d -m 0755 "$ADMIN_FRONTEND_ROOT"
-rsync -a --delete "$ADMIN_FRONTEND_DIST/" "$ADMIN_FRONTEND_ROOT/"
+# 5. publish auth frontend (override for a non-standard nginx document root)
+AUTH_FRONTEND_ROOT="${AUTH_FRONTEND_ROOT:-/var/www/auth-frontend/browser}"
+install -d "$AUTH_FRONTEND_ROOT"
+cp -R monorepo/dist/apps/auth-frontend/browser/. "$AUTH_FRONTEND_ROOT/"
 
 # 6. copy env files
 cp -f ../ory.root.env .env

@@ -172,6 +172,17 @@ describe("settings pages", () => {
     expect(res.headers.location).toBe("https://app-local.daybook.cloud/account");
   });
 
+  it("allows settings return to continue a trusted OAuth completion URL", async () => {
+    const res = await requestPath(
+      "/settings/return?return_to=https%3A%2F%2Fauth-local.idnest.cloud%2Foauth2%2Flogin%2Fcomplete%3Ftransaction%3Dtok",
+    );
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(
+      "https://auth-local.idnest.cloud/oauth2/login/complete?transaction=tok",
+    );
+  });
+
   it("allows login return to continue an internal settings handoff", async () => {
     const res = await requestPath(
       "/login/return?return_to=https%3A%2F%2Fauth-local.idnest.cloud%2Fsettings%3Freturn_to%3Dhttps%253A%252F%252Fapp-local.daybook.cloud%252Faccount",

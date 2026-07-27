@@ -5,13 +5,13 @@ import { type AdminConfig, DEFAULT_ADMIN_CONFIG } from "./app/core/admin-config"
 
 /**
  * Build-once / deploy-many: the runtime config is fetched from
- * `public/config.json` before the app bootstraps, then provided to Angular.
+ * `public/config/config.json` before the app bootstraps, then provided to Angular.
  * The URL is resolved against `<base href>` so it works on deep routes too.
  * Falls back to dev defaults if the file is missing or unreadable.
  */
 async function loadRuntimeConfig(): Promise<AdminConfig> {
   try {
-    const res = await fetch(new URL("config.json", document.baseURI), { cache: "no-store" });
+    const res = await fetch(new URL("config/config.json", document.baseURI), { cache: "no-store" });
     if (!res.ok) return DEFAULT_ADMIN_CONFIG;
     const override = (await res.json()) as Partial<AdminConfig>;
     return {

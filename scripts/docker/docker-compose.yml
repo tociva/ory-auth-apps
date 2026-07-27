@@ -5,8 +5,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "4444:4444"
-      - "4445:4445"
+      - "127.0.0.1:4444:4444"
+      - "127.0.0.1:4445:4445"
     env_file:
       - ../../.env
     environment:
@@ -55,13 +55,13 @@ services:
     build:
       context: ../..
       dockerfile: scripts/docker/Dockerfile.kratos
-    image: ory-kratos-envsubst:v25.4.0
+    image: ory-kratos-envsubst:v26.2.0
     container_name: ory-kratos
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "4433:4433"
-      - "4434:4434"
+      - "127.0.0.1:4433:4433"
+      - "127.0.0.1:4434:4434"
     restart: unless-stopped
     env_file:
       - ../../.env

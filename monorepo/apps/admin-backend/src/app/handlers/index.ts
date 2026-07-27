@@ -34,3 +34,22 @@ export {
   type SessionIdInput,
 } from "./sessions";
 export type { HandlerResult } from "./types";
+export {
+  archiveBrandConfiguration,
+  archivePolicyConfiguration,
+  createBrandConfiguration,
+  createPolicyConfiguration,
+  deleteClientAuthConfiguration,
+  getBrandConfiguration,
+  getClientAuthConfiguration,
+  getPolicyConfiguration,
+  listBrandConfigurations,
+  listBrandConfigurationHistory,
+  listClientAuthConfigurations,
+  listClientAuthConfigurationHistory,
+  listPolicyConfigurations,
+  listPolicyConfigurationHistory,
+  putClientAuthConfiguration,
+  updateBrandConfiguration,
+  updatePolicyConfiguration,
+} from "./auth-configuration";

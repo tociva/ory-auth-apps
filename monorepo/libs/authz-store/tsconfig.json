@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc/libs/authz-store",
-    "rootDir": "src",
     "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*.ts"]
