@@ -33,8 +33,8 @@ MONOREPO_ENV_TARGET="$MONOREPO_ROOT/.env"
 
 AUTH_FRONTEND_ROOT="${AUTH_FRONTEND_ROOT:-/var/www/auth-frontend/browser}"
 ADMIN_FRONTEND_ROOT="${ADMIN_FRONTEND_ROOT:-/var/www/admin-frontend-dev}"
-AUTH_PM2_NAME="${AUTH_PM2_NAME:-ory-auth-dev}"
-ADMIN_PM2_NAME="${ADMIN_PM2_NAME:-ory-admin-backend-dev}"
+AUTH_PM2_NAME="${AUTH_PM2_NAME:-idnest-auth-backend}"
+ADMIN_PM2_NAME="${ADMIN_PM2_NAME:-idnest-admin-backend}"
 AUTH_BACKEND_BUNDLE="$MONOREPO_ROOT/dist/apps/auth-backend/main.cjs"
 ADMIN_BACKEND_BUNDLE="$MONOREPO_ROOT/dist/apps/admin-backend/main.cjs"
 
@@ -147,6 +147,46 @@ replace_pm2_process() {
   pm2 start "$bundle" --name "$name" --cwd "$MONOREPO_ROOT"
 }
 
+pm2_process_snapshot() {
+  local name="$1"
+  pm2 jlist | node -e '
+const name = process.argv[1];
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => {
+  input += chunk;
+});
+process.stdin.on("end", () => {
+  const processInfo = JSON.parse(input).find((entry) => entry.name === name);
+  if (!processInfo) process.exit(1);
+  const status = processInfo.pm2_env?.status ?? "unknown";
+  const restarts = processInfo.pm2_env?.restart_time ?? -1;
+  process.stdout.write(`${status}:${processInfo.pid}:${restarts}`);
+});
+' "$name"
+}
+
+verify_pm2_process_stability() {
+  local auth_before admin_before auth_after admin_after
+
+  auth_before="$(pm2_process_snapshot "$AUTH_PM2_NAME")"
+  admin_before="$(pm2_process_snapshot "$ADMIN_PM2_NAME")"
+  sleep 5
+  auth_after="$(pm2_process_snapshot "$AUTH_PM2_NAME")"
+  admin_after="$(pm2_process_snapshot "$ADMIN_PM2_NAME")"
+
+  if [[ "$auth_after" != online:* ]] || [ "$auth_before" != "$auth_after" ]; then
+    echo "PM2 process is not stable: $AUTH_PM2_NAME ($auth_before -> $auth_after)" >&2
+    pm2 logs "$AUTH_PM2_NAME" --lines 30 --nostream >&2 || true
+    return 1
+  fi
+  if [[ "$admin_after" != online:* ]] || [ "$admin_before" != "$admin_after" ]; then
+    echo "PM2 process is not stable: $ADMIN_PM2_NAME ($admin_before -> $admin_after)" >&2
+    pm2 logs "$ADMIN_PM2_NAME" --lines 30 --nostream >&2 || true
+    return 1
+  fi
+}
+
 wait_for_url() {
   local label="$1" url="$2" attempt=1
   echo "Waiting for $label at $url..."
@@ -228,6 +268,7 @@ phase "Starting Docker and PM2 services"
 docker compose -f "$COMPOSE_FILE" up -d --build
 replace_pm2_process "$AUTH_PM2_NAME" "$AUTH_BACKEND_BUNDLE"
 replace_pm2_process "$ADMIN_PM2_NAME" "$ADMIN_BACKEND_BUNDLE"
+verify_pm2_process_stability
 pm2 save
 SERVICES_STOPPED=false
 

@@ -623,7 +623,8 @@ The deployment performs a fast-forward-only pull, validates both server env
 files, installs the locked workspace dependencies, stops PM2 and Docker,
 builds all four applications, runs the Hydra/Kratos/Authz migrations, publishes
 both Angular builds, restarts the services, and checks all four health
-endpoints.
+endpoints. The managed PM2 processes are named `idnest-auth-backend` and
+`idnest-admin-backend`.
 
 Deployment secrets are kept outside the repository by default:
 
