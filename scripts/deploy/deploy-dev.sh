@@ -35,6 +35,7 @@ AUTH_FRONTEND_ROOT="${AUTH_FRONTEND_ROOT:-/var/www/auth-frontend/browser}"
 ADMIN_FRONTEND_ROOT="${ADMIN_FRONTEND_ROOT:-/var/www/admin-frontend-dev}"
 ADMIN_FRONTEND_API_BASE_URL="${ADMIN_FRONTEND_API_BASE_URL:-/api}"
 ADMIN_FRONTEND_AUTH_LOGOUT_URL="${ADMIN_FRONTEND_AUTH_LOGOUT_URL:-https://auth-dev.idnest.cloud/logout}"
+ADMIN_FRONTEND_GENERATED_SOURCE_CONFIG="$MONOREPO_ROOT/apps/admin-frontend/public/config/config.json"
 AUTH_PM2_NAME="${AUTH_PM2_NAME:-idnest-auth-backend}"
 ADMIN_PM2_NAME="${ADMIN_PM2_NAME:-idnest-admin-backend}"
 AUTH_BACKEND_BUNDLE="$MONOREPO_ROOT/dist/apps/auth-backend/main.cjs"
@@ -232,6 +233,10 @@ stage_environment_files
 
 phase "Installing workspace dependencies"
 pnpm workspace:install --frozen-lockfile
+
+# Generated runtime configuration belongs only in the published document root.
+# Remove a developer-local copy before Angular copies public/ into the build.
+rm -f "$ADMIN_FRONTEND_GENERATED_SOURCE_CONFIG"
 
 # Docker Compose must be able to read the new root env even on a first deploy,
 # and migrations must use the same values as the services that follow.
