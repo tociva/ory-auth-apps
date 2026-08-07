@@ -435,10 +435,6 @@ INSERT INTO oauth_client_auth_configs(
 SELECT seed.client_id, b.id, p.id, 'active', true, seed.consent_mode
 FROM (
   VALUES
-    ('daybook-web', 'daybook', 'Open Google sign-in', 'skip-for-first-party'),
-    ('daybook-admin', 'daybook-admin', 'Restricted Google sign-in', 'skip-for-first-party'),
-    ('taskmesh-console', 'taskmesh', 'Invitation-only Google sign-in', 'skip-for-first-party'),
-    ('idnest-admin', 'idnest-admin', 'Restricted Google + TOTP sign-in', 'skip-for-first-party'),
     ('idnest-admin-client', 'idnest-admin', 'Restricted Google + TOTP sign-in', 'skip-for-first-party')
 ) AS seed(client_id, brand_key, policy_name, consent_mode)
 JOIN auth_brands b ON b.key = seed.brand_key
@@ -461,13 +457,29 @@ SELECT c.hydra_client_id, c.version,
   'system',
   'Initial OAuth client auth configuration seed'
 FROM oauth_client_auth_configs c
+WHERE c.hydra_client_id = 'idnest-admin-client'
 ON CONFLICT (hydra_client_id, version) DO NOTHING;
+
+-- Drop previously seeded product-client placeholders once. Later admin-created
+-- mappings for these IDs are preserved after version 4 is recorded.
+DELETE FROM oauth_client_auth_config_versions
+WHERE hydra_client_id IN (
+  'daybook-web', 'daybook-admin', 'taskmesh-console', 'idnest-admin'
+)
+AND NOT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 4);
+
+DELETE FROM oauth_client_auth_configs
+WHERE hydra_client_id IN (
+  'daybook-web', 'daybook-admin', 'taskmesh-console', 'idnest-admin'
+)
+AND NOT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 4);
 
 INSERT INTO schema_migrations(version, name)
 VALUES
   (1, 'auth platform base'),
   (2, 'client-specific branded authentication'),
-  (3, 'behavior-based login policy names')
+  (3, 'behavior-based login policy names'),
+  (4, 'seed only idnest-admin-client mapping')
 ON CONFLICT (version) DO NOTHING;
 `;
 
