@@ -259,6 +259,30 @@
   min-width: 0;
 }
 
+.brand-product-cell {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.brand-product-cell .color-dot {
+  flex: 0 0 auto;
+  height: 0.9rem;
+  width: 0.9rem;
+}
+
+.brand-product-cell > div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+tng-card-content > h4 {
+  color: var(--tng-semantic-foreground-secondary, #334155);
+  font-size: 0.85rem;
+  margin-top: 1.1rem;
+}
+
 .mapping-primary-cell small,
 .mapping-secondary-cell small {
   color: var(--tng-semantic-foreground-muted, #64748b);

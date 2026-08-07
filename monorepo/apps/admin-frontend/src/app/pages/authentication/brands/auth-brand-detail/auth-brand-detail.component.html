@@ -1,84 +1,49 @@
 <div class="page-heading">
   <div>
-    <h1 class="page-title">Auth Brands</h1>
-    <p class="muted">Versioned visual identity and copy for the authentication journey.</p>
+    <a class="cell-link" routerLink="/authentication/brands">Back to auth brands</a>
+    <h1 class="page-title">{{ createMode ? "New Brand" : brandDisplayName() }}</h1>
+    <p class="muted">
+      {{
+        createMode
+          ? "Create versioned visual identity and copy for the authentication journey."
+          : "Edit visual identity, copy, appearance, and legal links for this brand."
+      }}
+    </p>
   </div>
-  <tng-button appearance="outline" tone="neutral" [disabled]="loading" (click)="reload()">
-    Reload
-  </tng-button>
 </div>
-
-@if (error) {
-  <p class="inline-error" role="alert">{{ error }}</p>
-}
 
 @if (loading) {
   <div class="loading-row" role="status">
     <tng-progress-spinner />
-    <span class="muted">Loading auth brands...</span>
+    <span class="muted">Loading auth brand...</span>
   </div>
 } @else {
-  <tng-card>
-    <tng-card-header>
-      <div class="section-heading">
-        <div>
-          <tng-card-title>Brands</tng-card-title>
-          <tng-card-description>
-            Visual identity and copy shown throughout the authentication journey.
-          </tng-card-description>
-        </div>
-        <tng-button appearance="outline" tone="neutral" (click)="selectBrand()">
-          New brand
-        </tng-button>
-      </div>
-    </tng-card-header>
-    <tng-card-content>
-      <div class="record-list">
-        @for (record of brands; track record.id) {
-          <button
-            type="button"
-            class="record-card"
-            [class.selected]="record.id === brandId"
-            (click)="selectBrand(record)"
-          >
-            <span class="color-dot" [style.background]="record.definition.primaryColor"></span>
-            <span>
-              <strong>{{ record.definition.productName }}</strong>
-              <small>
-                {{ record.key }} &middot; v{{ record.version }} &middot; {{ clientsUsingBrand(record.id) }}
-                clients
-              </small>
-            </span>
-            <span tngBadge>{{ record.status }}</span>
-          </button>
-        }
-      </div>
+  @if (error) {
+    <p class="inline-error" role="alert">{{ error }}</p>
+  }
+  @if (notice) {
+    <p class="inline-success" role="status">{{ notice }}</p>
+  }
 
-      <div class="editor">
-        <div class="editor-heading">
-          <h3>{{ brandId ? "Edit brand" : "Create brand" }}</h3>
-          @if (brandId) {
-            <div class="row-actions">
-              <tng-button
-                size="sm"
-                appearance="outline"
-                tone="neutral"
-                (click)="duplicateSelectedBrand()"
-              >
-                Duplicate
-              </tng-button>
-              <tng-button
-                size="sm"
-                appearance="outline"
-                tone="danger"
-                (click)="archiveSelectedBrand()"
-              >
-                Archive
-              </tng-button>
-            </div>
+  <div class="stack">
+    <tng-card>
+      <tng-card-header>
+        <div class="section-heading">
+          <div>
+            <tng-card-title>{{ createMode ? "Create brand" : "Brand details" }}</tng-card-title>
+            <tng-card-description>
+              Visual identity and copy shown throughout the authentication journey.
+            </tng-card-description>
+          </div>
+          @if (!createMode) {
+            <tng-button appearance="outline" tone="danger" [disabled]="saving" (click)="archiveBrand()">
+              <tng-icon icon="trash2" size="0.95rem" aria-hidden="true" />
+              Archive
+            </tng-button>
           }
         </div>
-
+      </tng-card-header>
+      <tng-card-content>
         <div
           class="brand-preview"
           [style.--preview-primary]="brand.primaryColor"
@@ -100,7 +65,7 @@
               tngAngularForms
               name="brand_key"
               [(ngModel)]="brand.key"
-              [disabled]="brandId !== null"
+              [disabled]="!createMode"
               placeholder="example-product"
             />
           </tng-form-field>
@@ -293,12 +258,23 @@
 
         <div class="editor-actions">
           <tng-button appearance="solid" tone="primary" [disabled]="saving" (click)="saveBrand()">
+            <tng-icon icon="save" size="0.95rem" aria-hidden="true" />
             {{ saving ? "Saving..." : "Save brand" }}
           </tng-button>
+          <tng-button appearance="outline" tone="neutral" routerLink="/authentication/brands">
+            Cancel
+          </tng-button>
         </div>
+      </tng-card-content>
+    </tng-card>
 
-        @if (brandHistory.length) {
-          <tng-collapsible class="history" [title]="'Change history (' + brandHistory.length + ')'">
+    @if (!createMode && brandHistory.length) {
+      <tng-card>
+        <tng-card-header>
+          <tng-card-title>Change history</tng-card-title>
+        </tng-card-header>
+        <tng-card-content>
+          <tng-collapsible class="history" [title]="'Versions (' + brandHistory.length + ')'">
             @for (version of brandHistory; track version.version) {
               <div class="history-entry">
                 <strong>Version {{ version.version }}</strong>
@@ -307,8 +283,8 @@
               </div>
             }
           </tng-collapsible>
-        }
-      </div>
-    </tng-card-content>
-  </tng-card>
+        </tng-card-content>
+      </tng-card>
+    }
+  </div>
 }

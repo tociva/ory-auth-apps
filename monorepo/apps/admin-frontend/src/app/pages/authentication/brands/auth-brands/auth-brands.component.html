@@ -1,0 +1,110 @@
+<div class="page-heading">
+  <div>
+    <h1 class="page-title">Auth Brands</h1>
+    <p class="muted">Versioned visual identity and copy for the authentication journey.</p>
+  </div>
+</div>
+
+@if (error) {
+  <p class="inline-error" role="alert">{{ error }}</p>
+}
+
+<tng-card>
+  <tng-card-header>
+    <div class="section-heading mapping-table-toolbar">
+      <div>
+        <tng-card-title>Brands</tng-card-title>
+        <tng-card-description>
+          Visual identity and copy shown throughout the authentication journey.
+        </tng-card-description>
+      </div>
+      <div class="table-controls">
+        <tng-button appearance="solid" tone="primary" routerLink="/authentication/brands/new">
+          <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
+          New brand
+        </tng-button>
+      </div>
+    </div>
+  </tng-card-header>
+  <tng-card-content>
+    <tng-table
+      [columns]="columns"
+      [items]="rows"
+      [loading]="loading"
+      [error]="!!error"
+      ariaLabel="Auth brands"
+      density="comfortable"
+      scrollAxis="x"
+    >
+      <ng-template tngTableCellTemplate="product" let-row="row">
+        @let brand = asBrandRow(row);
+        <div class="mapping-primary-cell brand-product-cell">
+          <span class="color-dot" [style.background]="brand.primaryColor"></span>
+          <div>
+            <a class="cell-link" [routerLink]="['/authentication/brands', brand.id]">
+              {{ brand.productName }}
+            </a>
+            <small>{{ brand.key }}</small>
+          </div>
+        </div>
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="status" let-row="row">
+        @let brand = asBrandRow(row);
+        <span
+          tngBadge
+          class="status-badge"
+          [class.disabled]="brand.status === 'disabled' || brand.status === 'draft'"
+        >
+          {{ statusLabel(brand.status) }}
+        </span>
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="clients" let-row="row">
+        @let brand = asBrandRow(row);
+        {{ brand.clientCount }}
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="updated" let-row="row">
+        @let brand = asBrandRow(row);
+        <div class="mapping-secondary-cell">
+          <span>{{ dateLabel(brand.updatedAt) }}</span>
+          <small>v{{ brand.version }}</small>
+        </div>
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="actions" let-row="row">
+        @let brand = asBrandRow(row);
+        <div class="row-actions mapping-actions">
+          <tng-button
+            size="sm"
+            appearance="outline"
+            tone="neutral"
+            [routerLink]="['/authentication/brands', brand.id]"
+          >
+            <tng-icon icon="pencil" size="0.9rem" aria-hidden="true" />
+            Edit
+          </tng-button>
+          <tng-button
+            size="sm"
+            appearance="outline"
+            tone="neutral"
+            (click)="duplicateBrand(brand)"
+          >
+            Duplicate
+          </tng-button>
+          <tng-button
+            size="sm"
+            appearance="outline"
+            tone="danger"
+            [disabled]="busyBrandId === brand.id"
+            (click)="archiveBrand(brand)"
+          >
+            <tng-icon icon="trash2" size="0.9rem" aria-hidden="true" />
+            Archive
+          </tng-button>
+        </div>
+      </ng-template>
+    </tng-table>
+  </tng-card-content>
+</tng-card>

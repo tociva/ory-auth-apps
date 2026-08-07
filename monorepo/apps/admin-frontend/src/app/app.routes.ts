@@ -64,9 +64,23 @@ export const routes: Routes = [
       {
         path: "authentication/brands",
         loadComponent: () =>
-          import("./pages/authentication/brands/auth-brands.component").then(
-            (m) => m.AuthBrandsComponent,
-          ),
+          import(
+            "./pages/authentication/brands/auth-brands/auth-brands.component"
+          ).then((m) => m.AuthBrandsComponent),
+      },
+      {
+        path: "authentication/brands/new",
+        loadComponent: () =>
+          import(
+            "./pages/authentication/brands/auth-brand-detail/auth-brand-detail.component"
+          ).then((m) => m.AuthBrandDetailComponent),
+      },
+      {
+        path: "authentication/brands/:id",
+        loadComponent: () =>
+          import(
+            "./pages/authentication/brands/auth-brand-detail/auth-brand-detail.component"
+          ).then((m) => m.AuthBrandDetailComponent),
       },
       {
         path: "authentication/policies",
