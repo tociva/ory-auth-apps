@@ -1,0 +1,117 @@
+<div class="page-heading">
+  <div>
+    <h1 class="page-title">Login Policies</h1>
+    <p class="muted">Allowed methods, identity gates, session freshness, and registration behavior.</p>
+  </div>
+</div>
+
+@if (error) {
+  <p class="inline-error" role="alert">{{ error }}</p>
+}
+
+<tng-card>
+  <tng-card-header>
+    <div class="section-heading mapping-table-toolbar">
+      <div>
+        <tng-card-title>Login policies</tng-card-title>
+        <tng-card-description>
+          Allowed methods, identity gates, session freshness, and registration behavior.
+        </tng-card-description>
+      </div>
+      <div class="table-controls">
+        <tng-button appearance="solid" tone="primary" routerLink="/authentication/login-policies/new">
+          <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
+          New Policy
+        </tng-button>
+      </div>
+    </div>
+  </tng-card-header>
+  <tng-card-content>
+    <tng-table
+      [columns]="columns"
+      [items]="rows"
+      [loading]="loading"
+      [error]="!!error"
+      ariaLabel="Login policies"
+      density="comfortable"
+      scrollAxis="x"
+    >
+      <ng-template tngTableCellTemplate="name" let-row="row">
+        @let policy = asPolicyRow(row);
+        <div class="mapping-primary-cell">
+          <a class="cell-link" [routerLink]="['/authentication/login-policies', policy.id]">
+            {{ policy.name }}
+          </a>
+          <small>v{{ policy.version }}</small>
+        </div>
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="status" let-row="row">
+        @let policy = asPolicyRow(row);
+        <span
+          tngBadge
+          class="status-badge"
+          [class.disabled]="policy.status === 'disabled' || policy.status === 'draft'"
+        >
+          {{ statusLabel(policy.status) }}
+        </span>
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="aal" let-row="row">
+        @let policy = asPolicyRow(row);
+        {{ aalLabel(policy.minimumAal) }}
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="registration" let-row="row">
+        @let policy = asPolicyRow(row);
+        {{ registrationLabel(policy.registrationMode) }}
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="access" let-row="row">
+        @let policy = asPolicyRow(row);
+        {{ accessLabel(policy.accessMode) }}
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="updated" let-row="row">
+        @let policy = asPolicyRow(row);
+        <div class="mapping-secondary-cell">
+          <span>{{ dateLabel(policy.updatedAt) }}</span>
+          <small>v{{ policy.version }}</small>
+        </div>
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="actions" let-row="row">
+        @let policy = asPolicyRow(row);
+        <div class="row-actions mapping-actions">
+          <tng-button
+            size="sm"
+            appearance="outline"
+            tone="neutral"
+            [routerLink]="['/authentication/login-policies', policy.id]"
+          >
+            <tng-icon icon="pencil" size="0.9rem" aria-hidden="true" />
+            Edit
+          </tng-button>
+          <tng-button
+            size="sm"
+            appearance="outline"
+            tone="neutral"
+            (click)="duplicatePolicy(policy)"
+          >
+            Duplicate
+          </tng-button>
+          <tng-button
+            size="sm"
+            appearance="outline"
+            tone="danger"
+            [disabled]="busyPolicyId === policy.id"
+            (click)="archivePolicy(policy)"
+          >
+            <tng-icon icon="trash2" size="0.9rem" aria-hidden="true" />
+            Archive
+          </tng-button>
+        </div>
+      </ng-template>
+    </tng-table>
+  </tng-card-content>
+</tng-card>
