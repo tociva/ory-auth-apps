@@ -1,4 +1,4 @@
-import type { HydraClientTrustTier } from "@idnest/shared-types";
+import type { HydraClientTrustTier, PublicAuthRecovery } from "@idnest/shared-types";
 import { esc } from "../escape";
 import { IDNEST_LOGO } from "../icons";
 import { layout } from "../layout";
@@ -155,12 +155,19 @@ export function renderAccessDenied(vm: {
   email: string;
   reason: string;
   switchAccountUrl?: string;
+  recovery?: PublicAuthRecovery;
 }): string {
   const switchAccountAction = vm.switchAccountUrl
     ? `<div class="consent-actions">
       <a class="btn btn-primary" href="${esc(vm.switchAccountUrl)}">Use a different account</a>
     </div>`
     : "";
+  const retryAction =
+    vm.recovery?.kind === "application_home"
+      ? `<div class="consent-actions">
+      <a class="btn btn-outline" href="${esc(vm.recovery.homeUrl)}">Try again</a>
+    </div>`
+      : "";
   const body = `<div class="page-center">
   <main class="card card-error">
     <div class="card-header">
@@ -172,6 +179,7 @@ export function renderAccessDenied(vm: {
       ${esc(vm.clientName)} is not enabled for ${esc(vm.email || "this account")}. Contact an administrator to grant access.
     </p>
     ${switchAccountAction}
+    ${retryAction}
   </main>
 </div>`;
   return layout({ title: "Access denied · Idnest", body });

@@ -60,12 +60,41 @@ export const routes: Routes = [
             (m) => m.ClientDetailComponent,
           ),
       },
+      { path: "authentication", pathMatch: "full", redirectTo: "authentication/brands" },
       {
-        path: "authentication",
+        path: "authentication/brands",
         loadComponent: () =>
-          import("./pages/auth-configuration/auth-configuration.component").then(
-            (m) => m.AuthConfigurationComponent,
+          import("./pages/authentication/brands/auth-brands.component").then(
+            (m) => m.AuthBrandsComponent,
           ),
+      },
+      {
+        path: "authentication/login-policies",
+        loadComponent: () =>
+          import("./pages/authentication/login-policies/auth-login-policies.component").then(
+            (m) => m.AuthLoginPoliciesComponent,
+          ),
+      },
+      {
+        path: "authentication/client-mappings",
+        loadComponent: () =>
+          import("./pages/authentication/client-mappings/auth-client-mappings.component").then(
+            (m) => m.AuthClientMappingsComponent,
+          ),
+      },
+      {
+        path: "authentication/client-mappings/new",
+        loadComponent: () =>
+          import(
+            "./pages/authentication/client-mappings/auth-client-mapping-detail.component"
+          ).then((m) => m.AuthClientMappingDetailComponent),
+      },
+      {
+        path: "authentication/client-mappings/:clientId",
+        loadComponent: () =>
+          import(
+            "./pages/authentication/client-mappings/auth-client-mapping-detail.component"
+          ).then((m) => m.AuthClientMappingDetailComponent),
       },
       { path: "", pathMatch: "full", redirectTo: "identities" },
     ],

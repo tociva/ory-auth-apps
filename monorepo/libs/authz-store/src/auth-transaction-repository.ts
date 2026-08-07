@@ -170,6 +170,21 @@ export async function findAuthTransactionByChallengeHash(
   return res.rows[0] ?? null;
 }
 
+export async function findAuthTransactionByKratosFlowId(
+  db: Db,
+  flowId: string,
+): Promise<AuthTransactionRecord | null> {
+  const res = await db.query<AuthTransactionRecord>(
+    `SELECT ${AUTH_TRANSACTION_COLUMNS}
+     FROM auth_transactions
+     WHERE kratos_flow_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [flowId],
+  );
+  return res.rows[0] ?? null;
+}
+
 export async function bindAuthTransactionFlow(
   db: Db,
   tokenHash: string,

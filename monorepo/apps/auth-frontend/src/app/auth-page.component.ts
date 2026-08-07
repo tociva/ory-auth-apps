@@ -1,8 +1,15 @@
 import { DOCUMENT, NgTemplateOutlet } from "@angular/common";
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
-import type { KratosFlow, KratosUiNode, KratosUiText, PublicAuthContext } from "@idnest/shared-types";
+import type {
+  KratosFlow,
+  KratosUiNode,
+  KratosUiText,
+  PublicAuthContext,
+  PublicAuthRecovery,
+} from "@idnest/shared-types";
 import { AuthApiService } from "./auth-api.service";
+import { AuthRecoveryComponent } from "./auth-recovery.component";
 import { BrandService } from "./brand.service";
 
 @Component({
@@ -20,6 +27,7 @@ import { BrandService } from "./brand.service";
             <div class="brand-mark" aria-hidden="true">I</div>
             <h1>Sign-in unavailable</h1>
             <p>{{ error() }}</p>
+            <idnest-auth-recovery [recovery]="recovery()" />
           </section>
         } @else if (flow() && context()) {
           <header class="brand-header">
@@ -158,7 +166,7 @@ import { BrandService } from "./brand.service";
       </div>
     </ng-template>
   `,
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, AuthRecoveryComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthPageComponent implements OnInit {
@@ -170,6 +178,7 @@ export class AuthPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly cancelling = signal(false);
   readonly error = signal("");
+  readonly recovery = signal<PublicAuthRecovery | null>(null);
   readonly flow = signal<KratosFlow | null>(null);
   readonly context = signal<PublicAuthContext | null>(null);
   readonly logoFailed = signal(false);
@@ -179,19 +188,22 @@ export class AuthPageComponent implements OnInit {
     if (!flowId) {
       this.loading.set(false);
       this.error.set("This sign-in link is incomplete. Return to the application and try again.");
+      this.recovery.set({ kind: "request_context_unavailable" });
       return;
     }
     try {
       const response = await this.api.loginFlowContext(flowId);
       this.flow.set(response.flow);
       this.context.set(response.context);
+      this.recovery.set(response.context.recovery);
       this.brands.apply(response.context.brand);
       window.setTimeout(() => {
         const firstInvalid = this.document.querySelector<HTMLElement>('[aria-invalid="true"]');
         firstInvalid?.focus();
       });
-    } catch {
+    } catch (error) {
       this.error.set("This sign-in request has expired or could not be loaded.");
+      this.recovery.set(this.api.recoveryFromError(error));
     } finally {
       this.loading.set(false);
     }
@@ -298,6 +310,7 @@ export class AuthPageComponent implements OnInit {
       window.location.assign(response.redirectTo);
     } catch {
       this.error.set("Unable to cancel this sign-in request safely.");
+      this.recovery.set(this.context()?.recovery ?? null);
       this.cancelling.set(false);
     }
   }

@@ -6,6 +6,7 @@ import {
   createAuthTransaction,
   findAuthConsentTransactionByTokenHash,
   findAuthTransactionByChallengeHash,
+  findAuthTransactionByKratosFlowId,
   findAuthTransactionByTokenHash,
   getAuthzPool,
   hasActiveClientAccess,
@@ -21,6 +22,8 @@ import {
 import {
   DEFAULT_IDNEST_BRAND,
   DEFAULT_LOGIN_POLICY,
+  normalizeClientHomeUrl,
+  publicAuthRecoveryForClient,
   toPublicPolicy,
   toUserClaims,
   type HydraConsentRequest,
@@ -28,6 +31,7 @@ import {
   type KratosFlow,
   type KratosSession,
   type LoginPolicyDefinition,
+  type PublicAuthRecovery,
   type ResolvedAuthConfiguration,
 } from "@idnest/shared-types";
 import { createHmac, randomUUID } from "node:crypto";
@@ -124,11 +128,13 @@ function sendNeutralError(
   code: string,
   description: string,
   status = 400,
+  recovery: PublicAuthRecovery = { kind: "request_context_unavailable" },
 ): void {
   noStore(res);
   res.status(status).type("html").send(renderError({
     safeDetails: { error: code, error_description: description },
     hint: status >= 500 ? "Authentication is temporarily unavailable. Please try again." : description,
+    recovery,
   }));
 }
 
@@ -231,6 +237,22 @@ function resolvedFromConsentTransaction(
   };
 }
 
+function recoveryFromAuthTransaction(transaction: AuthTransactionRecord): PublicAuthRecovery {
+  return publicAuthRecoveryForClient(
+    transaction.client_config_snapshot,
+    transaction.brand_snapshot.productName,
+  );
+}
+
+function recoveryFromConsentTransaction(
+  transaction: AuthConsentTransactionRecord,
+): PublicAuthRecovery {
+  return publicAuthRecoveryForClient(
+    transaction.client_config_snapshot,
+    transaction.brand_snapshot.productName,
+  );
+}
+
 function transactionTokenFromFlow(flow: KratosFlow): string | null {
   return transactionTokenFromBoundFlow(flow, getAuthBaseUrl());
 }
@@ -267,6 +289,7 @@ function settingsReauthContext(flow: KratosFlow) {
       id: "settings",
       displayName: brand.productName,
     },
+    recovery: { kind: "request_context_unavailable" as const },
     brand,
     policy: toPublicPolicy(SETTINGS_REAUTH_POLICY),
     expiresAt: flow.expires_at ?? new Date(Date.now() + 10 * 60_000).toISOString(),
@@ -446,6 +469,7 @@ function publicContext(
         transaction.client_config_snapshot.clientDisplayName ??
         transaction.brand_snapshot.productName,
     },
+    recovery: recoveryFromAuthTransaction(transaction),
     brand: transaction.brand_snapshot,
     policy: toPublicPolicy(transaction.policy_snapshot),
     expiresAt: transaction.expires_at,
@@ -477,6 +501,7 @@ function publicConsentContext(transaction: AuthConsentTransactionRecord, transac
         transaction.client_config_snapshot.clientDisplayName ??
         transaction.brand_snapshot.productName,
     },
+    recovery: recoveryFromConsentTransaction(transaction),
     brand: transaction.brand_snapshot,
     policy: toPublicPolicy(transaction.policy_snapshot),
     requestedScopes: transaction.requested_scopes,
@@ -523,6 +548,7 @@ export function createOrchestratorRouter(): Router {
       resolved.client = {
         ...resolved.client,
         clientDisplayName: hydraRequest.client.client_name?.trim() || clientId,
+        clientHomeUrl: normalizeClientHomeUrl(hydraRequest.client.client_uri),
       };
       if (resolved.client.status === "disabled") {
         const redirectTo = await rejectHydraLogin(
@@ -642,6 +668,16 @@ export function createOrchestratorRouter(): Router {
     }
   });
 
+  async function findRecoveryTransactionByFlowId(
+    flowId: string,
+  ): Promise<AuthTransactionRecord | null> {
+    try {
+      return await findAuthTransactionByKratosFlowId(database(), flowId);
+    } catch {
+      return null;
+    }
+  }
+
   router.get(
     "/auth/v1/flows/login/:flowId/context",
     entryLimit,
@@ -663,17 +699,27 @@ export function createOrchestratorRouter(): Router {
             });
             return;
           }
-          res.status(400).json({ error: "unbound_login_flow" });
+          res.status(400).json({
+            error: "unbound_login_flow",
+            recovery: { kind: "request_context_unavailable" },
+          });
           return;
         }
+        const tokenHash = hashOpaqueValue(token);
         const transaction = await bindAuthTransactionFlow(
           database(),
-          hashOpaqueValue(token),
+          tokenHash,
           flow.id,
           { allowStepUpRebind: isAal2StepUpFlow(flow) },
         );
         if (!transaction) {
-          res.status(410).json({ error: "expired_or_reused_transaction" });
+          const staleTransaction = await findAuthTransactionByTokenHash(database(), tokenHash);
+          res.status(410).json({
+            error: "expired_or_reused_transaction",
+            recovery: staleTransaction
+              ? recoveryFromAuthTransaction(staleTransaction)
+              : { kind: "request_context_unavailable" },
+          });
           return;
         }
         const published = publicFlow(flow, transaction.policy_snapshot);
@@ -693,7 +739,13 @@ export function createOrchestratorRouter(): Router {
         });
       } catch (error) {
         console.error("Branded login flow context failed", error);
-        res.status(502).json({ error: "login_flow_unavailable" });
+        const transaction = await findRecoveryTransactionByFlowId(req.params.flowId);
+        res.status(502).json({
+          error: "login_flow_unavailable",
+          recovery: transaction
+            ? recoveryFromAuthTransaction(transaction)
+            : { kind: "request_context_unavailable" },
+        });
       }
     },
   );
@@ -708,7 +760,12 @@ export function createOrchestratorRouter(): Router {
         hashOpaqueValue(req.params.transactionId),
       );
       if (!transaction || Date.parse(transaction.expires_at) <= Date.now()) {
-        res.status(410).json({ error: "expired_transaction" });
+        res.status(410).json({
+          error: "expired_transaction",
+          recovery: transaction
+            ? recoveryFromAuthTransaction(transaction)
+            : { kind: "request_context_unavailable" },
+        });
         return;
       }
       res.json(publicContext(transaction, req.params.transactionId));
@@ -727,11 +784,15 @@ export function createOrchestratorRouter(): Router {
       const tokenHash = hashOpaqueValue(token);
       const transaction = await claimAuthTransactionCompletion(database(), tokenHash);
       if (!transaction) {
+        const staleTransaction = await findAuthTransactionByTokenHash(database(), tokenHash);
         sendNeutralError(
           res,
           "expired_or_reused_transaction",
           "This sign-in request has expired.",
           410,
+          staleTransaction
+            ? recoveryFromAuthTransaction(staleTransaction)
+            : { kind: "request_context_unavailable" },
         );
         return;
       }
@@ -777,6 +838,7 @@ export function createOrchestratorRouter(): Router {
           "login_completion_failed",
           "Unable to complete this sign-in request.",
           502,
+          recoveryFromAuthTransaction(transaction),
         );
       }
     },
@@ -797,7 +859,13 @@ export function createOrchestratorRouter(): Router {
     const tokenHash = hashOpaqueValue(transactionId);
     const transaction = await claimAuthTransactionCompletion(database(), tokenHash);
     if (!transaction) {
-      res.status(410).json({ error: "expired_or_reused_transaction" });
+      const staleTransaction = await findAuthTransactionByTokenHash(database(), tokenHash);
+      res.status(410).json({
+        error: "expired_or_reused_transaction",
+        recovery: staleTransaction
+          ? recoveryFromAuthTransaction(staleTransaction)
+          : { kind: "request_context_unavailable" },
+      });
       return;
     }
     try {
@@ -826,7 +894,10 @@ export function createOrchestratorRouter(): Router {
         status: "failed",
         failureCode: "login_rejection_failed",
       });
-      res.status(502).json({ error: "login_rejection_failed" });
+      res.status(502).json({
+        error: "login_rejection_failed",
+        recovery: recoveryFromAuthTransaction(transaction),
+      });
     }
   }
 
@@ -868,6 +939,12 @@ export function createOrchestratorRouter(): Router {
           clientDisplayName: hydraRequest.client.client_name?.trim() || clientId,
         };
       }
+      resolved.client = {
+        ...resolved.client,
+        clientDisplayName: hydraRequest.client.client_name?.trim() || resolved.client.clientDisplayName,
+        clientHomeUrl:
+          normalizeClientHomeUrl(hydraRequest.client.client_uri) ?? resolved.client.clientHomeUrl,
+      };
       if (resolved.usedFallback && getStrictUnmappedClients()) {
         const redirectTo = await rejectHydraConsent(challenge, "This client is not configured.");
         res.redirect(redirectTo);
@@ -954,7 +1031,12 @@ export function createOrchestratorRouter(): Router {
         transaction.status !== "created" ||
         Date.parse(transaction.expires_at) <= Date.now()
       ) {
-        res.status(410).json({ error: "expired_consent_transaction" });
+        res.status(410).json({
+          error: "expired_consent_transaction",
+          recovery: transaction
+            ? recoveryFromConsentTransaction(transaction)
+            : { kind: "request_context_unavailable" },
+        });
         return;
       }
       res.json(publicConsentContext(transaction, req.params.transactionId));
@@ -987,7 +1069,16 @@ export function createOrchestratorRouter(): Router {
     }
     const transaction = await claimAuthConsentTransaction(database(), transactionHash);
     if (!transaction) {
-      res.status(410).json({ error: "expired_or_reused_consent_transaction" });
+      const staleTransaction = await findAuthConsentTransactionByTokenHash(
+        database(),
+        transactionHash,
+      );
+      res.status(410).json({
+        error: "expired_or_reused_consent_transaction",
+        recovery: staleTransaction
+          ? recoveryFromConsentTransaction(staleTransaction)
+          : { kind: "request_context_unavailable" },
+      });
       return;
     }
     try {
@@ -1059,7 +1150,10 @@ export function createOrchestratorRouter(): Router {
         status: "failed",
         failureCode: "consent_action_failed",
       });
-      res.status(502).json({ error: "consent_action_failed" });
+      res.status(502).json({
+        error: "consent_action_failed",
+        recovery: recoveryFromConsentTransaction(transaction),
+      });
     }
   }
 

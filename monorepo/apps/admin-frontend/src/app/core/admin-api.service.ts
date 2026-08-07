@@ -268,6 +268,12 @@ export class AdminApiService {
     return this.get<OAuthClientAuthConfigRecord[]>("/client-auth-configs");
   }
 
+  getClientAuthConfig(clientId: string): Promise<OAuthClientAuthConfigRecord> {
+    return this.get<OAuthClientAuthConfigRecord>(
+      `/client-auth-configs/${encodeURIComponent(clientId)}`,
+    );
+  }
+
   listClientAuthConfigHistory(
     clientId: string,
   ): Promise<AuthConfigurationVersion<Record<string, unknown>>[]> {

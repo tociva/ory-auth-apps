@@ -264,6 +264,17 @@ html, body {
   margin: 0;
 }
 .card-footer { margin-top: 1.25rem; text-align: center; }
+.recovery-panel {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
+  text-align: center;
+}
+.recovery-hint {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 0.875rem;
+}
 
 .app-summary {
   display: flex;

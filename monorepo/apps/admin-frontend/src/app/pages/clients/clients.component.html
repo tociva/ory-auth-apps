@@ -20,6 +20,7 @@
     <thead>
       <tr>
         <th scope="col">Client</th>
+        <th scope="col">Type</th>
         <th scope="col">Auth method</th>
         <th scope="col">Redirect URIs</th>
         <th scope="col">Scopes</th>
@@ -31,15 +32,15 @@
     <tbody>
       @if (loading) {
         <tr class="state-row">
-          <td colspan="5">Loading clients</td>
+          <td colspan="6">Loading clients</td>
         </tr>
       } @else if (error) {
         <tr class="state-row">
-          <td colspan="5">Unable to load clients</td>
+          <td colspan="6">Unable to load clients</td>
         </tr>
       } @else if (rows.length === 0) {
         <tr class="state-row">
-          <td colspan="5">No OAuth clients found</td>
+          <td colspan="6">No OAuth clients found</td>
         </tr>
       } @else {
         @for (client of rows; track client.client_id) {
@@ -59,6 +60,9 @@
                   <span class="muted">No display name</span>
                 }
               </div>
+            </td>
+            <td>
+              <span class="auth-method">{{ clientTypeLabel(client) }}</span>
             </td>
             <td>
               <span class="auth-method">{{ authMethodLabel(client) }}</span>

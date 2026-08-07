@@ -1,0 +1,220 @@
+<div class="page-heading">
+  <div>
+    <h1 class="page-title">Login Policies</h1>
+    <p class="muted">Allowed methods, identity gates, session freshness, and registration behavior.</p>
+  </div>
+  <tng-button appearance="outline" tone="neutral" [disabled]="loading" (click)="reload()">
+    Reload
+  </tng-button>
+</div>
+
+@if (error) {
+  <p class="inline-error" role="alert">{{ error }}</p>
+}
+
+@if (loading) {
+  <div class="loading-row" role="status">
+    <tng-progress-spinner />
+    <span class="muted">Loading login policies...</span>
+  </div>
+} @else {
+  <tng-card>
+    <tng-card-header>
+      <div class="section-heading">
+        <div>
+          <tng-card-title>Login policies</tng-card-title>
+          <tng-card-description>
+            Allowed methods, identity gates, session freshness, and registration behavior.
+          </tng-card-description>
+        </div>
+        <tng-button appearance="outline" tone="neutral" (click)="selectPolicy()">
+          New policy
+        </tng-button>
+      </div>
+    </tng-card-header>
+    <tng-card-content>
+      <div class="record-list">
+        @for (record of policies; track record.id) {
+          <button
+            type="button"
+            class="record-card"
+            [class.selected]="record.id === policyId"
+            (click)="selectPolicy(record)"
+          >
+            <span class="policy-icon" aria-hidden="true">P</span>
+            <span>
+              <strong>{{ record.definition.name }}</strong>
+              <small>{{ record.definition.minimumAal }} &middot; v{{ record.version }}</small>
+            </span>
+            <span tngBadge>{{ record.status }}</span>
+          </button>
+        }
+      </div>
+
+      <div class="editor">
+        <div class="editor-heading">
+          <h3>{{ policyId ? "Edit policy" : "Create policy" }}</h3>
+          @if (policyId) {
+            <div class="row-actions">
+              <tng-button
+                size="sm"
+                appearance="outline"
+                tone="neutral"
+                (click)="duplicateSelectedPolicy()"
+              >
+                Duplicate
+              </tng-button>
+              <tng-button
+                size="sm"
+                appearance="outline"
+                tone="danger"
+                (click)="archiveSelectedPolicy()"
+              >
+                Archive
+              </tng-button>
+            </div>
+          }
+        </div>
+
+        <div class="form-grid">
+          <tng-form-field>
+            <tng-label>Name</tng-label>
+            <tng-input
+              tngAngularForms
+              name="policy_name"
+              [(ngModel)]="policy.name"
+              [disabled]="policyId !== null"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Status</tng-label>
+            <tng-select
+              [options]="statusOptions"
+              [value]="policyStatus"
+              (valueChange)="policyStatus = $event ?? policyStatus"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Minimum AAL</tng-label>
+            <tng-select
+              [options]="aalOptions"
+              [value]="policy.minimumAal"
+              (valueChange)="policy.minimumAal = $event ?? policy.minimumAal"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Session maximum age (seconds)</tng-label>
+            <tng-input
+              tngAngularForms
+              name="policy_session_age"
+              type="number"
+              [min]="60"
+              [max]="2592000"
+              [(ngModel)]="policy.sessionMaximumAgeSeconds"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Registration</tng-label>
+            <tng-select
+              [options]="registrationModeOptions"
+              [value]="policy.registrationMode"
+              (valueChange)="policy.registrationMode = $event ?? policy.registrationMode"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Client access</tng-label>
+            <tng-select
+              [options]="accessModeOptions"
+              [value]="policy.accessMode"
+              (valueChange)="policy.accessMode = $event ?? policy.accessMode"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+          <tng-form-field class="wide">
+            <tng-label>OIDC providers (one per line)</tng-label>
+            <tng-textarea
+              name="policy_providers"
+              [rows]="3"
+              [value]="policy.providersText"
+              (valueChange)="policy.providersText = $event ?? ''"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Allowed domains</tng-label>
+            <tng-textarea
+              name="policy_domains"
+              [rows]="4"
+              [value]="policy.domainsText"
+              (valueChange)="policy.domainsText = $event ?? ''"
+            />
+          </tng-form-field>
+          <tng-form-field>
+            <tng-label>Allowed emails</tng-label>
+            <tng-textarea
+              name="policy_emails"
+              [rows]="4"
+              [value]="policy.emailsText"
+              (valueChange)="policy.emailsText = $event ?? ''"
+            />
+          </tng-form-field>
+        </div>
+
+        <div class="check-grid">
+          <div class="check-row">
+            <tng-checkbox tngAngularForms name="policy_password" [(ngModel)]="policy.passwordEnabled" />
+            <span>Password</span>
+          </div>
+          <div class="check-row">
+            <tng-checkbox tngAngularForms name="policy_passkey" [(ngModel)]="policy.passkeyEnabled" />
+            <span>Passkey</span>
+          </div>
+          <div class="check-row">
+            <tng-checkbox tngAngularForms name="policy_totp" [(ngModel)]="policy.totpEnabled" />
+            <span>TOTP</span>
+          </div>
+          <div class="check-row">
+            <tng-checkbox
+              tngAngularForms
+              name="policy_verified_email"
+              [(ngModel)]="policy.requireVerifiedEmail"
+            />
+            <span>Verified email</span>
+          </div>
+          <div class="check-row">
+            <tng-checkbox
+              tngAngularForms
+              name="policy_force_reauth"
+              [(ngModel)]="policy.forceReauthentication"
+            />
+            <span>Force reauthentication</span>
+          </div>
+        </div>
+
+        <div class="editor-actions">
+          <tng-button appearance="solid" tone="primary" [disabled]="saving" (click)="savePolicy()">
+            {{ saving ? "Saving..." : "Save policy" }}
+          </tng-button>
+        </div>
+
+        @if (policyHistory.length) {
+          <tng-collapsible class="history" [title]="'Change history (' + policyHistory.length + ')'">
+            @for (version of policyHistory; track version.version) {
+              <div class="history-entry">
+                <strong>Version {{ version.version }}</strong>
+                <span>{{ version.reason || "No reason supplied" }}</span>
+                <small>{{ version.created_by || "system" }} &middot; {{ version.created_at }}</small>
+              </div>
+            }
+          </tng-collapsible>
+        }
+      </div>
+    </tng-card-content>
+  </tng-card>
+}

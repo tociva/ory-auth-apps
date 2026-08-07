@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
+import type { PublicAuthRecovery } from "@idnest/shared-types";
 import { AuthApiService, type ConsentContextResponse } from "./auth-api.service";
+import { AuthRecoveryComponent } from "./auth-recovery.component";
 import { BrandService } from "./brand.service";
 
 const SCOPE_LABELS: Record<string, string> = {
@@ -25,6 +27,7 @@ const SCOPE_LABELS: Record<string, string> = {
             <div class="brand-mark" aria-hidden="true">I</div>
             <h1>Access request unavailable</h1>
             <p>{{ error() }}</p>
+            <idnest-auth-recovery [recovery]="recovery()" />
           </section>
         } @else if (context()) {
           <header class="brand-header">
@@ -69,6 +72,7 @@ const SCOPE_LABELS: Record<string, string> = {
       </main>
     </div>
   `,
+  imports: [AuthRecoveryComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConsentPageComponent implements OnInit {
@@ -79,21 +83,25 @@ export class ConsentPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal("");
+  readonly recovery = signal<PublicAuthRecovery | null>(null);
   readonly context = signal<ConsentContextResponse | null>(null);
 
   async ngOnInit(): Promise<void> {
     const transactionId = this.route.snapshot.queryParamMap.get("transaction");
     if (!transactionId) {
       this.error.set("This access request is incomplete.");
+      this.recovery.set({ kind: "request_context_unavailable" });
       this.loading.set(false);
       return;
     }
     try {
       const context = await this.api.consentContext(transactionId);
       this.context.set(context);
+      this.recovery.set(context.recovery);
       this.brands.apply(context.brand);
-    } catch {
+    } catch (error) {
       this.error.set("This access request has expired. Return to the application and try again.");
+      this.recovery.set(this.api.recoveryFromError(error));
     } finally {
       this.loading.set(false);
     }
@@ -115,8 +123,9 @@ export class ConsentPageComponent implements OnInit {
       const token = action === "accept" ? context.acceptToken : context.rejectToken;
       const response = await this.api.consentAction(context.transactionId, action, token);
       window.location.assign(response.redirectTo);
-    } catch {
+    } catch (error) {
       this.error.set("The access decision could not be completed safely.");
+      this.recovery.set(this.api.recoveryFromError(error) ?? context.recovery);
       this.busy.set(false);
     }
   }

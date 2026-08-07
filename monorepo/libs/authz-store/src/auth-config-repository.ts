@@ -1,11 +1,12 @@
-import type {
-  AuthBrandDefinition,
-  AuthBrandStatus,
-  AuthClientConfigStatus,
-  ConsentMode,
-  LoginPolicyDefinition,
-  OAuthClientAuthConfigSnapshot,
-  ResolvedAuthConfiguration,
+import {
+  DEFAULT_LOGIN_POLICY_NAME,
+  type AuthBrandDefinition,
+  type AuthBrandStatus,
+  type AuthClientConfigStatus,
+  type ConsentMode,
+  type LoginPolicyDefinition,
+  type OAuthClientAuthConfigSnapshot,
+  type ResolvedAuthConfiguration,
 } from "@idnest/shared-types";
 import type { Db } from "./db";
 
@@ -149,9 +150,9 @@ export async function resolveAuthConfiguration(
      CROSS JOIN login_policies p
      JOIN login_policy_versions pv
        ON pv.login_policy_id = p.id AND pv.version = p.current_version
-     WHERE b.key = 'idnest-default' AND p.name = 'default-public'
+     WHERE b.key = 'idnest-default' AND p.name = $2
      LIMIT 1`,
-    [hydraClientId],
+    [hydraClientId, DEFAULT_LOGIN_POLICY_NAME],
   );
   if (!fallback.rows[0]) {
     throw new Error("Default Idnest brand or login policy is not configured");

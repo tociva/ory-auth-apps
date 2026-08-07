@@ -3,6 +3,7 @@ import { Router, RouterLink } from "@angular/router";
 import { TngButtonComponent } from "@tailng-ui/components";
 import { AdminApiService, describeError } from "../../core/admin-api.service";
 import type { HydraClient } from "../../core/admin-types";
+import { getOAuthClientTypeLabel, inferOAuthClientType } from "../../core/oauth-client-profiles";
 import { ToastService } from "../../core/toast/toast.service";
 
 @Component({
@@ -79,6 +80,10 @@ export class ClientsComponent implements OnInit {
       default:
         return client.token_endpoint_auth_method?.trim() || "Not set";
     }
+  }
+
+  clientTypeLabel(client: HydraClient): string {
+    return getOAuthClientTypeLabel(inferOAuthClientType(client));
   }
 
   clientLabel(client: HydraClient): string {

@@ -221,6 +221,10 @@ CREATE INDEX IF NOT EXISTS auth_transactions_expiry_idx
 CREATE INDEX IF NOT EXISTS auth_transactions_client_created_idx
   ON auth_transactions(hydra_client_id, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS auth_transactions_kratos_flow_idx
+  ON auth_transactions(kratos_flow_id)
+  WHERE kratos_flow_id IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS auth_consent_transactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   token_hash text NOT NULL UNIQUE,
@@ -342,49 +346,80 @@ FROM (
 JOIN auth_brands b ON b.key = seed.key
 ON CONFLICT (brand_id, version) DO NOTHING;
 
+WITH policy_renames(old_name, new_name) AS (
+  VALUES
+    ('default-public', 'Open social sign-in'),
+    ('daybook-public', 'Open Google sign-in'),
+    ('daybook-admin', 'Restricted Google sign-in'),
+    ('taskmesh-console', 'Invitation-only Google sign-in'),
+    ('idnest-admin', 'Restricted Google + TOTP sign-in')
+), current_definitions AS (
+  SELECT p.id, p.current_version, pv.definition, renames.new_name
+  FROM login_policies p
+  JOIN policy_renames renames ON renames.old_name = p.name
+  JOIN login_policy_versions pv
+    ON pv.login_policy_id = p.id AND pv.version = p.current_version
+), renamed_policies AS (
+  UPDATE login_policies p
+  SET name = current_definitions.new_name,
+      current_version = p.current_version + 1,
+      updated_at = now()
+  FROM current_definitions
+  WHERE p.id = current_definitions.id
+  RETURNING p.id, p.current_version, current_definitions.definition,
+            current_definitions.new_name
+)
+INSERT INTO login_policy_versions(
+  login_policy_id, version, definition, created_by, reason
+)
+SELECT id, current_version,
+       jsonb_set(definition, '{name}', to_jsonb(new_name), true),
+       'system', 'Renamed seeded policy by authentication behavior'
+FROM renamed_policies;
+
 INSERT INTO login_policies(name, status)
 VALUES
-  ('default-public', 'active'),
-  ('daybook-public', 'active'),
-  ('daybook-admin', 'active'),
-  ('taskmesh-console', 'active'),
-  ('idnest-admin', 'active')
+  ('Open social sign-in', 'active'),
+  ('Open Google sign-in', 'active'),
+  ('Restricted Google sign-in', 'active'),
+  ('Invitation-only Google sign-in', 'active'),
+  ('Restricted Google + TOTP sign-in', 'active')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO login_policy_versions(login_policy_id, version, definition, created_by, reason)
 SELECT p.id, 1, seed.definition, 'system', 'Initial login policy seed'
 FROM (
   VALUES
-    ('default-public', '{
-      "name":"Default public","passwordEnabled":false,"passkeyEnabled":false,
+    ('Open social sign-in', '{
+      "name":"Open social sign-in","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google","apple"],"totpEnabled":false,"minimumAal":"aal1",
       "registrationMode":"enabled","accessMode":"open","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('daybook-public', '{
-      "name":"Daybook public","passwordEnabled":false,"passkeyEnabled":false,
+    ('Open Google sign-in', '{
+      "name":"Open Google sign-in","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
       "registrationMode":"enabled","accessMode":"open","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('daybook-admin', '{
-      "name":"Daybook administrator","passwordEnabled":false,"passkeyEnabled":false,
+    ('Restricted Google sign-in', '{
+      "name":"Restricted Google sign-in","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
       "registrationMode":"disabled","accessMode":"grant-required","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":1800
     }'::jsonb),
-    ('taskmesh-console', '{
-      "name":"Taskmesh console","passwordEnabled":false,"passkeyEnabled":false,
+    ('Invitation-only Google sign-in', '{
+      "name":"Invitation-only Google sign-in","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
       "registrationMode":"invitation-only","accessMode":"grant-required","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('idnest-admin', '{
-      "name":"Idnest administrator","passwordEnabled":false,"passkeyEnabled":false,
+    ('Restricted Google + TOTP sign-in', '{
+      "name":"Restricted Google + TOTP sign-in","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":true,"minimumAal":"aal2",
       "registrationMode":"disabled","accessMode":"grant-required","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
@@ -400,11 +435,11 @@ INSERT INTO oauth_client_auth_configs(
 SELECT seed.client_id, b.id, p.id, 'active', true, seed.consent_mode
 FROM (
   VALUES
-    ('daybook-web', 'daybook', 'daybook-public', 'skip-for-first-party'),
-    ('daybook-admin', 'daybook-admin', 'daybook-admin', 'skip-for-first-party'),
-    ('taskmesh-console', 'taskmesh', 'taskmesh-console', 'skip-for-first-party'),
-    ('idnest-admin', 'idnest-admin', 'idnest-admin', 'skip-for-first-party'),
-    ('idnest-admin-client', 'idnest-admin', 'idnest-admin', 'skip-for-first-party')
+    ('daybook-web', 'daybook', 'Open Google sign-in', 'skip-for-first-party'),
+    ('daybook-admin', 'daybook-admin', 'Restricted Google sign-in', 'skip-for-first-party'),
+    ('taskmesh-console', 'taskmesh', 'Invitation-only Google sign-in', 'skip-for-first-party'),
+    ('idnest-admin', 'idnest-admin', 'Restricted Google + TOTP sign-in', 'skip-for-first-party'),
+    ('idnest-admin-client', 'idnest-admin', 'Restricted Google + TOTP sign-in', 'skip-for-first-party')
 ) AS seed(client_id, brand_key, policy_name, consent_mode)
 JOIN auth_brands b ON b.key = seed.brand_key
 JOIN login_policies p ON p.name = seed.policy_name
@@ -429,7 +464,10 @@ FROM oauth_client_auth_configs c
 ON CONFLICT (hydra_client_id, version) DO NOTHING;
 
 INSERT INTO schema_migrations(version, name)
-VALUES (1, 'auth platform base'), (2, 'client-specific branded authentication')
+VALUES
+  (1, 'auth platform base'),
+  (2, 'client-specific branded authentication'),
+  (3, 'behavior-based login policy names')
 ON CONFLICT (version) DO NOTHING;
 `;
 

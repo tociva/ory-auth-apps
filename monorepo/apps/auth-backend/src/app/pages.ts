@@ -4,7 +4,12 @@
  * server-side and 302-redirects the browser; only `/login` and `/error` render
  * HTML. The privileged Hydra/Kratos admin work is reused from `./handlers`.
  */
-import { isAllowedOrigin } from "@idnest/shared-types";
+import {
+  isAllowedOrigin,
+  publicAuthRecoveryForClient,
+  type HydraClient,
+  type PublicAuthRecovery,
+} from "@idnest/shared-types";
 import { Router, type Request, type Response } from "express";
 import { getAuthBaseUrl, getCorsOrigins } from "./config";
 import { getHumanHint, pickSafeDetails } from "./error-utils";
@@ -129,10 +134,30 @@ function clientDomain(clientUri: string | undefined): string | undefined {
   }
 }
 
+function clientRecovery(
+  client: HydraClient | undefined,
+  clientId: string | undefined,
+): PublicAuthRecovery {
+  if (!client && !clientId) return { kind: "request_context_unavailable" };
+  return publicAuthRecoveryForClient(
+    {
+      hydraClientId: client?.client_id ?? clientId ?? "unknown-client",
+      clientDisplayName: client?.client_name ?? clientId,
+      clientHomeUrl: client?.client_uri,
+    },
+    client?.client_name ?? clientId ?? "the application",
+  );
+}
+
 /** Render the error page from an arbitrary error payload. */
-function sendError(res: Response, payload: unknown, status = 400): void {
+function sendError(
+  res: Response,
+  payload: unknown,
+  status = 400,
+  recovery: PublicAuthRecovery = { kind: "request_context_unavailable" },
+): void {
   res.status(status).type("html").send(
-    renderError({ safeDetails: pickSafeDetails(payload), hint: getHumanHint(payload) }),
+    renderError({ safeDetails: pickSafeDetails(payload), hint: getHumanHint(payload), recovery }),
   );
 }
 
@@ -361,6 +386,7 @@ export function createPagesRouter(): Router {
             email: identityEmail(loaded.identity),
             reason: "This account is not allowed to use this application.",
             switchAccountUrl: switchAccountUrl(loaded.client.client_uri),
+            recovery: clientRecovery(loaded.client, loaded.clientId),
           }),
         );
         return;
@@ -436,6 +462,7 @@ export function createPagesRouter(): Router {
             email: identityEmail(loaded.identity),
             reason: "This account is not allowed to use this application.",
             switchAccountUrl: switchAccountUrl(loaded.client.client_uri),
+            recovery: clientRecovery(loaded.client, loaded.clientId),
           }),
         );
         return;

@@ -3,6 +3,12 @@
  * Mirrors the Hydra client payload shape used by the admin-client bootstrap
  * script so clients created here stay consistent with provisioned clients.
  */
+import {
+  OAUTH_CLIENT_PROFILES,
+  isKnownOAuthClientType,
+  type KnownOAuthClientType,
+  type OAuthClientType,
+} from "@idnest/shared-types";
 import { getAdminOidcClientId, getHydraAdminUrl } from "../config";
 import { errorBody, readError, type HandlerResult } from "./types";
 
@@ -20,9 +26,14 @@ export interface ClientPayload {
     trust_tier?: "first_party" | "partner" | "third_party";
     consent_version?: number;
     remember_offline_access?: boolean;
+    client_type?: OAuthClientType;
     [key: string]: unknown;
   };
+  client_type?: OAuthClientType;
   public?: boolean;
+  grant_types?: string[];
+  response_types?: string[];
+  token_endpoint_auth_method?: string;
   scope?: string;
   redirect_uris?: string[];
   post_logout_redirect_uris?: string[];
@@ -31,8 +42,11 @@ export interface ClientPayload {
 
 /** Required fields for creating a client. */
 function validateForCreate(input: ClientPayload): string | null {
+  const clientType = resolveClientType(input);
+  const profile = getKnownProfile(clientType);
   if (!input.client_id) return "client_id is required";
-  if (!Array.isArray(input.redirect_uris) || input.redirect_uris.length === 0) {
+  if (clientType === "custom") return "client_type=custom is only supported for existing clients";
+  if (profile?.requiresRedirectUris && (!Array.isArray(input.redirect_uris) || input.redirect_uris.length === 0)) {
     return "redirect_uris must be a non-empty array";
   }
   return null;
@@ -55,24 +69,77 @@ function validateRememberOfflineAccess(input: ClientPayload): string | null {
   return null;
 }
 
+function getKnownProfile(clientType: OAuthClientType) {
+  return isKnownOAuthClientType(clientType) ? OAUTH_CLIENT_PROFILES[clientType] : null;
+}
+
+function normalizeClientType(value: unknown): OAuthClientType | null {
+  if (isKnownOAuthClientType(value)) return value;
+  return value === "custom" ? "custom" : null;
+}
+
+function hasOnlyClientCredentials(input: ClientPayload): boolean {
+  const grants = new Set(input.grant_types ?? []);
+  return grants.has("client_credentials") && !grants.has("authorization_code");
+}
+
+function resolveClientType(input: ClientPayload): OAuthClientType {
+  const explicitType = normalizeClientType(input.client_type);
+  if (explicitType) return explicitType;
+
+  const metadataType = normalizeClientType(input.metadata?.client_type);
+  if (metadataType) return metadataType;
+
+  if (hasOnlyClientCredentials(input)) return "service";
+  if (input.public === true) return "spa";
+  return "web";
+}
+
+function resolveKnownType(input: ClientPayload): KnownOAuthClientType | null {
+  const clientType = resolveClientType(input);
+  return isKnownOAuthClientType(clientType) ? clientType : null;
+}
+
+function normalizedProtocolList(input: string[] | undefined, fallback: readonly string[]): string[] {
+  return Array.isArray(input) && input.length > 0 ? input : [...fallback];
+}
+
 function toHydraPayload(input: ClientPayload) {
-  const isPublic = input.public === true;
+  const knownType = resolveKnownType(input);
+  const profile = knownType ? OAUTH_CLIENT_PROFILES[knownType] : null;
+  const metadata = normalizedMetadata(input.metadata);
+  if (knownType) {
+    metadata.client_type = knownType;
+  }
+
+  const grantTypes = profile
+    ? [...profile.grantTypes]
+    : normalizedProtocolList(input.grant_types, OAUTH_CLIENT_PROFILES.web.grantTypes);
+  const responseTypes = profile
+    ? [...profile.responseTypes]
+    : normalizedProtocolList(input.response_types, OAUTH_CLIENT_PROFILES.web.responseTypes);
+  const tokenEndpointAuthMethod =
+    profile?.tokenEndpointAuthMethod ??
+    input.token_endpoint_auth_method ??
+    (input.public === true ? "none" : "client_secret_basic");
+
   return {
     client_id: input.client_id,
     client_name: input.client_name ?? input.client_id,
-    grant_types: ["authorization_code", "refresh_token"],
-    response_types: ["code"],
-    scope: input.scope ?? "openid profile email offline_access",
-    redirect_uris: input.redirect_uris ?? [],
-    post_logout_redirect_uris: input.post_logout_redirect_uris ?? [],
+    grant_types: grantTypes,
+    response_types: responseTypes,
+    scope: input.scope ?? profile?.defaultScope ?? OAUTH_CLIENT_PROFILES.web.defaultScope,
+    redirect_uris: profile?.requiresRedirectUris === false ? [] : input.redirect_uris ?? [],
+    post_logout_redirect_uris:
+      profile?.supportsPostLogoutRedirectUris === false ? [] : input.post_logout_redirect_uris ?? [],
     audience: input.audience ?? [],
     client_uri: input.client_uri || undefined,
     logo_uri: input.logo_uri || undefined,
     policy_uri: input.policy_uri || undefined,
     tos_uri: input.tos_uri || undefined,
     contacts: input.contacts ?? [],
-    metadata: normalizedMetadata(input.metadata),
-    token_endpoint_auth_method: isPublic ? "none" : "client_secret_basic",
+    metadata,
+    token_endpoint_auth_method: tokenEndpointAuthMethod,
   };
 }
 

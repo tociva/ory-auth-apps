@@ -42,6 +42,11 @@
   margin: 0 0 1rem;
 }
 
+.inline-success {
+  color: var(--tng-semantic-accent-success, #15803d);
+  margin: 0 0 1rem;
+}
+
 .loading-row {
   align-items: center;
   color: var(--tng-semantic-foreground-muted, #64748b);
@@ -227,48 +232,70 @@
   padding-top: 1rem;
 }
 
-.mapping-table {
-  border: 1px solid var(--tng-semantic-border-subtle, #e2e8f0);
-  border-radius: 0.65rem;
-  overflow-x: auto;
-}
-
-.mapping-row {
-  align-items: center;
-  border-bottom: 1px solid var(--tng-semantic-border-subtle, #e2e8f0);
-  display: grid;
-  gap: 0.65rem;
-  grid-template-columns:
-    minmax(150px, 1fr) minmax(145px, 1fr) minmax(165px, 1fr)
-    minmax(135px, 0.8fr) minmax(135px, 0.8fr) auto;
-  min-width: 1050px;
-  padding: 0.7rem;
-  position: relative;
-}
-
-.mapping-row:last-child {
-  border-bottom: 0;
-}
-
-.mapping-header {
-  background: var(--tng-semantic-background-subtle, #f8fafc);
-  color: var(--tng-semantic-foreground-muted, #64748b);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.mapping-flags {
-  display: grid;
-  gap: 0.3rem;
-}
-
 .row-actions {
   gap: 0.25rem;
 }
 
-.new-row {
-  background: var(--tng-semantic-background-subtle, #f8fafc);
+.table-controls,
+.mapping-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.table-controls {
+  flex-wrap: wrap;
+}
+
+.mapping-table-toolbar {
+  align-items: flex-start;
+}
+
+.mapping-primary-cell,
+.mapping-secondary-cell {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.mapping-primary-cell small,
+.mapping-secondary-cell small {
+  color: var(--tng-semantic-foreground-muted, #64748b);
+}
+
+.mapping-primary-cell strong,
+.mapping-secondary-cell strong,
+.mapping-secondary-cell span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-badge,
+.trust-badge {
+  text-transform: capitalize;
+}
+
+.status-badge {
+  background: color-mix(in srgb, var(--tng-semantic-accent-success, #16a34a) 12%, transparent);
+  color: var(--tng-semantic-accent-success, #15803d);
+}
+
+.status-badge.disabled,
+.trust-badge.external {
+  background: color-mix(in srgb, var(--tng-semantic-foreground-muted, #64748b) 12%, transparent);
+  color: var(--tng-semantic-foreground-muted, #64748b);
+}
+
+.trust-badge {
+  background: color-mix(in srgb, var(--tng-semantic-accent-brand, #2563eb) 12%, transparent);
+  color: var(--tng-semantic-accent-brand, #1d4ed8);
+}
+
+.mapping-check-grid {
+  margin-top: 1rem;
 }
 
 .history {
@@ -285,14 +312,9 @@
   padding-left: 0.65rem;
 }
 
-.history-entry small,
-.mapping-history small {
+.history-entry small {
   color: var(--tng-semantic-foreground-muted, #64748b);
   display: block;
-}
-
-.mapping-history {
-  position: relative;
 }
 
 .mapping-search {

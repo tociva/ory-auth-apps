@@ -1,3 +1,185 @@
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.type-badge {
+  align-items: center;
+  background: color-mix(
+    in srgb,
+    var(--tng-semantic-accent-brand, var(--brand)) 10%,
+    var(--tng-semantic-background-surface, #fff)
+  );
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--tng-semantic-accent-brand, var(--brand)) 28%,
+      var(--tng-semantic-border-subtle, #dbe3ea)
+    );
+  border-radius: 999px;
+  color: var(--tng-semantic-accent-brand, var(--brand));
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1;
+  min-height: 1.75rem;
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+}
+
+.editor-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-section {
+  border-top: 1px solid var(--tng-semantic-border-subtle, #dbe3ea);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1rem;
+}
+
+.form-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.section-label {
+  color: var(--tng-semantic-foreground-secondary, #4b5563);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.profile-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+}
+
+.profile-option {
+  background: var(--tng-semantic-background-surface, #fff);
+  border: 1px solid var(--tng-semantic-border-subtle, #dbe3ea);
+  border-radius: 0.5rem;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 8.25rem;
+  padding: 0.85rem;
+  text-align: start;
+}
+
+.profile-option:hover:not(:disabled),
+.profile-option.selected {
+  border-color: var(--tng-semantic-accent-brand, var(--brand));
+  box-shadow: 0 0 0 1px var(--tng-semantic-accent-brand, var(--brand));
+}
+
+.profile-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.profile-title {
+  font-weight: 700;
+}
+
+.profile-description {
+  color: var(--tng-semantic-foreground-secondary, #4b5563);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.profile-meta {
+  color: var(--tng-semantic-foreground-muted, #6b7280);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  margin-top: auto;
+  overflow-wrap: anywhere;
+}
+
+.scope-add-row {
+  align-items: flex-start;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.protocol-grid {
+  border: 1px solid var(--tng-semantic-border-subtle, #dbe3ea);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.protocol-row {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(11rem, 0.45fr) minmax(0, 1fr);
+  padding: 0.65rem 0.8rem;
+}
+
+.protocol-row + .protocol-row {
+  border-top: 1px solid var(--tng-semantic-border-subtle, #dbe3ea);
+}
+
+.protocol-row span {
+  color: var(--tng-semantic-foreground-secondary, #4b5563);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.protocol-row code {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.custom-protocol {
+  margin-top: 0.75rem;
+}
+
+.secret-panel {
+  align-items: center;
+  background: #f8fbfd;
+  border: 1px solid var(--tng-semantic-border-subtle, #dbe3ea);
+  border-radius: 0.5rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+}
+
+.secret-panel > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.secret-panel code {
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.secret-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .toggle-row {
   margin-top: 0.75rem;
 }
@@ -9,4 +191,21 @@
 .grant-row {
   justify-content: space-between;
   padding: 0.45rem 0;
+}
+
+@media (max-width: 720px) {
+  .section-heading,
+  .secret-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .scope-add-row,
+  .protocol-row {
+    grid-template-columns: 1fr;
+  }
+
+  .secret-actions {
+    justify-content: flex-start;
+  }
 }

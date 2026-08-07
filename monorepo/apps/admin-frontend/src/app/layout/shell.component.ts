@@ -32,7 +32,9 @@ export class ShellComponent implements OnInit {
       children: [
         { label: "Identities", path: "/identities", icon: "users" },
         { label: "OAuth Clients", path: "/clients", icon: "key-round" },
-        { label: "Authentication", path: "/authentication", icon: "shield-check" },
+        { label: "Auth Brands", path: "/authentication/brands", icon: "palette" },
+        { label: "Login Policies", path: "/authentication/login-policies", icon: "shield-check" },
+        { label: "Client Mappings", path: "/authentication/client-mappings", icon: "link" },
       ],
     },
   ];
@@ -99,8 +101,16 @@ export class ShellComponent implements OnInit {
       this.pageTitle = "OAuth Clients";
       return;
     }
-    if (path.startsWith("/authentication")) {
-      this.pageTitle = "Authentication Configuration";
+    if (path.startsWith("/authentication/brands")) {
+      this.pageTitle = "Auth Brands";
+      return;
+    }
+    if (path.startsWith("/authentication/login-policies")) {
+      this.pageTitle = "Login Policies";
+      return;
+    }
+    if (path.startsWith("/authentication/client-mappings")) {
+      this.pageTitle = "Client Mappings";
       return;
     }
     if (path.startsWith("/identities/")) {

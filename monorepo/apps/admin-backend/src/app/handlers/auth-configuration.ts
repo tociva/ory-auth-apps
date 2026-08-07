@@ -16,12 +16,13 @@ import {
   updateLoginPolicy,
   upsertOAuthClientAuthConfig,
 } from "@idnest/authz-store";
-import type {
-  AuthBrandDefinition,
-  AuthBrandStatus,
-  AuthClientConfigStatus,
-  ConsentMode,
-  LoginPolicyDefinition,
+import {
+  DEFAULT_LOGIN_POLICY_NAME,
+  type AuthBrandDefinition,
+  type AuthBrandStatus,
+  type AuthClientConfigStatus,
+  type ConsentMode,
+  type LoginPolicyDefinition,
 } from "@idnest/shared-types";
 import {
   getAuthAssetAllowedOrigins,
@@ -571,7 +572,7 @@ export async function archivePolicyConfiguration(input: ResourceInput): Promise<
   try {
     const current = await getLoginPolicy(db, input.id);
     if (!current) return { status: 404, body: { error: "Policy not found" } };
-    if (current.name === "default-public") {
+    if (current.name === DEFAULT_LOGIN_POLICY_NAME) {
       return { status: 403, body: { error: "The fallback policy cannot be archived" } };
     }
     const mappings = await listOAuthClientAuthConfigs(db);

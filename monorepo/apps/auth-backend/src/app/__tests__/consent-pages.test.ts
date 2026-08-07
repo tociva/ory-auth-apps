@@ -132,8 +132,10 @@ describe("consent page route", () => {
 
     expect(res.status).toBe(403);
     expect(res.body).toContain("Use a different account");
+    expect(res.body).toContain("Try again");
     expect(res.body).toContain(
       "/logout?return_to=https%3A%2F%2Fadmin-local.idnest.cloud%2F",
     );
+    expect(res.body).toContain('href="https://admin-local.idnest.cloud/"');
   });
 });

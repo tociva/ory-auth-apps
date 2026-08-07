@@ -55,6 +55,7 @@ export interface LoginPolicyDefinition {
 export interface OAuthClientAuthConfigSnapshot {
   hydraClientId: string;
   clientDisplayName?: string;
+  clientHomeUrl?: string;
   status: AuthClientConfigStatus;
   isFirstParty: boolean;
   consentMode: ConsentMode;
@@ -81,12 +82,27 @@ export interface PublicAuthPolicy {
   registrationMode: RegistrationMode;
 }
 
+export type PublicAuthRecovery =
+  | {
+      kind: "application_home";
+      clientDisplayName: string;
+      homeUrl: string;
+    }
+  | {
+      kind: "client_url_not_configured";
+      clientDisplayName: string;
+    }
+  | {
+      kind: "request_context_unavailable";
+    };
+
 export interface PublicAuthContext {
   transactionId: string;
   client: {
     id: string;
     displayName: string;
   };
+  recovery: PublicAuthRecovery;
   brand: AuthBrandDefinition;
   policy: PublicAuthPolicy;
   expiresAt: string;
@@ -123,8 +139,10 @@ export const DEFAULT_IDNEST_BRAND: AuthBrandDefinition = {
   defaultLocale: "en",
 };
 
+export const DEFAULT_LOGIN_POLICY_NAME = "Open social sign-in";
+
 export const DEFAULT_LOGIN_POLICY: LoginPolicyDefinition = {
-  name: "Default Idnest policy",
+  name: DEFAULT_LOGIN_POLICY_NAME,
   passwordEnabled: false,
   passkeyEnabled: false,
   allowedOidcProviders: ["google", "apple"],
@@ -148,4 +166,28 @@ export function toPublicPolicy(policy: LoginPolicyDefinition): PublicAuthPolicy 
     minimumAal: policy.minimumAal,
     registrationMode: policy.registrationMode,
   };
+}
+
+export function normalizeClientHomeUrl(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+export function publicAuthRecoveryForClient(
+  client: Pick<OAuthClientAuthConfigSnapshot, "clientDisplayName" | "clientHomeUrl" | "hydraClientId">,
+  fallbackDisplayName: string,
+): PublicAuthRecovery {
+  const clientDisplayName =
+    client.clientDisplayName?.trim() || fallbackDisplayName.trim() || client.hydraClientId;
+  const homeUrl = normalizeClientHomeUrl(client.clientHomeUrl);
+  return homeUrl
+    ? { kind: "application_home", clientDisplayName, homeUrl }
+    : { kind: "client_url_not_configured", clientDisplayName };
 }

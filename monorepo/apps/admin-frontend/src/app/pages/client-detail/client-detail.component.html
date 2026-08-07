@@ -1,7 +1,13 @@
-<p><a class="cell-link" routerLink="/clients">&larr; Back to OAuth clients</a></p>
+<div class="page-heading">
+  <div>
+    <a class="cell-link" routerLink="/clients">&larr; Back to OAuth clients</a>
+    <h1 class="page-title">{{ createMode ? "Create OAuth client" : form.client_id }}</h1>
+    <p class="muted">{{ createMode ? "Choose an application type and configure its access." : clientTypeLabel }}</p>
+  </div>
+</div>
 
 @if (loading) {
-  <div class="row"><tng-progress-spinner /> <span class="muted">Loading…</span></div>
+  <div class="row"><tng-progress-spinner /> <span class="muted">Loading...</span></div>
 } @else {
   @if (error) {
     <div class="alert alert-error">{{ error }}</div>
@@ -18,170 +24,300 @@
   <div class="stack">
     <tng-card>
       <tng-card-header>
-        <tng-card-title>{{ createMode ? "Create client" : "OAuth client details" }}</tng-card-title>
+        <div class="section-heading">
+          <div>
+            <tng-card-title>{{ createMode ? "Client configuration" : "OAuth client details" }}</tng-card-title>
+            <tng-card-description>{{ clientTypeLabel }}</tng-card-description>
+          </div>
+          @if (!createMode) {
+            <span class="type-badge">{{ clientTypeLabel }}</span>
+          }
+        </div>
       </tng-card-header>
       <tng-card-content>
-        <div class="field-grid">
-          <tng-form-field>
-            <tng-label>Client ID</tng-label>
-            <tng-input
-              tngAngularForms
-              name="client_id"
-              [(ngModel)]="form.client_id"
-              [readonly]="!createMode"
-              placeholder="daybook-user-client"
-            />
-          </tng-form-field>
-          <tng-form-field>
-            <tng-label>Client name</tng-label>
-            <tng-input
-              tngAngularForms
-              name="client_name"
-              [(ngModel)]="form.client_name"
-              [readonly]="protectedAdminClient"
-              placeholder="Dev Daybook User Client"
-            />
-          </tng-form-field>
-          <tng-form-field class="full">
-            <tng-label>Client URL</tng-label>
-            <tng-input
-              tngAngularForms
-              name="client_uri"
-              [(ngModel)]="form.client_uri"
-              [readonly]="protectedAdminClient"
-              placeholder="https://app.daybook.cloud"
-            />
-          </tng-form-field>
-          <tng-form-field class="full">
-            <tng-label>Logo URL</tng-label>
-            <tng-input
-              tngAngularForms
-              name="logo_uri"
-              [(ngModel)]="form.logo_uri"
-              [readonly]="protectedAdminClient"
-              placeholder="https://app.daybook.cloud/logo.png"
-            />
-          </tng-form-field>
-          <tng-form-field class="full">
-            <tng-label>Privacy policy URL</tng-label>
-            <tng-input
-              tngAngularForms
-              name="policy_uri"
-              [(ngModel)]="form.policy_uri"
-              [readonly]="protectedAdminClient"
-              placeholder="https://app.daybook.cloud/privacy"
-            />
-          </tng-form-field>
-          <tng-form-field class="full">
-            <tng-label>Terms URL</tng-label>
-            <tng-input
-              tngAngularForms
-              name="tos_uri"
-              [(ngModel)]="form.tos_uri"
-              [readonly]="protectedAdminClient"
-              placeholder="https://app.daybook.cloud/terms"
-            />
-          </tng-form-field>
-          <tng-form-field>
-            <tng-label>Contacts</tng-label>
-            <tng-input
-              tngAngularForms
-              name="contacts"
-              [(ngModel)]="form.contacts"
-              [readonly]="protectedAdminClient"
-              placeholder="support@daybook.cloud"
-            />
-          </tng-form-field>
-          <tng-form-field>
-            <tng-label>Trust tier</tng-label>
-            <tng-input
-              tngAngularForms
-              name="trust_tier"
-              [(ngModel)]="form.trust_tier"
-              (ngModelChange)="onTrustTierChange()"
-              [readonly]="protectedAdminClient"
-              placeholder="first_party"
-            />
-          </tng-form-field>
-          <tng-form-field>
-            <tng-label>Consent version</tng-label>
-            <tng-input
-              tngAngularForms
-              name="consent_version"
-              [(ngModel)]="form.consent_version"
-              [readonly]="protectedAdminClient"
-              placeholder="1"
-            />
-          </tng-form-field>
-          <div class="row toggle-row full">
-            <tng-switch
-              [(checked)]="form.remember_offline_access"
-              [disabled]="rememberOfflineAccessDisabled"
-              ariaLabel="Remember refresh-token consent"
-            ></tng-switch>
-            <span>Remember refresh-token consent</span>
+        @if (createdClientSecret) {
+          <div class="secret-panel" role="status">
+            <div>
+              <strong>Client secret</strong>
+              <code>{{ revealClientSecret ? createdClientSecret : maskedClientSecret }}</code>
+            </div>
+            <div class="secret-actions">
+              <tng-button appearance="outline" tone="neutral" size="sm" (click)="revealClientSecret = !revealClientSecret">
+                <tng-icon [icon]="revealClientSecret ? 'eye-off' : 'eye'" size="0.95rem" aria-hidden="true" />
+                {{ revealClientSecret ? "Hide" : "Reveal" }}
+              </tng-button>
+              <tng-button appearance="outline" tone="neutral" size="sm" (click)="copyClientSecret()">
+                <tng-icon icon="copy" size="0.95rem" aria-hidden="true" />
+                Copy
+              </tng-button>
+            </div>
           </div>
-          <tng-form-field class="full">
-            <tng-label>Scope</tng-label>
-            <tng-input
-              tngAngularForms
-              name="scope"
-              [(ngModel)]="form.scope"
-              [readonly]="protectedAdminClient"
-            />
-          </tng-form-field>
-          <tng-form-field class="full">
-            <tng-label>Redirect URIs (comma or newline separated)</tng-label>
-            <tng-input
-              tngAngularForms
-              name="redirect_uris"
-              [(ngModel)]="form.redirectUris"
-              [readonly]="protectedAdminClient"
-              placeholder="https://app/callback"
-            />
-          </tng-form-field>
-          <tng-form-field class="full">
-            <tng-label>Post-logout redirect URIs</tng-label>
-            <tng-input
-              tngAngularForms
-              name="post_logout"
-              [(ngModel)]="form.postLogoutUris"
-              [readonly]="protectedAdminClient"
-              placeholder="https://app/logout"
-            />
-          </tng-form-field>
-          <tng-form-field class="full">
-            <tng-label>Audience</tng-label>
-            <tng-input
-              tngAngularForms
-              name="audience"
-              [(ngModel)]="form.audience"
-              [readonly]="protectedAdminClient"
-              placeholder="daybook.cloud-users"
-            />
-          </tng-form-field>
-        </div>
+        }
 
-        <div class="row toggle-row">
-          <tng-switch
-            [(checked)]="form.public"
-            [disabled]="protectedAdminClient"
-            ariaLabel="Public SPA client (PKCE)"
-          ></tng-switch>
-          <span>Public SPA client - uses PKCE (<code>token_endpoint_auth_method=none</code>).</span>
+        <div class="editor-stack">
+          @if (createMode) {
+            <section class="form-section">
+              <div class="section-label">Application type</div>
+              <div class="profile-grid" role="radiogroup" aria-label="OAuth client type">
+                @for (profile of clientProfileOptions; track profile.type) {
+                  <button
+                    type="button"
+                    class="profile-option"
+                    [class.selected]="form.client_type === profile.type"
+                    [attr.aria-checked]="form.client_type === profile.type"
+                    [disabled]="busy || protectedAdminClient"
+                    role="radio"
+                    (click)="onClientTypeSelect(profile.type)"
+                  >
+                    <span class="profile-title">{{ profile.label }}</span>
+                    <span class="profile-description">{{ profile.description }}</span>
+                    <span class="profile-meta">{{ profile.grantTypes.join(", ") }}</span>
+                  </button>
+                }
+              </div>
+            </section>
+          }
+
+          <section class="form-section">
+            <div class="section-label">General</div>
+            <div class="field-grid">
+              <tng-form-field>
+                <tng-label>Client ID</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="client_id"
+                  [(ngModel)]="form.client_id"
+                  [readonly]="!createMode"
+                  placeholder="taskmesh-console"
+                />
+              </tng-form-field>
+              <tng-form-field>
+                <tng-label>Client name</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="client_name"
+                  [(ngModel)]="form.client_name"
+                  [readonly]="protectedAdminClient"
+                  placeholder="Taskmesh Console"
+                />
+              </tng-form-field>
+              <tng-form-field class="full">
+                <tng-label>Client URL</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="client_uri"
+                  [(ngModel)]="form.client_uri"
+                  [readonly]="protectedAdminClient"
+                  placeholder="https://console.taskme.sh"
+                />
+              </tng-form-field>
+              <tng-form-field class="full">
+                <tng-label>Logo URL</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="logo_uri"
+                  [(ngModel)]="form.logo_uri"
+                  [readonly]="protectedAdminClient"
+                  placeholder="https://console.taskme.sh/logo.png"
+                />
+              </tng-form-field>
+              <tng-form-field class="full">
+                <tng-label>Privacy policy URL</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="policy_uri"
+                  [(ngModel)]="form.policy_uri"
+                  [readonly]="protectedAdminClient"
+                  placeholder="https://console.taskme.sh/privacy"
+                />
+              </tng-form-field>
+              <tng-form-field class="full">
+                <tng-label>Terms URL</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="tos_uri"
+                  [(ngModel)]="form.tos_uri"
+                  [readonly]="protectedAdminClient"
+                  placeholder="https://console.taskme.sh/terms"
+                />
+              </tng-form-field>
+              <tng-form-field>
+                <tng-label>Contacts</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="contacts"
+                  [(ngModel)]="form.contacts"
+                  [readonly]="protectedAdminClient"
+                  placeholder="support@daybook.cloud"
+                />
+              </tng-form-field>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-label">Access</div>
+            <div class="field-grid">
+              <tng-form-field class="full">
+                <tng-label>Scope</tng-label>
+                <tng-multiselect
+                  [options]="scopeOptions"
+                  [value]="selectedScopes"
+                  (valueChange)="onScopesChange($event)"
+                  [disabled]="protectedAdminClient"
+                  [getOptionValue]="getScopeOptionValue"
+                  [getOptionLabel]="getScopeOptionLabel"
+                  [trackBy]="trackScopeOption"
+                  [placeholder]="scopePlaceholder"
+                >
+                  <ng-template #tngMultiSelectValueTpl let-selection>
+                    {{ scopeValueLabel(selection.value) }}
+                  </ng-template>
+                </tng-multiselect>
+              </tng-form-field>
+              <div class="scope-add-row full">
+                <tng-input
+                  tngAngularForms
+                  name="custom_scope"
+                  [(ngModel)]="customScope"
+                  [readonly]="protectedAdminClient"
+                  [placeholder]="form.client_type === 'service' ? 'taskmesh.workflow.read' : 'custom.scope'"
+                  (keydown)="onCustomScopeKeydown($event)"
+                />
+                <tng-button
+                  appearance="outline"
+                  tone="neutral"
+                  [disabled]="protectedAdminClient || !customScope.trim()"
+                  (click)="addCustomScope()"
+                >
+                  <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
+                  Add scope
+                </tng-button>
+              </div>
+              <tng-form-field class="full">
+                <tng-label>Audience</tng-label>
+                <tng-textarea
+                  name="audience"
+                  [rows]="2"
+                  [value]="form.audience"
+                  (valueChange)="form.audience = $event ?? ''"
+                  [readonly]="protectedAdminClient"
+                  [placeholder]="selectedProfile?.audiencePlaceholder ?? 'taskmesh-api'"
+                />
+              </tng-form-field>
+            </div>
+          </section>
+
+          @if (showRedirectFields) {
+            <section class="form-section">
+              <div class="section-label">Redirects</div>
+              <div class="field-grid">
+                <tng-form-field class="full">
+                  <tng-label>Redirect URIs</tng-label>
+                  <tng-textarea
+                    name="redirect_uris"
+                    [rows]="3"
+                    [value]="form.redirectUris"
+                    (valueChange)="form.redirectUris = $event ?? ''"
+                    [readonly]="protectedAdminClient"
+                    [placeholder]="selectedProfile?.redirectPlaceholder ?? 'https://app/callback'"
+                  />
+                </tng-form-field>
+                @if (showPostLogoutFields) {
+                  <tng-form-field class="full">
+                    <tng-label>Post-logout redirect URIs</tng-label>
+                    <tng-textarea
+                      name="post_logout"
+                      [rows]="2"
+                      [value]="form.postLogoutUris"
+                      (valueChange)="form.postLogoutUris = $event ?? ''"
+                      [readonly]="protectedAdminClient"
+                      placeholder="https://console-local.taskme.sh/auth/logout"
+                    />
+                  </tng-form-field>
+                }
+              </div>
+            </section>
+          }
+
+          <section class="form-section">
+            <div class="section-label">Consent metadata</div>
+            <div class="field-grid">
+              <tng-form-field>
+                <tng-label>Trust tier</tng-label>
+                <tng-select
+                  [options]="trustTierOptions"
+                  [value]="form.trust_tier"
+                  (valueChange)="onTrustTierSelect($event)"
+                  [disabled]="protectedAdminClient"
+                  [getOptionValue]="getSelectOptionValue"
+                  [getOptionLabel]="getSelectOptionLabel"
+                />
+              </tng-form-field>
+              <tng-form-field>
+                <tng-label>Consent version</tng-label>
+                <tng-input
+                  tngAngularForms
+                  name="consent_version"
+                  [(ngModel)]="form.consent_version"
+                  [readonly]="protectedAdminClient"
+                  placeholder="1"
+                />
+              </tng-form-field>
+              @if (supportsRefreshToken) {
+                <div class="row toggle-row full">
+                  <tng-switch
+                    [(checked)]="form.remember_offline_access"
+                    [disabled]="rememberOfflineAccessDisabled"
+                    ariaLabel="Remember refresh-token consent"
+                  ></tng-switch>
+                  <span>Remember refresh-token consent</span>
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-label">Protocol summary</div>
+            <div class="protocol-grid">
+              @for (row of protocolSummary; track row.label) {
+                <div class="protocol-row">
+                  <span>{{ row.label }}</span>
+                  <code>{{ row.value }}</code>
+                </div>
+              }
+            </div>
+            @if (customClient) {
+              <div class="field-grid custom-protocol">
+                <tng-form-field>
+                  <tng-label>Grant types</tng-label>
+                  <tng-input tngAngularForms name="grant_types" [(ngModel)]="form.grantTypes" readonly />
+                </tng-form-field>
+                <tng-form-field>
+                  <tng-label>Response types</tng-label>
+                  <tng-input tngAngularForms name="response_types" [(ngModel)]="form.responseTypes" readonly />
+                </tng-form-field>
+                <tng-form-field class="full">
+                  <tng-label>Token endpoint auth method</tng-label>
+                  <tng-input
+                    tngAngularForms
+                    name="token_endpoint_auth_method"
+                    [(ngModel)]="form.tokenEndpointAuthMethod"
+                    readonly
+                  />
+                </tng-form-field>
+              </div>
+            }
+          </section>
         </div>
 
         <div class="row actions-row">
-          <tng-button
-            appearance="solid"
-            tone="primary"
-            [disabled]="busy || !form.client_id || protectedAdminClient"
-            (click)="submit()"
-          >
+          <tng-button appearance="solid" tone="primary" [disabled]="!canSubmit" (click)="submit()">
+            <tng-icon icon="save" size="0.95rem" aria-hidden="true" />
             {{ createMode ? "Create client" : "Save changes" }}
           </tng-button>
           @if (!createMode && !protectedAdminClient) {
             <tng-button appearance="outline" tone="danger" [disabled]="busy" (click)="remove()">
+              <tng-icon icon="trash2" size="0.95rem" aria-hidden="true" />
               Delete client
             </tng-button>
           }

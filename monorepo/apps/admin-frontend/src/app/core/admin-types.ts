@@ -6,6 +6,7 @@ import type {
   KratosUser,
   KratosVerifiableAddress,
   LoginPolicyDefinition,
+  OAuthClientType,
 } from "@idnest/shared-types";
 
 export const IDNEST_ADMIN_CLIENT_ID = "idnest-admin-client";
@@ -38,15 +39,20 @@ export interface HydraClient {
   tos_uri?: string;
   contacts?: string[];
   metadata?: {
+    client_type?: OAuthClientType;
     trust_tier?: "first_party" | "partner" | "third_party";
     consent_version?: number;
     remember_offline_access?: boolean;
+    [key: string]: unknown;
   } | null;
+  grant_types?: string[];
+  response_types?: string[];
   scope?: string;
   redirect_uris?: string[];
   post_logout_redirect_uris?: string[];
   audience?: string[];
   token_endpoint_auth_method?: string;
+  client_secret?: string;
 }
 
 /** Editable client form model used by the clients page. */
@@ -63,7 +69,11 @@ export interface ClientFormValue {
     consent_version: number;
     remember_offline_access: boolean;
   };
+  client_type: OAuthClientType;
   public: boolean;
+  grant_types?: string[];
+  response_types?: string[];
+  token_endpoint_auth_method?: string;
   scope: string;
   redirect_uris: string[];
   post_logout_redirect_uris: string[];

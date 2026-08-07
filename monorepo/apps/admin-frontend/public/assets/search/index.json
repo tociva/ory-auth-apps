@@ -16,5 +16,29 @@
     "description": "Create a new Hydra OAuth 2.0 client application",
     "keywords": ["new", "create", "add", "oauth", "client", "hydra"],
     "url": "/clients/new"
+  },
+  {
+    "title": "Auth Brands",
+    "description": "Manage authentication journey branding, copy, colors, logos, and legal links",
+    "keywords": ["authentication", "auth", "brands", "branding", "login", "copy"],
+    "url": "/authentication/brands"
+  },
+  {
+    "title": "Login Policies",
+    "description": "Manage authentication methods, AAL, session freshness, and access gates",
+    "keywords": ["authentication", "auth", "policy", "policies", "aal", "totp", "passkey"],
+    "url": "/authentication/login-policies"
+  },
+  {
+    "title": "Client Mappings",
+    "description": "Assign OAuth clients to authentication brands, login policies, and consent behavior",
+    "keywords": ["authentication", "auth", "client", "mappings", "brands", "policies", "consent"],
+    "url": "/authentication/client-mappings"
+  },
+  {
+    "title": "New Client Mapping",
+    "description": "Create an authentication brand and login policy mapping for an OAuth client",
+    "keywords": ["authentication", "auth", "client", "mapping", "new", "create", "brand", "policy"],
+    "url": "/authentication/client-mappings/new"
   }
 ]

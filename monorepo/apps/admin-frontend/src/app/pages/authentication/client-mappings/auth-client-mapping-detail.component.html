@@ -1,0 +1,164 @@
+<div class="page-heading">
+  <div>
+    <a class="cell-link" routerLink="/authentication/client-mappings">Back to client mappings</a>
+    <h1 class="page-title">{{ createMode ? "New Mapping" : clientDisplayName() }}</h1>
+    <p class="muted">
+      {{ createMode ? "Create a brand and policy mapping for an OAuth client." : "Edit brand, policy, and consent behavior for this OAuth client." }}
+    </p>
+  </div>
+</div>
+
+@if (loading) {
+  <div class="loading-row" role="status">
+    <tng-progress-spinner />
+    <span class="muted">Loading client mapping...</span>
+  </div>
+} @else {
+  @if (error) {
+    <p class="inline-error" role="alert">{{ error }}</p>
+  }
+  @if (notice) {
+    <p class="inline-success" role="status">{{ notice }}</p>
+  }
+
+  <div class="stack">
+    <tng-card>
+      <tng-card-header>
+        <div class="section-heading">
+          <div>
+            <tng-card-title>{{ createMode ? "Create mapping" : "Mapping details" }}</tng-card-title>
+            <tng-card-description>
+              Active mappings require an active brand and an active login policy.
+            </tng-card-description>
+          </div>
+          @if (!createMode) {
+            <tng-button appearance="outline" tone="danger" [disabled]="busy" (click)="archiveMapping()">
+              <tng-icon icon="trash2" size="0.95rem" aria-hidden="true" />
+              Delete
+            </tng-button>
+          }
+        </div>
+      </tng-card-header>
+      <tng-card-content>
+        @if (noAvailableClients()) {
+          <p class="inline-error" role="alert">All OAuth clients already have authentication mappings.</p>
+        }
+
+        <div class="form-grid">
+          @if (createMode) {
+            <tng-form-field class="wide">
+              <tng-label>OAuth client</tng-label>
+              <tng-select
+                [options]="clientSelectOptions()"
+                [value]="form.clientId"
+                (valueChange)="onClientChange($event)"
+                [getOptionValue]="getSelectValue"
+                [getOptionLabel]="getSelectLabel"
+              />
+            </tng-form-field>
+          } @else {
+            <tng-form-field class="wide">
+              <tng-label>OAuth client</tng-label>
+              <tng-input tngAngularForms name="mapping_client_id" [(ngModel)]="form.clientId" readonly />
+            </tng-form-field>
+          }
+
+          <tng-form-field>
+            <tng-label>Brand</tng-label>
+            <tng-select
+              [options]="brandSelectOptions()"
+              [value]="form.brandId"
+              (valueChange)="onBrandChange($event)"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+
+          <tng-form-field>
+            <tng-label>Login policy</tng-label>
+            <tng-select
+              [options]="policySelectOptions()"
+              [value]="form.loginPolicyId"
+              (valueChange)="onPolicyChange($event)"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+
+          <tng-form-field>
+            <tng-label>Status</tng-label>
+            <tng-select
+              [options]="mappingStatusOptions"
+              [value]="form.status"
+              (valueChange)="onStatusChange($event)"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+
+          <tng-form-field>
+            <tng-label>Consent mode</tng-label>
+            <tng-select
+              [options]="consentModeOptions"
+              [value]="form.consentMode"
+              (valueChange)="onConsentModeChange($event)"
+              [getOptionValue]="getSelectValue"
+              [getOptionLabel]="getSelectLabel"
+            />
+          </tng-form-field>
+
+          <tng-form-field class="wide">
+            <tng-label>Change reason</tng-label>
+            <tng-input
+              tngAngularForms
+              name="mapping_reason"
+              [(ngModel)]="reason"
+              placeholder="Optional audit note"
+            />
+          </tng-form-field>
+        </div>
+
+        <div class="check-grid mapping-check-grid">
+          <div class="check-row">
+            <tng-switch
+              [checked]="form.isFirstParty"
+              [disabled]="busy"
+              ariaLabel="First-party OAuth client"
+              (checkedChange)="onFirstPartyChange($event)"
+            ></tng-switch>
+            <span>First-party OAuth client</span>
+          </div>
+        </div>
+
+        <div class="editor-actions">
+          <tng-button appearance="solid" tone="primary" [disabled]="!canSave()" (click)="saveMapping()">
+            <tng-icon icon="save" size="0.95rem" aria-hidden="true" />
+            {{ busy ? "Saving..." : "Save mapping" }}
+          </tng-button>
+          <tng-button appearance="outline" tone="neutral" routerLink="/authentication/client-mappings">
+            Cancel
+          </tng-button>
+        </div>
+      </tng-card-content>
+    </tng-card>
+
+    @if (!createMode && history.length) {
+      <tng-card>
+        <tng-card-header>
+          <tng-card-title>Change history</tng-card-title>
+        </tng-card-header>
+        <tng-card-content>
+          <tng-collapsible class="history" [title]="'Versions (' + history.length + ')'">
+            @for (version of history; track version.version) {
+              <div class="history-entry">
+                <strong>Version {{ version.version }}</strong>
+                <span>{{ version.reason || historySummary(version) }}</span>
+                <small>{{ version.created_by || "system" }} &middot; {{ version.created_at }}</small>
+              </div>
+            }
+          </tng-collapsible>
+        </tng-card-content>
+      </tng-card>
+    }
+  </div>
+}

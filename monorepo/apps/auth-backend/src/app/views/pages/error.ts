@@ -1,3 +1,4 @@
+import type { PublicAuthRecovery } from "@idnest/shared-types";
 import { esc } from "../escape";
 import { layout } from "../layout";
 
@@ -6,6 +7,24 @@ export interface ErrorViewModel {
   safeDetails: Record<string, unknown>;
   /** Optional human-friendly hint for common OAuth pitfalls. */
   hint?: string | null;
+  recovery?: PublicAuthRecovery;
+}
+
+function recoveryBlock(recovery: PublicAuthRecovery | undefined): string {
+  if (!recovery || recovery.kind === "request_context_unavailable") {
+    return `<div class="recovery-panel">
+      <p class="hint-body">We can't determine which application started this request. Return to the application and start sign-in again.</p>
+    </div>`;
+  }
+  if (recovery.kind === "client_url_not_configured") {
+    return `<div class="recovery-panel">
+      <p class="hint-body">${esc(recovery.clientDisplayName)} does not have a Client URL configured, so we can't return you automatically. Go back to the application and start sign-in again. If this continues, contact the application administrator.</p>
+    </div>`;
+  }
+  return `<div class="recovery-panel">
+    <a href="${esc(recovery.homeUrl)}" class="btn btn-primary">Try again</a>
+    <p class="recovery-hint">This will return you to ${esc(recovery.clientDisplayName)} to start a new sign-in request.</p>
+  </div>`;
 }
 
 /** Renders the error page. The Copy button uses a tiny inline script. */
@@ -28,9 +47,7 @@ export function renderError(vm: ErrorViewModel): string {
       <button type="button" class="btn btn-outline btn-sm" id="copy-btn">Copy</button>
     </div>
     <pre class="error-pre" id="details">${esc(json)}</pre>
-    <div class="card-footer">
-      <a href="/" class="link">Go back home</a>
-    </div>
+    ${recoveryBlock(vm.recovery)}
   </main>
 </div>`;
 

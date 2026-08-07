@@ -1,3 +1,4 @@
+import { DEFAULT_LOGIN_POLICY_NAME } from "@idnest/shared-types";
 import { describe, expect, it } from "vitest";
 import type { Db } from "./db";
 import {
@@ -33,7 +34,7 @@ const brand = {
 };
 
 const policy = {
-  name: "daybook-public",
+  name: "Open Google sign-in",
   passwordEnabled: false,
   passkeyEnabled: false,
   allowedOidcProviders: ["google"],
@@ -82,9 +83,11 @@ describe("authentication configuration repository", () => {
 
   it("uses the neutral registry fallback when no mapping exists", async () => {
     let call = 0;
+    const values: unknown[][] = [];
     const db = {
-      query: async () => {
+      query: async (_sql: string, queryValues: unknown[]) => {
         call += 1;
+        values.push(queryValues);
         return { rows: call === 1 ? [] : [resolvedRow("unknown-client")] };
       },
     } as unknown as Db;
@@ -93,6 +96,7 @@ describe("authentication configuration repository", () => {
 
     expect(resolved.usedFallback).toBe(true);
     expect(resolved.client.hydraClientId).toBe("unknown-client");
+    expect(values[1]).toEqual(["unknown-client", DEFAULT_LOGIN_POLICY_NAME]);
   });
 });
 

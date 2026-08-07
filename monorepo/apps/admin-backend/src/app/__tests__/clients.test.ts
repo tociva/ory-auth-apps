@@ -42,6 +42,45 @@ describe("oauth client management", () => {
     expect(body.grant_types).toContain("authorization_code");
   });
 
+  it("creates a machine-to-machine client without redirect URIs", async () => {
+    const fetchMock = mockFetchByUrl([
+      { match: "/admin/clients", result: { ok: true, status: 201, json: { client_id: "daybook-cloud" } } },
+    ]);
+    const res = await createClient({
+      client_id: "daybook-cloud",
+      client_name: "Daybook Cloud",
+      client_type: "service",
+      scope: "taskmesh.workflow.read taskmesh.workflow.execute taskmesh.execution.read",
+      audience: ["taskmesh-api"],
+    });
+
+    expect(res.status).toBe(201);
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body).toMatchObject({
+      client_id: "daybook-cloud",
+      client_name: "Daybook Cloud",
+      grant_types: ["client_credentials"],
+      response_types: ["code"],
+      scope: "taskmesh.workflow.read taskmesh.workflow.execute taskmesh.execution.read",
+      redirect_uris: [],
+      post_logout_redirect_uris: [],
+      audience: ["taskmesh-api"],
+      token_endpoint_auth_method: "client_secret_basic",
+      metadata: { client_type: "service" },
+    });
+  });
+
+  it("requires redirect URIs for interactive client profiles", async () => {
+    const fetchMock = mockFetchByUrl([]);
+    const res = await createClient({ client_id: "taskmesh-console", client_type: "spa" });
+
+    expect(res).toMatchObject({
+      status: 400,
+      body: { error: "redirect_uris must be a non-empty array" },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("defaults confidential clients to client_secret_basic", async () => {
     const fetchMock = mockFetchByUrl([
       { match: "/admin/clients", result: { ok: true, status: 201, json: {} } },
@@ -101,6 +140,28 @@ describe("oauth client management", () => {
     mockFetchByUrl([{ match: "/admin/clients/app1", result: { ok: true, json: { client_id: "app1" } } }]);
     expect(await updateClient({ client_id: "app1", redirect_uris: ["https://app1/cb"] })).toMatchObject({
       status: 200,
+    });
+  });
+
+  it("preserves custom protocol fields on update", async () => {
+    const fetchMock = mockFetchByUrl([
+      { match: "/admin/clients/legacy", result: { ok: true, json: { client_id: "legacy" } } },
+    ]);
+    await updateClient({
+      client_id: "legacy",
+      client_type: "custom",
+      grant_types: ["urn:ietf:params:oauth:grant-type:device_code"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "private_key_jwt",
+      redirect_uris: ["https://legacy/callback"],
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body).toMatchObject({
+      grant_types: ["urn:ietf:params:oauth:grant-type:device_code"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "private_key_jwt",
+      redirect_uris: ["https://legacy/callback"],
     });
   });
 

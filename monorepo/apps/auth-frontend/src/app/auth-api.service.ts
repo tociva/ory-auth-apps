@@ -1,10 +1,11 @@
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import type {
   AuthBrandDefinition,
   KratosFlow,
   PublicAuthContext,
   PublicAuthPolicy,
+  PublicAuthRecovery,
 } from "@idnest/shared-types";
 import { firstValueFrom } from "rxjs";
 
@@ -16,6 +17,7 @@ export interface LoginFlowContextResponse {
 export interface ConsentContextResponse {
   transactionId: string;
   client: { id: string; displayName: string };
+  recovery: PublicAuthRecovery;
   brand: AuthBrandDefinition;
   policy: PublicAuthPolicy;
   requestedScopes: string[];
@@ -23,6 +25,11 @@ export interface ConsentContextResponse {
   expiresAt: string;
   acceptToken: string;
   rejectToken: string;
+}
+
+export interface AuthRecoveryErrorBody {
+  error?: string;
+  recovery?: PublicAuthRecovery;
 }
 
 @Injectable({ providedIn: "root" })
@@ -69,5 +76,11 @@ export class AuthApiService {
         { withCredentials: true },
       ),
     );
+  }
+
+  recoveryFromError(error: unknown): PublicAuthRecovery | null {
+    if (!(error instanceof HttpErrorResponse)) return null;
+    const body = error.error as AuthRecoveryErrorBody | null;
+    return body?.recovery ?? null;
   }
 }

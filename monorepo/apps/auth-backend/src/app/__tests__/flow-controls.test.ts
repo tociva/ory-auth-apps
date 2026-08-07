@@ -5,6 +5,7 @@ import {
   hiddenInputsFromFlow,
   oidcSubmitButtonsFromFlow,
 } from "../views/pages/flow-controls";
+import { renderError } from "../views/pages/error";
 import { renderLogin } from "../views/pages/login";
 import { renderSettings } from "../views/pages/settings";
 
@@ -133,5 +134,36 @@ describe("factor settings controls", () => {
     expect(html).toContain("Save authenticator");
     expect(html).toContain("Continue sign-in");
     expect(html).toContain("/oauth2/login/complete?transaction=tok");
+  });
+});
+
+describe("server-rendered auth errors", () => {
+  it("renders configured application recovery without falling back to the auth root", () => {
+    const html = renderError({
+      safeDetails: { error: "expired_transaction" },
+      recovery: {
+        kind: "application_home",
+        clientDisplayName: "Example App",
+        homeUrl: "https://app.example.test/",
+      },
+    });
+
+    expect(html).toContain('href="https://app.example.test/"');
+    expect(html).toContain("Try again");
+    expect(html).toContain("This will return you to Example App");
+    expect(html).not.toContain('href="/"');
+  });
+
+  it("renders a clear message when the client URL is not configured", () => {
+    const html = renderError({
+      safeDetails: { error: "expired_transaction" },
+      recovery: {
+        kind: "client_url_not_configured",
+        clientDisplayName: "Example App",
+      },
+    });
+
+    expect(html).toContain("Example App does not have a Client URL configured");
+    expect(html).not.toContain("Try again");
   });
 });
