@@ -3,129 +3,177 @@
     <h1 class="page-title">Client Mappings</h1>
     <p class="muted">Assign OAuth clients to versioned brands, login policies, and consent behavior.</p>
   </div>
-  <tng-button appearance="outline" tone="neutral" [disabled]="loading" (click)="reload()">
-    Reload
-  </tng-button>
+  <div class="page-heading-actions">
+    <tng-button appearance="solid" tone="primary" routerLink="/authentication/client-mappings/new">
+      <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
+      New Mapping
+    </tng-button>
+
+    <div
+      class="list-filter-popover"
+      tngPopover
+      #filterPopover="tngPopover"
+      side="bottom"
+      align="end"
+      ariaLabel="Filter client mappings"
+    >
+      <tng-tooltip text="Filter">
+        <button
+          trigger
+          type="button"
+          class="list-icon-button"
+          [tngPopoverTrigger]="filterPopover"
+          aria-label="Filter client mappings"
+        >
+          <tng-icon icon="funnel" size="1rem" aria-hidden="true" />
+        </button>
+      </tng-tooltip>
+
+      <section tngPopoverPanel class="list-filter-panel">
+        <tng-form-field>
+          <tng-label>Search</tng-label>
+          <tng-input
+            tngAngularForms
+            name="mapping_filter_q"
+            type="search"
+            [(ngModel)]="filterQ"
+            placeholder="Search mappings"
+          />
+        </tng-form-field>
+        <tng-form-field>
+          <tng-label>Status</tng-label>
+          <tng-select
+            [options]="statusFilterOptions"
+            [value]="filterStatus"
+            (valueChange)="filterStatus = $event ?? ''"
+            [getOptionValue]="getSelectValue"
+            [getOptionLabel]="getSelectLabel"
+          />
+        </tng-form-field>
+        <div class="list-filter-actions">
+          <tng-button type="button" appearance="outline" tone="neutral" (click)="clearFilters()">
+            Clear
+          </tng-button>
+          <tng-button type="button" appearance="solid" tone="primary" (click)="applyFilters()">
+            Apply
+          </tng-button>
+        </div>
+      </section>
+    </div>
+  </div>
 </div>
 
 @if (error) {
   <p class="inline-error" role="alert">{{ error }}</p>
 }
 
-<tng-card>
-  <tng-card-header>
-    <div class="section-heading mapping-table-toolbar">
-      <div>
-        <tng-card-title>Mappings</tng-card-title>
-        <tng-card-description>
-          Freeze the selected brand and policy on every new OAuth transaction.
-        </tng-card-description>
-      </div>
-      <div class="table-controls">
-        <tng-form-field class="mapping-search">
-          <tng-label class="sr-only">Search client mappings</tng-label>
-          <tng-input
-            tngAngularForms
-            name="mapping_search"
-            type="search"
-            [(ngModel)]="mappingSearch"
-            placeholder="Search mappings"
-          />
-        </tng-form-field>
-        <tng-button appearance="solid" tone="primary" routerLink="/authentication/client-mappings/new">
-          <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
-          New Mapping
-        </tng-button>
-      </div>
+<tng-table
+  [columns]="columns"
+  [items]="pagedRows"
+  [loading]="loading"
+  [error]="!!error"
+  ariaLabel="Client authentication mappings"
+  density="comfortable"
+  scrollAxis="x"
+>
+  <ng-template tngTableCellTemplate="client" let-row="row">
+    @let mapping = asMappingRow(row);
+    <div class="mapping-primary-cell">
+      <a class="cell-link" [routerLink]="['/authentication/client-mappings', mapping.clientId]">
+        {{ mapping.clientId }}
+      </a>
+      <small>{{ mapping.clientName || "No display name" }}</small>
     </div>
-  </tng-card-header>
-  <tng-card-content>
-    <tng-table
-      [columns]="columns"
-      [items]="visibleRows()"
-      [loading]="loading"
-      [error]="!!error"
-      ariaLabel="Client authentication mappings"
-      density="comfortable"
-      scrollAxis="x"
-    >
-      <ng-template tngTableCellTemplate="client" let-row="row">
-        @let mapping = asMappingRow(row);
-        <div class="mapping-primary-cell">
-          <a class="cell-link" [routerLink]="['/authentication/client-mappings', mapping.clientId]">
-            {{ mapping.clientId }}
-          </a>
-          <small>{{ mapping.clientName || "No display name" }}</small>
-        </div>
-      </ng-template>
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="brand" let-row="row">
-        @let mapping = asMappingRow(row);
-        <div class="mapping-secondary-cell">
-          <strong>{{ mapping.brandLabel }}</strong>
-          <small>{{ mapping.brandMeta }}</small>
-        </div>
-      </ng-template>
+  <ng-template tngTableCellTemplate="brand" let-row="row">
+    @let mapping = asMappingRow(row);
+    <div class="mapping-secondary-cell">
+      <strong>{{ mapping.brandLabel }}</strong>
+      <small>{{ mapping.brandMeta }}</small>
+    </div>
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="policy" let-row="row">
-        @let mapping = asMappingRow(row);
-        <div class="mapping-secondary-cell">
-          <strong>{{ mapping.policyLabel }}</strong>
-          <small>{{ mapping.policyMeta }}</small>
-        </div>
-      </ng-template>
+  <ng-template tngTableCellTemplate="policy" let-row="row">
+    @let mapping = asMappingRow(row);
+    <div class="mapping-secondary-cell">
+      <strong>{{ mapping.policyLabel }}</strong>
+      <small>{{ mapping.policyMeta }}</small>
+    </div>
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="consent" let-row="row">
-        @let mapping = asMappingRow(row);
-        {{ consentModeLabel(mapping.consentMode) }}
-      </ng-template>
+  <ng-template tngTableCellTemplate="consent" let-row="row">
+    @let mapping = asMappingRow(row);
+    {{ consentModeLabel(mapping.consentMode) }}
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="trust" let-row="row">
-        @let mapping = asMappingRow(row);
-        <span tngBadge class="trust-badge" [class.external]="!mapping.isFirstParty">
-          {{ mapping.isFirstParty ? "First party" : "External" }}
-        </span>
-      </ng-template>
+  <ng-template tngTableCellTemplate="trust" let-row="row">
+    @let mapping = asMappingRow(row);
+    <span tngBadge class="trust-badge" [class.external]="!mapping.isFirstParty">
+      {{ mapping.isFirstParty ? "First party" : "External" }}
+    </span>
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="status" let-row="row">
-        @let mapping = asMappingRow(row);
-        <span tngBadge class="status-badge" [class.disabled]="mapping.status === 'disabled'">
-          {{ statusLabel(mapping.status) }}
-        </span>
-      </ng-template>
+  <ng-template tngTableCellTemplate="status" let-row="row">
+    @let mapping = asMappingRow(row);
+    <span tngBadge class="status-badge" [class.disabled]="mapping.status === 'disabled'">
+      {{ statusLabel(mapping.status) }}
+    </span>
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="updated" let-row="row">
-        @let mapping = asMappingRow(row);
-        <div class="mapping-secondary-cell">
-          <span>{{ dateLabel(mapping.updatedAt) }}</span>
-          <small>v{{ mapping.version }}</small>
-        </div>
-      </ng-template>
+  <ng-template tngTableCellTemplate="updated" let-row="row">
+    @let mapping = asMappingRow(row);
+    <div class="mapping-secondary-cell">
+      <span>{{ dateLabel(mapping.updatedAt) }}</span>
+      <small>v{{ mapping.version }}</small>
+    </div>
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="actions" let-row="row">
-        @let mapping = asMappingRow(row);
-        <div class="row-actions mapping-actions">
-          <tng-button
-            size="sm"
-            appearance="outline"
-            tone="neutral"
-            [routerLink]="['/authentication/client-mappings', mapping.clientId]"
-          >
-            <tng-icon icon="pencil" size="0.9rem" aria-hidden="true" />
-            Edit
-          </tng-button>
-          <tng-button
-            size="sm"
-            appearance="outline"
-            tone="danger"
-            [disabled]="busyClientId === mapping.clientId"
-            (click)="archiveMapping(mapping)"
-          >
-            <tng-icon icon="trash2" size="0.9rem" aria-hidden="true" />
-            Delete
-          </tng-button>
-        </div>
-      </ng-template>
-    </tng-table>
-  </tng-card-content>
-</tng-card>
+  <ng-template tngTableCellTemplate="actions" let-row="row">
+    @let mapping = asMappingRow(row);
+    <div class="row-actions">
+      <tng-tooltip text="Edit">
+        <tng-button
+          trigger
+          type="button"
+          size="sm"
+          appearance="ghost"
+          class="list-icon-action"
+          tone="neutral"
+          [routerLink]="['/authentication/client-mappings', mapping.clientId]"
+        >
+          <tng-icon icon="pencil" size="0.95rem" aria-hidden="true" />
+          <span class="sr-only">Edit</span>
+        </tng-button>
+      </tng-tooltip>
+      <tng-tooltip text="Delete">
+        <tng-button
+          trigger
+          type="button"
+          size="sm"
+          appearance="ghost"
+          class="list-icon-action"
+          tone="danger"
+          [disabled]="busyClientId === mapping.clientId"
+          (click)="archiveMapping(mapping)"
+        >
+          <tng-icon icon="trash2" size="0.95rem" aria-hidden="true" />
+          <span class="sr-only">Delete</span>
+        </tng-button>
+      </tng-tooltip>
+    </div>
+  </ng-template>
+</tng-table>
+
+<div class="list-pagination">
+  <tng-paginator
+    ariaLabel="Client mappings pagination"
+    [pageIndex]="pageIndex"
+    [pageSize]="query.pageSize"
+    [totalItems]="filteredTotal"
+    [pageSizeOptions]="pageSizeOptions"
+    [showRange]="true"
+    [showPageSize]="true"
+    (pageChange)="onPageChange($event)"
+  />
+</div>

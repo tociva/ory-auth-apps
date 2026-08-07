@@ -1,88 +1,139 @@
-<div class="toolbar">
+<div class="page-heading">
   <div>
     <h1 class="page-title">OAuth Clients</h1>
-    <p class="muted">{{ rows.length }} registered</p>
+    <p class="muted">Registered OAuth 2.0 clients.</p>
   </div>
-  <tng-button appearance="outline" size="sm" tone="neutral" routerLink="/clients/new">
-    New client
-  </tng-button>
+  <div class="page-heading-actions">
+    <tng-button appearance="solid" tone="primary" routerLink="/clients/new">
+      <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
+      New client
+    </tng-button>
+
+    <div
+      class="list-filter-popover"
+      tngPopover
+      #filterPopover="tngPopover"
+      side="bottom"
+      align="end"
+      ariaLabel="Filter clients"
+    >
+      <tng-tooltip text="Filter">
+        <button
+          trigger
+          type="button"
+          class="list-icon-button"
+          [tngPopoverTrigger]="filterPopover"
+          aria-label="Filter clients"
+        >
+          <tng-icon icon="funnel" size="1rem" aria-hidden="true" />
+        </button>
+      </tng-tooltip>
+
+      <section tngPopoverPanel class="list-filter-panel">
+        <tng-form-field>
+          <tng-label>Search</tng-label>
+          <tng-input
+            tngAngularForms
+            name="client_filter_q"
+            type="search"
+            [(ngModel)]="filterQ"
+            placeholder="Search clients"
+          />
+        </tng-form-field>
+        <div class="list-filter-actions">
+          <tng-button type="button" appearance="outline" tone="neutral" (click)="clearFilters()">
+            Clear
+          </tng-button>
+          <tng-button type="button" appearance="solid" tone="primary" (click)="applyFilters()">
+            Apply
+          </tng-button>
+        </div>
+      </section>
+    </div>
+  </div>
 </div>
 
 @if (error) {
   <div class="alert alert-error">{{ error }}</div>
 }
 
-<div class="table-shell" [attr.aria-busy]="loading ? 'true' : null">
-  <table class="clients-table">
-    <caption class="sr-only">
-      Hydra OAuth clients
-    </caption>
-    <thead>
-      <tr>
-        <th scope="col">Client</th>
-        <th scope="col">Type</th>
-        <th scope="col">Auth method</th>
-        <th scope="col">Redirect URIs</th>
-        <th scope="col">Scopes</th>
-        <th class="actions-column" scope="col">
-          <span class="sr-only">Actions</span>
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      @if (loading) {
-        <tr class="state-row">
-          <td colspan="6">Loading clients</td>
-        </tr>
-      } @else if (error) {
-        <tr class="state-row">
-          <td colspan="6">Unable to load clients</td>
-        </tr>
-      } @else if (rows.length === 0) {
-        <tr class="state-row">
-          <td colspan="6">No OAuth clients found</td>
-        </tr>
+<tng-table
+  [columns]="columns"
+  [items]="pagedRows"
+  [loading]="loading"
+  [error]="!!error"
+  ariaLabel="Hydra OAuth clients"
+  density="comfortable"
+  scrollAxis="x"
+>
+  <ng-template tngTableCellTemplate="client" let-row="row">
+    @let item = asClientRow(row);
+    <div class="client-cell">
+      <a class="cell-link" [routerLink]="['/clients', item.client.client_id]">
+        {{ item.client.client_id }}
+      </a>
+      @if (item.client.client_name) {
+        <small>{{ item.client.client_name }}</small>
       } @else {
-        @for (client of rows; track client.client_id) {
-          <tr
-            class="client-row"
-            [attr.title]="'Open ' + clientLabel(client)"
-            (click)="openClientFromPointer($event, client)"
-          >
-            <td>
-              <div class="client-cell">
-                <a class="client-id" [routerLink]="['/clients', client.client_id]">
-                  {{ client.client_id }}
-                </a>
-                @if (client.client_name) {
-                  <span class="client-name">{{ client.client_name }}</span>
-                } @else {
-                  <span class="muted">No display name</span>
-                }
-              </div>
-            </td>
-            <td>
-              <span class="auth-method">{{ clientTypeLabel(client) }}</span>
-            </td>
-            <td>
-              <span class="auth-method">{{ authMethodLabel(client) }}</span>
-            </td>
-            <td>
-              <span class="text-clip" [attr.title]="redirectUriTitle(client)">
-                {{ redirectUriSummary(client) }}
-              </span>
-            </td>
-            <td>
-              <span class="text-clip" [attr.title]="scopeSummary(client)">
-                {{ scopeSummary(client) }}
-              </span>
-            </td>
-            <td class="actions-cell">
-              <a class="cell-link" [routerLink]="['/clients', client.client_id]">Manage</a>
-            </td>
-          </tr>
-        }
+        <small class="muted">No display name</small>
       }
-    </tbody>
-  </table>
+    </div>
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="type" let-row="row">
+    @let item = asClientRow(row);
+    {{ clientTypeLabel(item.client) }}
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="authMethod" let-row="row">
+    @let item = asClientRow(row);
+    {{ authMethodLabel(item.client) }}
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="redirectUris" let-row="row">
+    @let item = asClientRow(row);
+    <span class="text-clip" [attr.title]="redirectUriTitle(item.client)">
+      {{ redirectUriSummary(item.client) }}
+    </span>
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="scopes" let-row="row">
+    @let item = asClientRow(row);
+    <span class="text-clip" [attr.title]="scopeSummary(item.client)">
+      {{ scopeSummary(item.client) }}
+    </span>
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="actions" let-row="row">
+    @let item = asClientRow(row);
+    <div class="row-actions">
+      <tng-tooltip text="Manage">
+        <tng-button
+          trigger
+          type="button"
+          size="sm"
+          appearance="ghost"
+          class="list-icon-action"
+          tone="neutral"
+          [routerLink]="['/clients', item.client.client_id]"
+        >
+          <tng-icon icon="pencil" size="0.95rem" aria-hidden="true" />
+          <span class="sr-only">Manage</span>
+        </tng-button>
+      </tng-tooltip>
+    </div>
+  </ng-template>
+</tng-table>
+
+<div class="list-pagination">
+  <tng-paginator
+    ariaLabel="Clients pagination"
+    [pageIndex]="pageIndex"
+    [pageSize]="query.pageSize"
+    [totalItems]="filteredTotal"
+    [pageSizeOptions]="pageSizeOptions"
+    [showRange]="true"
+    [showPageSize]="true"
+    (pageChange)="onPageChange($event)"
+  />
 </div>

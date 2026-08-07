@@ -1,24 +1,24 @@
-import { Component, DestroyRef, inject, type OnInit } from "@angular/core";
+import { Component, DestroyRef, inject, type OnInit, viewChild } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import type { AuthClientConfigStatus, ConsentMode } from "@idnest/shared-types";
 import {
   TngBadgeComponent,
   TngButtonComponent,
-  TngCardComponent,
-  TngCardContentComponent,
-  TngCardDescriptionComponent,
-  TngCardHeaderComponent,
-  TngCardTitleComponent,
   TngFormFieldComponent,
   TngInputAngularFormsAdapter,
   TngInputComponent,
   TngLabelComponent,
+  TngPaginatorComponent,
+  TngSelectComponent,
   TngTableCellTemplate,
   TngTableComponent,
+  TngTooltipComponent,
   type TngTableColumn,
 } from "@tailng-ui/components";
 import { TngIcon } from "@tailng-ui/icons";
+import { TngPopover, TngPopoverPanel, TngPopoverTrigger } from "@tailng-ui/primitives";
 import { AdminApiService, describeError } from "../../../core/admin-api.service";
 import type {
   AuthBrandRecord,
@@ -26,10 +26,22 @@ import type {
   HydraClient,
   OAuthClientAuthConfigRecord,
 } from "../../../core/admin-types";
+import {
+  LIST_PAGE_SIZE_OPTIONS,
+  clampListPage,
+  matchesListSearch,
+  paginateItems,
+  parseListPageQuery,
+  toListPageQueryParams,
+  type ListPageQuery,
+} from "../../../core/list-page-query";
 import { ToastService } from "../../../core/toast/toast.service";
 import {
   CONSENT_MODE_OPTIONS,
   MAPPING_STATUS_OPTIONS,
+  getSelectLabel,
+  getSelectValue,
+  type SelectOption,
 } from "../authentication-page.types";
 
 interface MappingRow {
@@ -55,18 +67,19 @@ interface MappingRow {
     RouterLink,
     TngBadgeComponent,
     TngButtonComponent,
-    TngCardComponent,
-    TngCardContentComponent,
-    TngCardDescriptionComponent,
-    TngCardHeaderComponent,
-    TngCardTitleComponent,
     TngFormFieldComponent,
+    TngIcon,
     TngInputAngularFormsAdapter,
     TngInputComponent,
     TngLabelComponent,
-    TngIcon,
+    TngPaginatorComponent,
+    TngPopover,
+    TngPopoverPanel,
+    TngPopoverTrigger,
+    TngSelectComponent,
     TngTableCellTemplate,
     TngTableComponent,
+    TngTooltipComponent,
   ],
   templateUrl: "./auth-client-mappings.component.html",
   styleUrls: ["../authentication-page.css"],
@@ -74,6 +87,8 @@ interface MappingRow {
 export class AuthClientMappingsComponent implements OnInit {
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dateFormatter = new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
@@ -83,11 +98,30 @@ export class AuthClientMappingsComponent implements OnInit {
   private destroyed = false;
   private loadRequestId = 0;
 
+  private readonly filterPopover = viewChild<TngPopover>("filterPopover");
+
   rows: MappingRow[] = [];
   loading = true;
   error = "";
-  mappingSearch = "";
   busyClientId = "";
+
+  query: ListPageQuery = {
+    q: "",
+    status: "",
+    page: 1,
+    pageSize: 25,
+  };
+
+  filterQ = "";
+  filterStatus = "";
+
+  readonly pageSizeOptions = [...LIST_PAGE_SIZE_OPTIONS];
+  readonly statusFilterOptions: SelectOption[] = [
+    { value: "", label: "All statuses" },
+    ...MAPPING_STATUS_OPTIONS,
+  ];
+  readonly getSelectValue = getSelectValue;
+  readonly getSelectLabel = getSelectLabel;
 
   readonly columns: TngTableColumn<MappingRow>[] = [
     { id: "client", label: "OAuth client", accessor: (row) => row.clientId, width: "18rem" },
@@ -102,17 +136,46 @@ export class AuthClientMappingsComponent implements OnInit {
       accessor: (row) => this.dateLabel(row.updatedAt),
       width: "12rem",
     },
-    { id: "actions", label: "", align: "end", width: "11rem" },
+    { id: "actions", label: "", align: "end", width: "5.5rem" },
   ];
 
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
     });
+
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.query = parseListPageQuery(params);
+      this.filterQ = this.query.q;
+      this.filterStatus = this.query.status;
+    });
   }
 
   ngOnInit(): void {
     void this.reload();
+  }
+
+  get filteredRows(): MappingRow[] {
+    return this.rows.filter((row) => {
+      if (this.query.status && row.status !== this.query.status) return false;
+      return matchesListSearch(row.searchText, this.query.q);
+    });
+  }
+
+  get filteredTotal(): number {
+    return this.filteredRows.length;
+  }
+
+  get pageIndex(): number {
+    return this.clampedPage - 1;
+  }
+
+  get pagedRows(): MappingRow[] {
+    return paginateItems(this.filteredRows, this.clampedPage, this.query.pageSize);
+  }
+
+  private get clampedPage(): number {
+    return clampListPage(this.query.page, this.filteredTotal, this.query.pageSize);
   }
 
   async reload(): Promise<void> {
@@ -138,11 +201,6 @@ export class AuthClientMappingsComponent implements OnInit {
     }
   }
 
-  visibleRows(): MappingRow[] {
-    const search = this.mappingSearch.trim().toLowerCase();
-    return search ? this.rows.filter((row) => row.searchText.includes(search)) : this.rows;
-  }
-
   asMappingRow(row: unknown): MappingRow {
     return row as MappingRow;
   }
@@ -160,6 +218,37 @@ export class AuthClientMappingsComponent implements OnInit {
     return Number.isNaN(date.getTime()) ? value : this.dateFormatter.format(date);
   }
 
+  applyFilters(): void {
+    void this.navigateQuery({
+      q: this.filterQ,
+      status: this.filterStatus,
+      page: 1,
+      pageSize: this.query.pageSize,
+    });
+    this.filterPopover()?.closePopover("programmatic");
+  }
+
+  clearFilters(): void {
+    this.filterQ = "";
+    this.filterStatus = "";
+    void this.navigateQuery({
+      q: "",
+      status: "",
+      page: 1,
+      pageSize: this.query.pageSize,
+    });
+    this.filterPopover()?.closePopover("programmatic");
+  }
+
+  onPageChange(event: { pageIndex: number; pageSize: number }): void {
+    void this.navigateQuery({
+      q: this.query.q,
+      status: this.query.status,
+      page: event.pageIndex + 1,
+      pageSize: event.pageSize,
+    });
+  }
+
   async archiveMapping(row: MappingRow): Promise<void> {
     if (!window.confirm(`Delete the authentication mapping for ${row.clientId}?`)) return;
     this.busyClientId = row.clientId;
@@ -172,6 +261,15 @@ export class AuthClientMappingsComponent implements OnInit {
     } finally {
       if (!this.destroyed) this.busyClientId = "";
     }
+  }
+
+  private navigateQuery(query: ListPageQuery): Promise<boolean> {
+    return this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: toListPageQueryParams(query),
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
   }
 
   private isActiveLoad(requestId: number): boolean {

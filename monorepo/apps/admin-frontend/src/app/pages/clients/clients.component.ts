@@ -1,50 +1,155 @@
-import { Component, DestroyRef, inject, type OnInit } from "@angular/core";
-import { Router, RouterLink } from "@angular/router";
-import { TngButtonComponent } from "@tailng-ui/components";
+import { Component, DestroyRef, inject, type OnInit, viewChild } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import {
+  TngButtonComponent,
+  TngFormFieldComponent,
+  TngInputAngularFormsAdapter,
+  TngInputComponent,
+  TngLabelComponent,
+  TngPaginatorComponent,
+  TngTableCellTemplate,
+  TngTableComponent,
+  TngTooltipComponent,
+  type TngTableColumn,
+} from "@tailng-ui/components";
+import { TngIcon } from "@tailng-ui/icons";
+import { TngPopover, TngPopoverPanel, TngPopoverTrigger } from "@tailng-ui/primitives";
 import { AdminApiService, describeError } from "../../core/admin-api.service";
 import type { HydraClient } from "../../core/admin-types";
+import {
+  LIST_PAGE_SIZE_OPTIONS,
+  clampListPage,
+  matchesListSearch,
+  paginateItems,
+  parseListPageQuery,
+  toListPageQueryParams,
+  type ListPageQuery,
+} from "../../core/list-page-query";
 import { getOAuthClientTypeLabel, inferOAuthClientType } from "../../core/oauth-client-profiles";
 import { ToastService } from "../../core/toast/toast.service";
+
+interface ClientRow {
+  client: HydraClient;
+  searchText: string;
+}
 
 @Component({
   selector: "app-clients",
   standalone: true,
-  imports: [RouterLink, TngButtonComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    TngButtonComponent,
+    TngFormFieldComponent,
+    TngIcon,
+    TngInputAngularFormsAdapter,
+    TngInputComponent,
+    TngLabelComponent,
+    TngPaginatorComponent,
+    TngPopover,
+    TngPopoverPanel,
+    TngPopoverTrigger,
+    TngTableCellTemplate,
+    TngTableComponent,
+    TngTooltipComponent,
+  ],
   templateUrl: "./clients.component.html",
   styleUrls: ["./clients.component.css"],
 })
 export class ClientsComponent implements OnInit {
-  private static readonly interactiveTargetSelector = [
-    "a[href]",
-    "button",
-    "input",
-    "select",
-    "textarea",
-    "[contenteditable='true']",
-    "[role='button']",
-    "[role='link']",
-  ].join(",");
-
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly clientSorter = new Intl.Collator(undefined, { sensitivity: "base" });
   private destroyed = false;
   private loadRequestId = 0;
 
-  rows: HydraClient[] = [];
+  private readonly filterPopover = viewChild<TngPopover>("filterPopover");
+
+  rows: ClientRow[] = [];
   loading = true;
   error = "";
+
+  query: ListPageQuery = {
+    q: "",
+    status: "",
+    page: 1,
+    pageSize: 25,
+  };
+
+  filterQ = "";
+
+  readonly pageSizeOptions = [...LIST_PAGE_SIZE_OPTIONS];
+
+  readonly columns: TngTableColumn<ClientRow>[] = [
+    {
+      id: "client",
+      label: "Client",
+      accessor: (row) => row.client.client_id,
+      width: "18rem",
+    },
+    {
+      id: "type",
+      label: "Type",
+      accessor: (row) => this.clientTypeLabel(row.client),
+    },
+    {
+      id: "authMethod",
+      label: "Auth method",
+      accessor: (row) => this.authMethodLabel(row.client),
+    },
+    {
+      id: "redirectUris",
+      label: "Redirect URIs",
+      accessor: (row) => this.redirectUriSummary(row.client),
+      width: "16rem",
+    },
+    {
+      id: "scopes",
+      label: "Scopes",
+      accessor: (row) => this.scopeSummary(row.client),
+      width: "14rem",
+    },
+    { id: "actions", label: "", align: "end", width: "3.5rem" },
+  ];
 
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
     });
+
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.query = parseListPageQuery(params);
+      this.filterQ = this.query.q;
+    });
   }
 
   ngOnInit(): void {
     void this.reload();
+  }
+
+  get filteredRows(): ClientRow[] {
+    return this.rows.filter((row) => matchesListSearch(row.searchText, this.query.q));
+  }
+
+  get filteredTotal(): number {
+    return this.filteredRows.length;
+  }
+
+  get pageIndex(): number {
+    return this.clampedPage - 1;
+  }
+
+  get pagedRows(): ClientRow[] {
+    return paginateItems(this.filteredRows, this.clampedPage, this.query.pageSize);
+  }
+
+  private get clampedPage(): number {
+    return clampListPage(this.query.page, this.filteredTotal, this.query.pageSize);
   }
 
   async reload(): Promise<void> {
@@ -54,7 +159,7 @@ export class ClientsComponent implements OnInit {
     try {
       const rows = await this.api.listClients();
       if (!this.isActiveLoad(requestId)) return;
-      this.rows = this.sortClients(rows);
+      this.rows = this.sortClients(rows).map((client) => this.toRow(client));
     } catch (e) {
       const error = describeError(e);
       if (!this.isActiveLoad(requestId)) return;
@@ -65,6 +170,10 @@ export class ClientsComponent implements OnInit {
         this.loading = false;
       }
     }
+  }
+
+  asClientRow(row: unknown): ClientRow {
+    return row as ClientRow;
   }
 
   authMethodLabel(client: HydraClient): string {
@@ -86,12 +195,6 @@ export class ClientsComponent implements OnInit {
     return getOAuthClientTypeLabel(inferOAuthClientType(client));
   }
 
-  clientLabel(client: HydraClient): string {
-    const clientId = client.client_id.trim();
-    const clientName = client.client_name?.trim();
-    return clientName && clientName !== clientId ? `${clientName} (${clientId})` : clientId;
-  }
-
   redirectUriSummary(client: HydraClient): string {
     const redirectUris = client.redirect_uris ?? [];
     if (redirectUris.length === 0) return "No redirect URIs";
@@ -108,39 +211,43 @@ export class ClientsComponent implements OnInit {
     return client.scope?.trim() || "No scopes";
   }
 
-  openClientFromPointer(event: MouseEvent, client: HydraClient): void {
-    if (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey ||
-      this.eventStartedInInteractiveChild(event)
-    ) {
-      return;
-    }
-
-    void this.navigateToClient(client);
+  applyFilters(): void {
+    void this.navigateQuery({
+      q: this.filterQ,
+      status: "",
+      page: 1,
+      pageSize: this.query.pageSize,
+    });
+    this.filterPopover()?.closePopover("programmatic");
   }
 
-  private async navigateToClient(client: HydraClient): Promise<void> {
-    const clientId = client.client_id.trim();
-    if (!clientId) return;
-    await this.router.navigate(["/clients", clientId]);
+  clearFilters(): void {
+    this.filterQ = "";
+    void this.navigateQuery({
+      q: "",
+      status: "",
+      page: 1,
+      pageSize: this.query.pageSize,
+    });
+    this.filterPopover()?.closePopover("programmatic");
   }
 
-  private eventStartedInInteractiveChild(event: Event): boolean {
-    const target = event.target;
-    const currentTarget = event.currentTarget;
-    if (!(target instanceof Element) || !(currentTarget instanceof Element)) return false;
+  onPageChange(event: { pageIndex: number; pageSize: number }): void {
+    void this.navigateQuery({
+      q: this.query.q,
+      status: "",
+      page: event.pageIndex + 1,
+      pageSize: event.pageSize,
+    });
+  }
 
-    const interactiveTarget = target.closest(ClientsComponent.interactiveTargetSelector);
-    return (
-      interactiveTarget !== null &&
-      interactiveTarget !== currentTarget &&
-      currentTarget.contains(interactiveTarget)
-    );
+  private navigateQuery(query: ListPageQuery): Promise<boolean> {
+    return this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: toListPageQueryParams(query, { includeStatus: false }),
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
   }
 
   private isActiveLoad(requestId: number): boolean {
@@ -149,5 +256,21 @@ export class ClientsComponent implements OnInit {
 
   private sortClients(rows: HydraClient[]): HydraClient[] {
     return [...rows].sort((a, b) => this.clientSorter.compare(a.client_id, b.client_id));
+  }
+
+  private toRow(client: HydraClient): ClientRow {
+    return {
+      client,
+      searchText: [
+        client.client_id,
+        client.client_name ?? "",
+        this.clientTypeLabel(client),
+        this.authMethodLabel(client),
+        this.redirectUriSummary(client),
+        this.scopeSummary(client),
+      ]
+        .join(" ")
+        .toLowerCase(),
+    };
   }
 }

@@ -1,9 +1,51 @@
-<div class="toolbar">
+<div class="page-heading">
   <div>
     <h1 class="page-title">Identities</h1>
-    <p class="muted">{{ rows.length }} loaded</p>
+    <p class="muted">People and service accounts registered in the identity store.</p>
   </div>
-  <tng-button appearance="outline" size="sm" tone="neutral" (click)="reload()">Refresh</tng-button>
+  <div class="page-heading-actions">
+    <div
+      class="list-filter-popover"
+      tngPopover
+      #filterPopover="tngPopover"
+      side="bottom"
+      align="end"
+      ariaLabel="Filter identities"
+    >
+      <tng-tooltip text="Filter">
+        <button
+          trigger
+          type="button"
+          class="list-icon-button"
+          [tngPopoverTrigger]="filterPopover"
+          aria-label="Filter identities"
+        >
+          <tng-icon icon="funnel" size="1rem" aria-hidden="true" />
+        </button>
+      </tng-tooltip>
+
+      <section tngPopoverPanel class="list-filter-panel">
+        <tng-form-field>
+          <tng-label>Search</tng-label>
+          <tng-input
+            tngAngularForms
+            name="identity_filter_q"
+            type="search"
+            [(ngModel)]="filterQ"
+            placeholder="Search identities"
+          />
+        </tng-form-field>
+        <div class="list-filter-actions">
+          <tng-button type="button" appearance="outline" tone="neutral" (click)="clearFilters()">
+            Clear
+          </tng-button>
+          <tng-button type="button" appearance="solid" tone="primary" (click)="applyFilters()">
+            Apply
+          </tng-button>
+        </div>
+      </section>
+    </div>
+  </div>
 </div>
 
 @if (error) {
@@ -12,12 +54,42 @@
 
 <tng-table
   [columns]="columns"
-  [items]="rows"
+  [items]="pagedRows"
   [loading]="loading"
+  [error]="!!error"
   ariaLabel="Kratos identities"
   density="comfortable"
 >
   <ng-template tngTableCellTemplate="actions" let-row="row">
-    <a class="cell-link" [routerLink]="['/identities', idOf(row)]">Manage</a>
+    @let item = asIdentityRow(row);
+    <div class="row-actions">
+      <tng-tooltip text="Manage">
+        <tng-button
+          trigger
+          type="button"
+          size="sm"
+          appearance="ghost"
+          class="list-icon-action"
+          tone="neutral"
+          [routerLink]="['/identities', item.identity.id]"
+        >
+          <tng-icon icon="pencil" size="0.95rem" aria-hidden="true" />
+          <span class="sr-only">Manage</span>
+        </tng-button>
+      </tng-tooltip>
+    </div>
   </ng-template>
 </tng-table>
+
+<div class="list-pagination">
+  <tng-paginator
+    ariaLabel="Identities pagination"
+    [pageIndex]="pageIndex"
+    [pageSize]="query.pageSize"
+    [totalItems]="filteredTotal"
+    [pageSizeOptions]="pageSizeOptions"
+    [showRange]="true"
+    [showPageSize]="true"
+    (pageChange)="onPageChange($event)"
+  />
+</div>

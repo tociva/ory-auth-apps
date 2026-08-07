@@ -10,8 +10,7 @@
 .page-heading,
 .section-heading,
 .editor-heading,
-.editor-actions,
-.row-actions {
+.editor-actions {
   align-items: center;
   display: flex;
   justify-content: space-between;
@@ -254,10 +253,6 @@
   border-top: 1px solid var(--tng-semantic-border-subtle, #e2e8f0);
   margin-top: 1rem;
   padding-top: 1rem;
-}
-
-.row-actions {
-  gap: 0.25rem;
 }
 
 .table-controls,

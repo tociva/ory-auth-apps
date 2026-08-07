@@ -120,6 +120,149 @@ a {
   margin-bottom: 1rem;
 }
 
+/* ─── Shared list page chrome ─────────────────────────────────────────────── */
+.page-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.page-heading h1 {
+  margin: 0;
+}
+
+.page-heading p {
+  color: var(--tng-semantic-foreground-muted, #64748b);
+  margin: 0.3rem 0 0;
+}
+
+.page-heading-actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.row-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.05rem;
+  justify-content: flex-end;
+}
+
+/* Icon-only tng-button chrome (row actions + filter trigger). */
+.list-icon-action {
+  --tng-button-gap: 0;
+  --tng-button-height-sm: 1.75rem;
+  --tng-button-padding-inline-sm: 0;
+  --tng-button-radius: 0.375rem;
+  --tng-button-width: 1.75rem;
+  --tng-button-min-width: 1.75rem;
+  color: var(--tng-semantic-foreground-secondary, #4b5563);
+}
+
+.list-icon-action .tng-button,
+.list-icon-action.list-icon-action {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.list-icon-action:hover {
+  color: var(--tng-semantic-foreground-primary, #1f2937);
+}
+
+/* Strip ghost hover fill so only the icon remains visible. */
+.list-icon-action .tng-button[data-appearance='ghost']:not(:disabled):not([data-disabled]):hover,
+.list-icon-action .tng-button[data-appearance='ghost'] {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.list-filter-popover {
+  display: inline-flex;
+  position: relative;
+}
+
+.list-icon-button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0.375rem;
+  box-shadow: none;
+  color: var(--tng-semantic-foreground-secondary, #4b5563);
+  cursor: pointer;
+  display: inline-flex;
+  height: 1.75rem;
+  justify-content: center;
+  padding: 0;
+  width: 1.75rem;
+}
+
+.list-icon-button:hover {
+  background: transparent;
+  color: var(--tng-semantic-foreground-primary, #1f2937);
+}
+
+.list-icon-button:focus-visible {
+  box-shadow: var(--tng-focus-ring, 0 0 0 3px var(--tng-semantic-focus-ring));
+  outline: none;
+}
+
+.list-filter-panel {
+  background: var(--tng-semantic-background-surface, #fff);
+  border: 1px solid var(--tng-semantic-border-strong, #cbd5e1);
+  border-radius: var(--tng-radius-panel, 0.75rem);
+  box-shadow: 0 18px 28px color-mix(in srgb, var(--tng-semantic-foreground-primary) 18%, transparent);
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.45rem;
+  min-width: 16rem;
+  padding: 0.85rem;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 60;
+}
+
+.list-filter-panel[hidden] {
+  display: none !important;
+}
+
+.list-filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 760px) {
+  .page-heading {
+    flex-wrap: wrap;
+  }
+}
+
 .stack {
   display: flex;
   flex-direction: column;

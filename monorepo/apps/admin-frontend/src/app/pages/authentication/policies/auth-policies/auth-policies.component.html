@@ -6,120 +6,187 @@
       session freshness, and registration behavior.
     </p>
   </div>
+  <div class="page-heading-actions">
+    <tng-button appearance="solid" tone="primary" routerLink="/authentication/policies/new">
+      <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
+      New policy
+    </tng-button>
+
+    <div
+      class="list-filter-popover"
+      tngPopover
+      #filterPopover="tngPopover"
+      side="bottom"
+      align="end"
+      ariaLabel="Filter policies"
+    >
+      <tng-tooltip text="Filter">
+        <button
+          trigger
+          type="button"
+          class="list-icon-button"
+          [tngPopoverTrigger]="filterPopover"
+          aria-label="Filter policies"
+        >
+          <tng-icon icon="funnel" size="1rem" aria-hidden="true" />
+        </button>
+      </tng-tooltip>
+
+      <section tngPopoverPanel class="list-filter-panel">
+        <tng-form-field>
+          <tng-label>Search</tng-label>
+          <tng-input
+            tngAngularForms
+            name="policy_filter_q"
+            type="search"
+            [(ngModel)]="filterQ"
+            placeholder="Search policies"
+          />
+        </tng-form-field>
+        <tng-form-field>
+          <tng-label>Status</tng-label>
+          <tng-select
+            [options]="statusFilterOptions"
+            [value]="filterStatus"
+            (valueChange)="filterStatus = $event ?? ''"
+            [getOptionValue]="getSelectValue"
+            [getOptionLabel]="getSelectLabel"
+          />
+        </tng-form-field>
+        <div class="list-filter-actions">
+          <tng-button type="button" appearance="outline" tone="neutral" (click)="clearFilters()">
+            Clear
+          </tng-button>
+          <tng-button type="button" appearance="solid" tone="primary" (click)="applyFilters()">
+            Apply
+          </tng-button>
+        </div>
+      </section>
+    </div>
+  </div>
 </div>
 
 @if (error) {
   <p class="inline-error" role="alert">{{ error }}</p>
 }
 
-<tng-card>
-  <tng-card-header>
-    <div class="section-heading mapping-table-toolbar">
-      <div>
-        <tng-card-title>Authentication policies</tng-card-title>
-        <tng-card-description>
-          Reusable authentication rules for applications and OAuth clients.
-        </tng-card-description>
-      </div>
-      <div class="table-controls">
-        <tng-button appearance="solid" tone="primary" routerLink="/authentication/policies/new">
-          <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
-          New policy
-        </tng-button>
-      </div>
+<tng-table
+  [columns]="columns"
+  [items]="pagedRows"
+  [loading]="loading"
+  [error]="!!error"
+  ariaLabel="Authentication policies"
+  density="comfortable"
+  scrollAxis="x"
+>
+  <ng-template tngTableCellTemplate="name" let-row="row">
+    @let policy = asPolicyRow(row);
+    <div class="mapping-primary-cell">
+      <a class="cell-link" [routerLink]="['/authentication/policies', policy.id]">
+        {{ policy.name }}
+      </a>
+      <small>v{{ policy.version }}</small>
     </div>
-  </tng-card-header>
-  <tng-card-content>
-    <tng-table
-      [columns]="columns"
-      [items]="rows"
-      [loading]="loading"
-      [error]="!!error"
-      ariaLabel="Authentication policies"
-      density="comfortable"
-      scrollAxis="x"
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="methods" let-row="row">
+    @let policy = asPolicyRow(row);
+    {{ policy.methods }}
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="status" let-row="row">
+    @let policy = asPolicyRow(row);
+    <span
+      tngBadge
+      class="status-badge"
+      [class.disabled]="policy.status === 'disabled' || policy.status === 'draft'"
     >
-      <ng-template tngTableCellTemplate="name" let-row="row">
-        @let policy = asPolicyRow(row);
-        <div class="mapping-primary-cell">
-          <a class="cell-link" [routerLink]="['/authentication/policies', policy.id]">
-            {{ policy.name }}
-          </a>
-          <small>v{{ policy.version }}</small>
-        </div>
-      </ng-template>
+      {{ statusLabel(policy.status) }}
+    </span>
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="methods" let-row="row">
-        @let policy = asPolicyRow(row);
-        {{ policy.methods }}
-      </ng-template>
+  <ng-template tngTableCellTemplate="aal" let-row="row">
+    @let policy = asPolicyRow(row);
+    {{ aalLabel(policy.minimumAal) }}
+  </ng-template>
 
-      <ng-template tngTableCellTemplate="status" let-row="row">
-        @let policy = asPolicyRow(row);
-        <span
-          tngBadge
-          class="status-badge"
-          [class.disabled]="policy.status === 'disabled' || policy.status === 'draft'"
+  <ng-template tngTableCellTemplate="registration" let-row="row">
+    @let policy = asPolicyRow(row);
+    {{ registrationLabel(policy.registrationMode) }}
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="identityGate" let-row="row">
+    @let policy = asPolicyRow(row);
+    {{ identityGateLabel(policy.identityGate) }}
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="updated" let-row="row">
+    @let policy = asPolicyRow(row);
+    <div class="mapping-secondary-cell">
+      <span>{{ dateLabel(policy.updatedAt) }}</span>
+      <small>v{{ policy.version }}</small>
+    </div>
+  </ng-template>
+
+  <ng-template tngTableCellTemplate="actions" let-row="row">
+    @let policy = asPolicyRow(row);
+    <div class="row-actions">
+      <tng-tooltip text="Edit">
+        <tng-button
+          trigger
+          type="button"
+          size="sm"
+          appearance="ghost"
+          class="list-icon-action"
+          tone="neutral"
+          [routerLink]="['/authentication/policies', policy.id]"
         >
-          {{ statusLabel(policy.status) }}
-        </span>
-      </ng-template>
+          <tng-icon icon="pencil" size="0.95rem" aria-hidden="true" />
+          <span class="sr-only">Edit</span>
+        </tng-button>
+      </tng-tooltip>
+      <tng-tooltip text="Duplicate">
+        <tng-button
+          trigger
+          type="button"
+          size="sm"
+          appearance="ghost"
+          class="list-icon-action"
+          tone="neutral"
+          (click)="duplicatePolicy(policy)"
+        >
+          <tng-icon icon="copy" size="0.95rem" aria-hidden="true" />
+          <span class="sr-only">Duplicate</span>
+        </tng-button>
+      </tng-tooltip>
+      <tng-tooltip text="Archive">
+        <tng-button
+          trigger
+          type="button"
+          size="sm"
+          appearance="ghost"
+          class="list-icon-action"
+          tone="danger"
+          [disabled]="busyPolicyId === policy.id"
+          (click)="archivePolicy(policy)"
+        >
+          <tng-icon icon="trash2" size="0.95rem" aria-hidden="true" />
+          <span class="sr-only">Archive</span>
+        </tng-button>
+      </tng-tooltip>
+    </div>
+  </ng-template>
+</tng-table>
 
-      <ng-template tngTableCellTemplate="aal" let-row="row">
-        @let policy = asPolicyRow(row);
-        {{ aalLabel(policy.minimumAal) }}
-      </ng-template>
-
-      <ng-template tngTableCellTemplate="registration" let-row="row">
-        @let policy = asPolicyRow(row);
-        {{ registrationLabel(policy.registrationMode) }}
-      </ng-template>
-
-      <ng-template tngTableCellTemplate="identityGate" let-row="row">
-        @let policy = asPolicyRow(row);
-        {{ identityGateLabel(policy.identityGate) }}
-      </ng-template>
-
-      <ng-template tngTableCellTemplate="updated" let-row="row">
-        @let policy = asPolicyRow(row);
-        <div class="mapping-secondary-cell">
-          <span>{{ dateLabel(policy.updatedAt) }}</span>
-          <small>v{{ policy.version }}</small>
-        </div>
-      </ng-template>
-
-      <ng-template tngTableCellTemplate="actions" let-row="row">
-        @let policy = asPolicyRow(row);
-        <div class="row-actions mapping-actions">
-          <tng-button
-            size="sm"
-            appearance="outline"
-            tone="neutral"
-            [routerLink]="['/authentication/policies', policy.id]"
-          >
-            <tng-icon icon="pencil" size="0.9rem" aria-hidden="true" />
-            Edit
-          </tng-button>
-          <tng-button
-            size="sm"
-            appearance="outline"
-            tone="neutral"
-            (click)="duplicatePolicy(policy)"
-          >
-            Duplicate
-          </tng-button>
-          <tng-button
-            size="sm"
-            appearance="outline"
-            tone="danger"
-            [disabled]="busyPolicyId === policy.id"
-            (click)="archivePolicy(policy)"
-          >
-            <tng-icon icon="trash2" size="0.9rem" aria-hidden="true" />
-            Archive
-          </tng-button>
-        </div>
-      </ng-template>
-    </tng-table>
-  </tng-card-content>
-</tng-card>
+<div class="list-pagination">
+  <tng-paginator
+    ariaLabel="Policies pagination"
+    [pageIndex]="pageIndex"
+    [pageSize]="query.pageSize"
+    [totalItems]="filteredTotal"
+    [pageSizeOptions]="pageSizeOptions"
+    [showRange]="true"
+    [showPageSize]="true"
+    (pageChange)="onPageChange($event)"
+  />
+</div>
