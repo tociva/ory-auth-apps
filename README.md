@@ -320,10 +320,11 @@ UI after the first administrator signs in.
 ### Product access policy
 
 Taskmesh remains invitation-only until subscription provisioning is available.
-Its login policy uses `registrationMode: invitation-only` and
-`accessMode: grant-required`, so Google sign-in alone does not grant Taskmesh
-access. An Idnest administrator must grant each approved identity access to
-`taskmesh-console` from **Identities → [identity] → Client access**.
+Its authentication policy (`Invite-only Google`) uses
+`registrationMode: invitation-only` and `identityGate: invitation`, so Google
+sign-in alone does not grant Taskmesh access. An Idnest administrator must
+grant each approved identity access to `taskmesh-console` from
+**Identities → [identity] → Client access**.
 
 Do not switch Taskmesh to open access until subscription provisioning can
 automatically authorize eligible users.
@@ -568,26 +569,55 @@ The trusted flow is:
    redirect URI, scopes, audience, state, and PKCE challenge.
 2. Hydra sends a `login_challenge` to `/oauth2/login`. The backend retrieves the
    request from Hydra's admin API and uses only its trusted `client_id`.
-3. The backend resolves the active brand, login policy, and consent mode, then
-   freezes their versions in an encrypted, expiring, single-use transaction.
+3. The backend resolves the active brand, authentication policy, and consent
+   mode, then freezes their versions in an encrypted, expiring, single-use
+   transaction.
 4. Kratos owns credentials and sessions. The Angular UI receives only a
    sanitized flow and the frozen public brand/policy context.
 5. After authentication, Kratos returns an opaque transaction token to
    `/oauth2/login/complete`. The backend re-fetches Hydra state, validates the
-   Kratos session, AAL, method, verified email, freshness, and client access,
-   then accepts or rejects the Hydra challenge exactly once.
+   Kratos session, AAL, method, verified email, freshness, and identity gate /
+   client access, then accepts or rejects the Hydra challenge exactly once.
 6. Hydra sends a `consent_challenge` to `/oauth2/consent`. The backend reuses
-   the frozen login snapshot, validates the subject and session, and either
-   auto-accepts according to policy or shows branded consent.
+   the frozen authentication snapshot, validates the subject and session, and
+   either auto-accepts according to policy or shows branded consent.
 7. Hydra returns an authorization code to the product callback, where the
    product exchanges it with its PKCE verifier.
 8. Logout terminates the Kratos session, relays the cookie-clearing response,
    and then accepts Hydra's logout challenge.
 
-Authentication brands, policies, and OAuth client mappings are managed from
-the admin console's **Authentication** page. Definitions have immutable version
-history and optimistic concurrency; new transactions use the current active
-versions while in-flight transactions keep their frozen snapshots.
+Authentication brands, authentication policies, and OAuth client mappings are
+managed from the admin console's **Authentication** page. Policy names describe
+intent (for example `Public Google` or `Staff MFA`); structured fields describe
+methods, identity gate, assurance, registration, and session requirements.
+Definitions have immutable version history and optimistic concurrency; new
+transactions use the current active versions while in-flight transactions keep
+their frozen snapshots.
+
+Auth client configuration is modeled as reusable policies assigned to many
+Hydra clients:
+
+```text
+Auth Client
+   │
+   ├── Authentication Policy
+   │      ├── Sign-in Methods
+   │      ├── Identity Gate
+   │      ├── Assurance / MFA
+   │      ├── Registration Policy
+   │      └── Session Policy
+   │
+   ├── Consent Policy (future)
+   │
+   ├── Token Policy (future)
+   │
+   └── Branding
+```
+
+Client mappings currently resolve to a policy's latest active version. Per-client
+version pinning (for example `daybook-admin → Staff MFA:v2`) is a planned
+extension so editing a shared policy does not silently change behavior for every
+assigned application.
 
 ## 6. Build and deployment
 

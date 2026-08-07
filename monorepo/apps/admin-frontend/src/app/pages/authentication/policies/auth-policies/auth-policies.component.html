@@ -1,7 +1,10 @@
 <div class="page-heading">
   <div>
-    <h1 class="page-title">Login Policies</h1>
-    <p class="muted">Allowed methods, identity gates, session freshness, and registration behavior.</p>
+    <h1 class="page-title">Authentication Policies</h1>
+    <p class="muted">
+      Control sign-in methods, access restrictions, assurance requirements, session freshness, and
+      registration behavior.
+    </p>
   </div>
 </div>
 
@@ -13,15 +16,15 @@
   <tng-card-header>
     <div class="section-heading mapping-table-toolbar">
       <div>
-        <tng-card-title>Login policies</tng-card-title>
+        <tng-card-title>Authentication policies</tng-card-title>
         <tng-card-description>
-          Allowed methods, identity gates, session freshness, and registration behavior.
+          Reusable authentication rules for applications and OAuth clients.
         </tng-card-description>
       </div>
       <div class="table-controls">
-        <tng-button appearance="solid" tone="primary" routerLink="/authentication/login-policies/new">
+        <tng-button appearance="solid" tone="primary" routerLink="/authentication/policies/new">
           <tng-icon icon="plus" size="0.95rem" aria-hidden="true" />
-          New Policy
+          New policy
         </tng-button>
       </div>
     </div>
@@ -32,18 +35,23 @@
       [items]="rows"
       [loading]="loading"
       [error]="!!error"
-      ariaLabel="Login policies"
+      ariaLabel="Authentication policies"
       density="comfortable"
       scrollAxis="x"
     >
       <ng-template tngTableCellTemplate="name" let-row="row">
         @let policy = asPolicyRow(row);
         <div class="mapping-primary-cell">
-          <a class="cell-link" [routerLink]="['/authentication/login-policies', policy.id]">
+          <a class="cell-link" [routerLink]="['/authentication/policies', policy.id]">
             {{ policy.name }}
           </a>
           <small>v{{ policy.version }}</small>
         </div>
+      </ng-template>
+
+      <ng-template tngTableCellTemplate="methods" let-row="row">
+        @let policy = asPolicyRow(row);
+        {{ policy.methods }}
       </ng-template>
 
       <ng-template tngTableCellTemplate="status" let-row="row">
@@ -67,9 +75,9 @@
         {{ registrationLabel(policy.registrationMode) }}
       </ng-template>
 
-      <ng-template tngTableCellTemplate="access" let-row="row">
+      <ng-template tngTableCellTemplate="identityGate" let-row="row">
         @let policy = asPolicyRow(row);
-        {{ accessLabel(policy.accessMode) }}
+        {{ identityGateLabel(policy.identityGate) }}
       </ng-template>
 
       <ng-template tngTableCellTemplate="updated" let-row="row">
@@ -87,7 +95,7 @@
             size="sm"
             appearance="outline"
             tone="neutral"
-            [routerLink]="['/authentication/login-policies', policy.id]"
+            [routerLink]="['/authentication/policies', policy.id]"
           >
             <tng-icon icon="pencil" size="0.9rem" aria-hidden="true" />
             Edit

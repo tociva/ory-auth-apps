@@ -1,10 +1,10 @@
 import {
-  DEFAULT_LOGIN_POLICY_NAME,
+  DEFAULT_AUTH_POLICY_NAME,
   type AuthBrandDefinition,
   type AuthBrandStatus,
   type AuthClientConfigStatus,
+  type AuthPolicyDefinition,
   type ConsentMode,
-  type LoginPolicyDefinition,
   type OAuthClientAuthConfigSnapshot,
   type ResolvedAuthConfiguration,
 } from "@idnest/shared-types";
@@ -20,10 +20,10 @@ interface ResolvedRow {
   brand_status: AuthBrandStatus;
   brand_version: number;
   brand_definition: AuthBrandDefinition;
-  login_policy_id: string;
+  authentication_policy_id: string;
   policy_status: AuthBrandStatus;
-  login_policy_version: number;
-  policy_definition: LoginPolicyDefinition;
+  authentication_policy_version: number;
+  policy_definition: AuthPolicyDefinition;
 }
 
 export interface AuthBrandRecord {
@@ -36,12 +36,12 @@ export interface AuthBrandRecord {
   updated_at: string;
 }
 
-export interface LoginPolicyRecord {
+export interface AuthPolicyRecord {
   id: string;
   name: string;
   status: AuthBrandStatus;
   version: number;
-  definition: LoginPolicyDefinition;
+  definition: AuthPolicyDefinition;
   created_at: string;
   updated_at: string;
 }
@@ -50,8 +50,8 @@ export interface OAuthClientAuthConfigRecord {
   hydra_client_id: string;
   brand_id: string;
   brand_key: string;
-  login_policy_id: string;
-  login_policy_name: string;
+  authentication_policy_id: string;
+  authentication_policy_name: string;
   status: AuthClientConfigStatus;
   is_first_party: boolean;
   consent_mode: ConsentMode;
@@ -77,8 +77,8 @@ function toResolved(row: ResolvedRow, usedFallback: boolean): ResolvedAuthConfig
       consentMode: row.consent_mode,
       brandId: row.brand_id,
       brandVersion: row.brand_version,
-      loginPolicyId: row.login_policy_id,
-      loginPolicyVersion: row.login_policy_version,
+      authPolicyId: row.authentication_policy_id,
+      authPolicyVersion: row.authentication_policy_version,
       mappingVersion: row.mapping_version,
     },
     brand: row.brand_definition,
@@ -98,17 +98,17 @@ const RESOLVED_SELECT = `
     b.status AS brand_status,
     b.current_version AS brand_version,
     bv.definition AS brand_definition,
-    p.id::text AS login_policy_id,
+    p.id::text AS authentication_policy_id,
     p.status AS policy_status,
-    p.current_version AS login_policy_version,
+    p.current_version AS authentication_policy_version,
     pv.definition AS policy_definition
   FROM oauth_client_auth_configs c
   JOIN auth_brands b ON b.id = c.brand_id
   JOIN auth_brand_versions bv
     ON bv.brand_id = b.id AND bv.version = b.current_version
-  JOIN login_policies p ON p.id = c.login_policy_id
-  JOIN login_policy_versions pv
-    ON pv.login_policy_id = p.id AND pv.version = p.current_version
+  JOIN authentication_policies p ON p.id = c.authentication_policy_id
+  JOIN authentication_policy_versions pv
+    ON pv.authentication_policy_id = p.id AND pv.version = p.current_version
 `;
 
 export async function resolveAuthConfiguration(
@@ -140,22 +140,22 @@ export async function resolveAuthConfiguration(
        b.status AS brand_status,
        b.current_version AS brand_version,
        bv.definition AS brand_definition,
-       p.id::text AS login_policy_id,
+       p.id::text AS authentication_policy_id,
        p.status AS policy_status,
-       p.current_version AS login_policy_version,
+       p.current_version AS authentication_policy_version,
        pv.definition AS policy_definition
      FROM auth_brands b
      JOIN auth_brand_versions bv
        ON bv.brand_id = b.id AND bv.version = b.current_version
-     CROSS JOIN login_policies p
-     JOIN login_policy_versions pv
-       ON pv.login_policy_id = p.id AND pv.version = p.current_version
+     CROSS JOIN authentication_policies p
+     JOIN authentication_policy_versions pv
+       ON pv.authentication_policy_id = p.id AND pv.version = p.current_version
      WHERE b.key = 'idnest-default' AND p.name = $2
      LIMIT 1`,
-    [hydraClientId, DEFAULT_LOGIN_POLICY_NAME],
+    [hydraClientId, DEFAULT_AUTH_POLICY_NAME],
   );
   if (!fallback.rows[0]) {
-    throw new Error("Default Idnest brand or login policy is not configured");
+    throw new Error("Default Idnest brand or authentication policy is not configured");
   }
   const resolved = toResolved(fallback.rows[0], true);
   if (row?.config_status === "disabled") {
@@ -276,26 +276,26 @@ export async function updateAuthBrand(
   return updated.rows[0] ?? null;
 }
 
-export async function listLoginPolicies(db: Db): Promise<LoginPolicyRecord[]> {
-  const res = await db.query<LoginPolicyRecord>(
+export async function listAuthPolicies(db: Db): Promise<AuthPolicyRecord[]> {
+  const res = await db.query<AuthPolicyRecord>(
     `SELECT p.id::text, p.name, p.status, p.current_version AS version,
             pv.definition, p.created_at::text, p.updated_at::text
-     FROM login_policies p
-     JOIN login_policy_versions pv
-       ON pv.login_policy_id = p.id AND pv.version = p.current_version
+     FROM authentication_policies p
+     JOIN authentication_policy_versions pv
+       ON pv.authentication_policy_id = p.id AND pv.version = p.current_version
      WHERE p.status <> 'archived'
      ORDER BY p.name`,
   );
   return res.rows;
 }
 
-export async function getLoginPolicy(db: Db, id: string): Promise<LoginPolicyRecord | null> {
-  const res = await db.query<LoginPolicyRecord>(
+export async function getAuthPolicy(db: Db, id: string): Promise<AuthPolicyRecord | null> {
+  const res = await db.query<AuthPolicyRecord>(
     `SELECT p.id::text, p.name, p.status, p.current_version AS version,
             pv.definition, p.created_at::text, p.updated_at::text
-     FROM login_policies p
-     JOIN login_policy_versions pv
-       ON pv.login_policy_id = p.id AND pv.version = p.current_version
+     FROM authentication_policies p
+     JOIN authentication_policy_versions pv
+       ON pv.authentication_policy_id = p.id AND pv.version = p.current_version
      WHERE p.id = $1
      LIMIT 1`,
     [id],
@@ -303,42 +303,44 @@ export async function getLoginPolicy(db: Db, id: string): Promise<LoginPolicyRec
   return res.rows[0] ?? null;
 }
 
-export async function listLoginPolicyVersions(
+export async function listAuthPolicyVersions(
   db: Db,
   id: string,
-): Promise<AuthConfigurationVersion<LoginPolicyDefinition>[]> {
-  const res = await db.query<AuthConfigurationVersion<LoginPolicyDefinition>>(
+): Promise<AuthConfigurationVersion<AuthPolicyDefinition>[]> {
+  const res = await db.query<AuthConfigurationVersion<AuthPolicyDefinition>>(
     `SELECT version, definition AS value, created_by, reason, created_at::text
-     FROM login_policy_versions
-     WHERE login_policy_id = $1
+     FROM authentication_policy_versions
+     WHERE authentication_policy_id = $1
      ORDER BY version DESC`,
     [id],
   );
   return res.rows;
 }
 
-export async function createLoginPolicy(
+export async function createAuthPolicy(
   db: Db,
   input: {
     status: AuthBrandStatus;
-    definition: LoginPolicyDefinition;
+    definition: AuthPolicyDefinition;
     actor?: string | null;
     reason?: string | null;
   },
-): Promise<LoginPolicyRecord> {
-  const inserted = await db.query<LoginPolicyRecord>(
+): Promise<AuthPolicyRecord> {
+  const inserted = await db.query<AuthPolicyRecord>(
     `WITH policy AS (
-       INSERT INTO login_policies(name, status)
+       INSERT INTO authentication_policies(name, status)
        VALUES ($1, $2)
        RETURNING *
      ), version AS (
-       INSERT INTO login_policy_versions(login_policy_id, version, definition, created_by, reason)
+       INSERT INTO authentication_policy_versions(
+         authentication_policy_id, version, definition, created_by, reason
+       )
        SELECT id, 1, $3::jsonb, $4, $5 FROM policy
-       RETURNING login_policy_id, definition
+       RETURNING authentication_policy_id, definition
      )
      SELECT p.id::text, p.name, p.status, p.current_version AS version,
             v.definition, p.created_at::text, p.updated_at::text
-     FROM policy p JOIN version v ON v.login_policy_id = p.id`,
+     FROM policy p JOIN version v ON v.authentication_policy_id = p.id`,
     [
       input.definition.name,
       input.status,
@@ -347,35 +349,37 @@ export async function createLoginPolicy(
       input.reason ?? null,
     ],
   );
-  if (!inserted.rows[0]) throw new Error("Login policy creation failed");
+  if (!inserted.rows[0]) throw new Error("Authentication policy creation failed");
   return inserted.rows[0];
 }
 
-export async function updateLoginPolicy(
+export async function updateAuthPolicy(
   db: Db,
   id: string,
   expectedVersion: number,
   input: {
     status: AuthBrandStatus;
-    definition: LoginPolicyDefinition;
+    definition: AuthPolicyDefinition;
     actor?: string | null;
     reason?: string | null;
   },
-): Promise<LoginPolicyRecord | null> {
-  const updated = await db.query<LoginPolicyRecord>(
+): Promise<AuthPolicyRecord | null> {
+  const updated = await db.query<AuthPolicyRecord>(
     `WITH policy AS (
-       UPDATE login_policies
+       UPDATE authentication_policies
        SET status = $3, current_version = current_version + 1, updated_at = now()
        WHERE id = $1 AND current_version = $2
        RETURNING *
      ), version AS (
-       INSERT INTO login_policy_versions(login_policy_id, version, definition, created_by, reason)
+       INSERT INTO authentication_policy_versions(
+         authentication_policy_id, version, definition, created_by, reason
+       )
        SELECT id, current_version, $4::jsonb, $5, $6 FROM policy
-       RETURNING login_policy_id, version, definition
+       RETURNING authentication_policy_id, version, definition
      )
      SELECT p.id::text, p.name, p.status, v.version,
             v.definition, p.created_at::text, p.updated_at::text
-     FROM policy p JOIN version v ON v.login_policy_id = p.id`,
+     FROM policy p JOIN version v ON v.authentication_policy_id = p.id`,
     [
       id,
       expectedVersion,
@@ -391,12 +395,12 @@ export async function updateLoginPolicy(
 export async function listOAuthClientAuthConfigs(db: Db): Promise<OAuthClientAuthConfigRecord[]> {
   const res = await db.query<OAuthClientAuthConfigRecord>(
     `SELECT c.hydra_client_id, c.brand_id::text, b.key AS brand_key,
-            c.login_policy_id::text, p.name AS login_policy_name, c.status,
+            c.authentication_policy_id::text, p.name AS authentication_policy_name, c.status,
             c.is_first_party, c.consent_mode, c.version,
             c.created_at::text, c.updated_at::text
      FROM oauth_client_auth_configs c
      JOIN auth_brands b ON b.id = c.brand_id
-     JOIN login_policies p ON p.id = c.login_policy_id
+     JOIN authentication_policies p ON p.id = c.authentication_policy_id
      WHERE c.status <> 'archived'
      ORDER BY c.hydra_client_id`,
   );
@@ -408,7 +412,7 @@ export async function upsertOAuthClientAuthConfig(
   input: {
     hydraClientId: string;
     brandId: string;
-    loginPolicyId: string;
+    authPolicyId: string;
     status: AuthClientConfigStatus;
     isFirstParty: boolean;
     consentMode: ConsentMode;
@@ -419,12 +423,12 @@ export async function upsertOAuthClientAuthConfig(
   const res = await db.query<OAuthClientAuthConfigRecord>(
     `WITH config AS (
        INSERT INTO oauth_client_auth_configs(
-         hydra_client_id, brand_id, login_policy_id, status, is_first_party, consent_mode
+         hydra_client_id, brand_id, authentication_policy_id, status, is_first_party, consent_mode
        )
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (hydra_client_id) DO UPDATE
        SET brand_id = EXCLUDED.brand_id,
-           login_policy_id = EXCLUDED.login_policy_id,
+           authentication_policy_id = EXCLUDED.authentication_policy_id,
            status = EXCLUDED.status,
            is_first_party = EXCLUDED.is_first_party,
            consent_mode = EXCLUDED.consent_mode,
@@ -439,7 +443,7 @@ export async function upsertOAuthClientAuthConfig(
          jsonb_build_object(
            'hydraClientId', hydra_client_id,
            'brandId', brand_id,
-           'loginPolicyId', login_policy_id,
+           'authPolicyId', authentication_policy_id,
            'status', status,
            'isFirstParty', is_first_party,
            'consentMode', consent_mode,
@@ -450,17 +454,17 @@ export async function upsertOAuthClientAuthConfig(
        RETURNING hydra_client_id
      )
      SELECT c.hydra_client_id, c.brand_id::text, b.key AS brand_key,
-            c.login_policy_id::text, p.name AS login_policy_name, c.status,
+            c.authentication_policy_id::text, p.name AS authentication_policy_name, c.status,
             c.is_first_party, c.consent_mode, c.version,
             c.created_at::text, c.updated_at::text
      FROM config c
      JOIN history h ON h.hydra_client_id = c.hydra_client_id
      JOIN auth_brands b ON b.id = c.brand_id
-     JOIN login_policies p ON p.id = c.login_policy_id`,
+     JOIN authentication_policies p ON p.id = c.authentication_policy_id`,
     [
       input.hydraClientId,
       input.brandId,
-      input.loginPolicyId,
+      input.authPolicyId,
       input.status,
       input.isFirstParty,
       input.consentMode,

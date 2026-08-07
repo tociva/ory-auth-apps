@@ -3,8 +3,8 @@ import { Router, RouterLink } from "@angular/router";
 import type {
   AuthBrandStatus,
   AuthenticatorAssuranceLevel,
-  ClientAccessMode,
-  LoginPolicyDefinition,
+  AuthPolicyDefinition,
+  IdentityGate,
   RegistrationMode,
 } from "@idnest/shared-types";
 import {
@@ -21,29 +21,31 @@ import {
 } from "@tailng-ui/components";
 import { TngIcon } from "@tailng-ui/icons";
 import { AdminApiService, describeError } from "../../../../core/admin-api.service";
-import type { LoginPolicyRecord } from "../../../../core/admin-types";
+import type { AuthPolicyRecord } from "../../../../core/admin-types";
 import { ToastService } from "../../../../core/toast/toast.service";
 import {
   AAL_OPTIONS,
-  ACCESS_MODE_OPTIONS,
+  IDENTITY_GATE_OPTIONS,
   REGISTRATION_MODE_OPTIONS,
   STATUS_OPTIONS,
+  policyMethodsLabel,
 } from "../../authentication-page.types";
 
 interface PolicyRow {
   id: string;
   name: string;
   status: AuthBrandStatus;
+  methods: string;
   minimumAal: AuthenticatorAssuranceLevel;
   registrationMode: RegistrationMode;
-  accessMode: ClientAccessMode;
+  identityGate: IdentityGate;
   version: number;
   updatedAt: string;
-  definition: LoginPolicyDefinition;
+  definition: AuthPolicyDefinition;
 }
 
 @Component({
-  selector: "app-auth-login-policies",
+  selector: "app-auth-policies",
   standalone: true,
   imports: [
     RouterLink,
@@ -58,10 +60,10 @@ interface PolicyRow {
     TngTableCellTemplate,
     TngTableComponent,
   ],
-  templateUrl: "./auth-login-policies.component.html",
+  templateUrl: "./auth-policies.component.html",
   styleUrls: ["../../authentication-page.css"],
 })
-export class AuthLoginPoliciesComponent implements OnInit {
+export class AuthPoliciesComponent implements OnInit {
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
@@ -80,14 +82,19 @@ export class AuthLoginPoliciesComponent implements OnInit {
 
   readonly columns: TngTableColumn<PolicyRow>[] = [
     { id: "name", label: "Name", accessor: (row) => row.name, width: "16rem" },
+    { id: "methods", label: "Methods", accessor: (row) => row.methods, width: "12rem" },
     { id: "status", label: "Status", accessor: (row) => this.statusLabel(row.status) },
-    { id: "aal", label: "Minimum AAL", accessor: (row) => this.aalLabel(row.minimumAal) },
+    { id: "aal", label: "Assurance", accessor: (row) => this.aalLabel(row.minimumAal) },
     {
       id: "registration",
       label: "Registration",
       accessor: (row) => this.registrationLabel(row.registrationMode),
     },
-    { id: "access", label: "Access", accessor: (row) => this.accessLabel(row.accessMode) },
+    {
+      id: "identityGate",
+      label: "Identity Gate",
+      accessor: (row) => this.identityGateLabel(row.identityGate),
+    },
     {
       id: "updated",
       label: "Updated",
@@ -112,7 +119,7 @@ export class AuthLoginPoliciesComponent implements OnInit {
     this.loading = true;
     this.error = "";
     try {
-      const policies = await this.api.listLoginPolicies();
+      const policies = await this.api.listAuthPolicies();
       if (!this.isActiveLoad(requestId)) return;
       this.rows = policies.map((policy) => this.toRow(policy));
     } catch (error) {
@@ -141,8 +148,8 @@ export class AuthLoginPoliciesComponent implements OnInit {
     return REGISTRATION_MODE_OPTIONS.find((option) => option.value === value)?.label ?? value;
   }
 
-  accessLabel(value: ClientAccessMode): string {
-    return ACCESS_MODE_OPTIONS.find((option) => option.value === value)?.label ?? value;
+  identityGateLabel(value: IdentityGate): string {
+    return IDENTITY_GATE_OPTIONS.find((option) => option.value === value)?.label ?? value;
   }
 
   dateLabel(value: string): string {
@@ -151,12 +158,12 @@ export class AuthLoginPoliciesComponent implements OnInit {
   }
 
   duplicatePolicy(row: PolicyRow): void {
-    void this.router.navigate(["/authentication/login-policies/new"], {
+    void this.router.navigate(["/authentication/policies/new"], {
       state: {
         duplicate: {
           ...structuredClone(row.definition),
           name: `${row.name}-copy`,
-        } satisfies LoginPolicyDefinition,
+        } satisfies AuthPolicyDefinition,
       },
     });
   }
@@ -165,7 +172,7 @@ export class AuthLoginPoliciesComponent implements OnInit {
     if (!window.confirm(`Archive the ${row.name} policy?`)) return;
     this.busyPolicyId = row.id;
     try {
-      await this.api.archiveLoginPolicy(row.id);
+      await this.api.archiveAuthPolicy(row.id);
       this.toast.success("Policy archived");
       await this.reload();
     } catch (error) {
@@ -179,14 +186,15 @@ export class AuthLoginPoliciesComponent implements OnInit {
     return !this.destroyed && requestId === this.loadRequestId;
   }
 
-  private toRow(policy: LoginPolicyRecord): PolicyRow {
+  private toRow(policy: AuthPolicyRecord): PolicyRow {
     return {
       id: policy.id,
       name: policy.definition.name || policy.name,
       status: policy.status,
+      methods: policyMethodsLabel(policy.definition),
       minimumAal: policy.definition.minimumAal,
       registrationMode: policy.definition.registrationMode,
-      accessMode: policy.definition.accessMode,
+      identityGate: policy.definition.identityGate,
       version: policy.version,
       updatedAt: policy.updated_at,
       definition: policy.definition,

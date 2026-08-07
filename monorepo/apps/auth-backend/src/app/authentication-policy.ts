@@ -1,10 +1,10 @@
 import {
   hasVerifiedEmailAddress,
+  type AuthPolicyDefinition,
   type KratosSession,
-  type LoginPolicyDefinition,
 } from "@idnest/shared-types";
 
-export interface LoginPolicyDecision {
+export interface AuthenticationPolicyDecision {
   allowed: boolean;
   code?: string;
   description?: string;
@@ -19,7 +19,7 @@ function emailOf(session: KratosSession): string {
 
 function methodAllowed(
   method: NonNullable<KratosSession["authentication_methods"]>[number],
-  policy: LoginPolicyDefinition,
+  policy: AuthPolicyDefinition,
 ): boolean {
   if (method.aal === "aal2") {
     return policy.totpEnabled || method.method === "webauthn" || method.method === "passkey";
@@ -32,15 +32,15 @@ function methodAllowed(
   return false;
 }
 
-export function evaluateLoginPolicy(
+export function evaluateAuthenticationPolicy(
   session: KratosSession,
-  policy: LoginPolicyDefinition,
+  policy: AuthPolicyDefinition,
   options: {
     expectedSubject?: string;
     maximumAgeSeconds?: number;
     now?: number;
   } = {},
-): LoginPolicyDecision {
+): AuthenticationPolicyDecision {
   if (!session.active || !session.identity?.id) {
     return { allowed: false, code: "session_inactive", description: "No active identity session was found." };
   }
@@ -124,7 +124,7 @@ export function evaluateLoginPolicy(
 }
 
 export function shouldRequireFreshLogin(
-  policy: LoginPolicyDefinition,
+  policy: AuthPolicyDefinition,
   request: { prompt?: string[]; maxAge?: number },
 ): boolean {
   return policy.forceReauthentication || request.prompt?.includes("login") === true || request.maxAge === 0;
@@ -136,7 +136,7 @@ export function shouldRequireFreshLogin(
  */
 export function requestedKratosAal(
   session: KratosSession | null | undefined,
-  policy: LoginPolicyDefinition,
+  policy: AuthPolicyDefinition,
 ): "aal1" | "aal2" {
   if (policy.minimumAal === "aal2" && session?.active) return "aal2";
   return "aal1";

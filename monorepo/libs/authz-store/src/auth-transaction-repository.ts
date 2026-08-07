@@ -1,6 +1,6 @@
 import type {
   AuthBrandDefinition,
-  LoginPolicyDefinition,
+  AuthPolicyDefinition,
   OAuthClientAuthConfigSnapshot,
 } from "@idnest/shared-types";
 import type { Db } from "./db";
@@ -23,12 +23,12 @@ export interface AuthTransactionRecord {
   hydra_client_id: string;
   brand_id: string;
   brand_version: number;
-  login_policy_id: string;
-  login_policy_version: number;
+  authentication_policy_id: string;
+  authentication_policy_version: number;
   mapping_version: number;
   client_config_snapshot: OAuthClientAuthConfigSnapshot;
   brand_snapshot: AuthBrandDefinition;
-  policy_snapshot: LoginPolicyDefinition;
+  policy_snapshot: AuthPolicyDefinition;
   kratos_flow_id?: string | null;
   subject?: string | null;
   status: AuthTransactionStatus;
@@ -50,7 +50,7 @@ export interface AuthConsentTransactionRecord {
   subject: string;
   client_config_snapshot: OAuthClientAuthConfigSnapshot;
   brand_snapshot: AuthBrandDefinition;
-  policy_snapshot: LoginPolicyDefinition;
+  policy_snapshot: AuthPolicyDefinition;
   requested_scopes: string[];
   requested_audiences: string[];
   status: "created" | "completing" | "accepted" | "rejected" | "expired" | "failed";
@@ -64,8 +64,8 @@ export interface AuthConsentTransactionRecord {
 
 const AUTH_TRANSACTION_COLUMNS = `
   id::text, token_hash, hydra_login_challenge_hash, hydra_login_challenge_ciphertext,
-  hydra_client_id, brand_id::text, brand_version, login_policy_id::text,
-  login_policy_version, mapping_version, client_config_snapshot, brand_snapshot,
+  hydra_client_id, brand_id::text, brand_version, authentication_policy_id::text,
+  authentication_policy_version, mapping_version, client_config_snapshot, brand_snapshot,
   policy_snapshot, kratos_flow_id, subject, status, created_at::text, expires_at::text,
   completion_started_at::text, completed_at::text, failure_code, redirect_to
 `;
@@ -79,20 +79,20 @@ export async function createAuthTransaction(
     hydraClientId: string;
     brandId: string;
     brandVersion: number;
-    loginPolicyId: string;
-    loginPolicyVersion: number;
+    authPolicyId: string;
+    authPolicyVersion: number;
     mappingVersion: number;
     clientConfigSnapshot: OAuthClientAuthConfigSnapshot;
     brandSnapshot: AuthBrandDefinition;
-    policySnapshot: LoginPolicyDefinition;
+    policySnapshot: AuthPolicyDefinition;
     ttlSeconds: number;
   },
 ): Promise<AuthTransactionRecord> {
   const res = await db.query<AuthTransactionRecord>(
     `INSERT INTO auth_transactions(
        token_hash, hydra_login_challenge_hash, hydra_login_challenge_ciphertext,
-       hydra_client_id, brand_id, brand_version, login_policy_id,
-       login_policy_version, mapping_version, client_config_snapshot,
+       hydra_client_id, brand_id, brand_version, authentication_policy_id,
+       authentication_policy_version, mapping_version, client_config_snapshot,
        brand_snapshot, policy_snapshot, status, expires_at
      )
      VALUES (
@@ -105,8 +105,8 @@ export async function createAuthTransaction(
          hydra_client_id = EXCLUDED.hydra_client_id,
          brand_id = EXCLUDED.brand_id,
          brand_version = EXCLUDED.brand_version,
-         login_policy_id = EXCLUDED.login_policy_id,
-         login_policy_version = EXCLUDED.login_policy_version,
+         authentication_policy_id = EXCLUDED.authentication_policy_id,
+         authentication_policy_version = EXCLUDED.authentication_policy_version,
          mapping_version = EXCLUDED.mapping_version,
          client_config_snapshot = EXCLUDED.client_config_snapshot,
          brand_snapshot = EXCLUDED.brand_snapshot,
@@ -129,8 +129,8 @@ export async function createAuthTransaction(
       input.hydraClientId,
       input.brandId,
       input.brandVersion,
-      input.loginPolicyId,
-      input.loginPolicyVersion,
+      input.authPolicyId,
+      input.authPolicyVersion,
       input.mappingVersion,
       JSON.stringify(input.clientConfigSnapshot),
       JSON.stringify(input.brandSnapshot),
@@ -299,7 +299,7 @@ export async function createAuthConsentTransaction(
     subject: string;
     clientConfigSnapshot: OAuthClientAuthConfigSnapshot;
     brandSnapshot: AuthBrandDefinition;
-    policySnapshot: LoginPolicyDefinition;
+    policySnapshot: AuthPolicyDefinition;
     requestedScopes: string[];
     requestedAudiences: string[];
     ttlSeconds: number;
@@ -423,7 +423,7 @@ export async function recordAuthAuditEvent(
     eventType: string;
     hydraClientId?: string | null;
     brandId?: string | null;
-    loginPolicyId?: string | null;
+    authenticationPolicyId?: string | null;
     identityId?: string | null;
     result?: string | null;
     failureCode?: string | null;
@@ -435,7 +435,7 @@ export async function recordAuthAuditEvent(
 ): Promise<void> {
   await db.query(
     `INSERT INTO auth_audit_events(
-       event_type, hydra_client_id, brand_id, login_policy_id, identity_id,
+       event_type, hydra_client_id, brand_id, authentication_policy_id, identity_id,
        result, failure_code, correlation_id, ip_hash, user_agent_category, metadata
      )
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)`,
@@ -443,7 +443,7 @@ export async function recordAuthAuditEvent(
       input.eventType,
       input.hydraClientId ?? null,
       input.brandId ?? null,
-      input.loginPolicyId ?? null,
+      input.authenticationPolicyId ?? null,
       input.identityId ?? null,
       input.result ?? null,
       input.failureCode ?? null,

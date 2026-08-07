@@ -3,14 +3,14 @@ import type {
   AuthBrandStatus,
   AuthClientConfigStatus,
   AuthenticatorAssuranceLevel,
-  ClientAccessMode,
+  AuthPolicyDefinition,
   ConsentMode,
-  LoginPolicyDefinition,
+  IdentityGate,
   RegistrationMode,
 } from "@idnest/shared-types";
 import type { OAuthClientAuthConfigRecord } from "../../core/admin-types";
 
-export interface PolicyDraft extends LoginPolicyDefinition {
+export interface PolicyDraft extends AuthPolicyDefinition {
   providersText: string;
   domainsText: string;
   emailsText: string;
@@ -19,7 +19,7 @@ export interface PolicyDraft extends LoginPolicyDefinition {
 export interface MappingDraft {
   clientId: string;
   brandId: string;
-  loginPolicyId: string;
+  authPolicyId: string;
   status: AuthClientConfigStatus;
   isFirstParty: boolean;
   consentMode: ConsentMode;
@@ -52,7 +52,7 @@ export const NEW_BRAND: AuthBrandDefinition = {
   defaultLocale: "en",
 };
 
-export const NEW_POLICY: LoginPolicyDefinition = {
+export const NEW_POLICY: AuthPolicyDefinition = {
   name: "",
   passwordEnabled: false,
   passkeyEnabled: false,
@@ -60,7 +60,7 @@ export const NEW_POLICY: LoginPolicyDefinition = {
   totpEnabled: false,
   minimumAal: "aal1",
   registrationMode: "enabled",
-  accessMode: "open",
+  identityGate: "public",
   allowedEmailDomains: [],
   allowedEmails: [],
   requireVerifiedEmail: true,
@@ -90,9 +90,12 @@ export const REGISTRATION_MODE_OPTIONS: SelectOption<RegistrationMode>[] = [
   { value: "invitation-only", label: "Invitation only" },
 ];
 
-export const ACCESS_MODE_OPTIONS: SelectOption<ClientAccessMode>[] = [
-  { value: "open", label: "Open" },
-  { value: "grant-required", label: "Grant required" },
+export const IDENTITY_GATE_OPTIONS: SelectOption<IdentityGate>[] = [
+  { value: "public", label: "Public" },
+  { value: "invitation", label: "Invitation required" },
+  { value: "existing-identity", label: "Existing users only" },
+  { value: "email-allowlist", label: "Email allowlist" },
+  { value: "domain-allowlist", label: "Domain allowlist" },
 ];
 
 export const CONSENT_MODE_OPTIONS: SelectOption<ConsentMode>[] = [
@@ -113,7 +116,7 @@ export function toMappingDraft(record: OAuthClientAuthConfigRecord): MappingDraf
   return {
     clientId: record.hydra_client_id,
     brandId: record.brand_id,
-    loginPolicyId: record.login_policy_id,
+    authPolicyId: record.authentication_policy_id,
     status: record.status,
     isFirstParty: record.is_first_party,
     consentMode: record.consent_mode,
@@ -121,7 +124,7 @@ export function toMappingDraft(record: OAuthClientAuthConfigRecord): MappingDraf
   };
 }
 
-export function toPolicyDraft(definition: LoginPolicyDefinition): PolicyDraft {
+export function toPolicyDraft(definition: AuthPolicyDefinition): PolicyDraft {
   return {
     ...structuredClone(definition),
     providersText: definition.allowedOidcProviders.join("\n"),
@@ -130,7 +133,7 @@ export function toPolicyDraft(definition: LoginPolicyDefinition): PolicyDraft {
   };
 }
 
-export function fromPolicyDraft(draft: PolicyDraft): LoginPolicyDefinition {
+export function fromPolicyDraft(draft: PolicyDraft): AuthPolicyDefinition {
   const lines = (value: string): string[] =>
     value
       .split(/[\n,]/)
@@ -144,4 +147,15 @@ export function fromPolicyDraft(draft: PolicyDraft): LoginPolicyDefinition {
     allowedEmailDomains: lines(domainsText),
     allowedEmails: lines(emailsText),
   };
+}
+
+export function policyMethodsLabel(definition: AuthPolicyDefinition): string {
+  const methods: string[] = [];
+  for (const provider of definition.allowedOidcProviders) {
+    methods.push(provider.charAt(0).toUpperCase() + provider.slice(1));
+  }
+  if (definition.passwordEnabled) methods.push("Password");
+  if (definition.passkeyEnabled) methods.push("Passkey");
+  if (definition.totpEnabled) methods.push("TOTP");
+  return methods.length > 0 ? methods.join(" · ") : "None";
 }

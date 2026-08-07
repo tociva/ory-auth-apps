@@ -2,10 +2,10 @@ import type {
   AuthBrandDefinition,
   AuthBrandStatus,
   AuthClientConfigStatus,
+  AuthPolicyDefinition,
   ConsentMode,
   KratosUser,
   KratosVerifiableAddress,
-  LoginPolicyDefinition,
   OAuthClientType,
 } from "@idnest/shared-types";
 
@@ -99,12 +99,12 @@ export interface AuthBrandRecord {
   updated_at: string;
 }
 
-export interface LoginPolicyRecord {
+export interface AuthPolicyRecord {
   id: string;
   name: string;
   status: AuthBrandStatus;
   version: number;
-  definition: LoginPolicyDefinition;
+  definition: AuthPolicyDefinition;
   created_at: string;
   updated_at: string;
 }
@@ -113,8 +113,8 @@ export interface OAuthClientAuthConfigRecord {
   hydra_client_id: string;
   brand_id: string;
   brand_key: string;
-  login_policy_id: string;
-  login_policy_name: string;
+  authentication_policy_id: string;
+  authentication_policy_name: string;
   status: AuthClientConfigStatus;
   is_first_party: boolean;
   consent_mode: ConsentMode;

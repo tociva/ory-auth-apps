@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_LOGIN_POLICY } from "@idnest/shared-types";
+import { DEFAULT_AUTH_POLICY } from "@idnest/shared-types";
 import { identityAal2Capability } from "../kratos-admin";
 import { mockFetchByUrl } from "./helpers";
 
@@ -22,7 +22,7 @@ describe("identityAal2Capability", () => {
 
     await expect(
       identityAal2Capability("identity-1", {
-        ...DEFAULT_LOGIN_POLICY,
+        ...DEFAULT_AUTH_POLICY,
         totpEnabled: true,
         minimumAal: "aal2",
       }),
@@ -40,7 +40,7 @@ describe("identityAal2Capability", () => {
 
     await expect(
       identityAal2Capability("identity-1", {
-        ...DEFAULT_LOGIN_POLICY,
+        ...DEFAULT_AUTH_POLICY,
         totpEnabled: true,
         minimumAal: "aal2",
       }),
@@ -53,7 +53,7 @@ describe("identityAal2Capability", () => {
 
     await expect(
       identityAal2Capability("identity-1", {
-        ...DEFAULT_LOGIN_POLICY,
+        ...DEFAULT_AUTH_POLICY,
         totpEnabled: true,
         minimumAal: "aal2",
       }),

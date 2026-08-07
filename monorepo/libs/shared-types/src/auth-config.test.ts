@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_AUTH_POLICY,
   DEFAULT_IDNEST_BRAND,
-  DEFAULT_LOGIN_POLICY,
+  identityGateRequiresClientGrant,
   normalizeClientHomeUrl,
   publicAuthRecoveryForClient,
   toPublicPolicy,
@@ -16,20 +17,30 @@ describe("public authentication configuration", () => {
 
   it("does not expose access rules, allowlists, freshness, or reauthentication policy", () => {
     const publicPolicy = toPublicPolicy({
-      ...DEFAULT_LOGIN_POLICY,
+      ...DEFAULT_AUTH_POLICY,
       allowedEmails: ["administrator@example.com"],
       allowedEmailDomains: ["example.com"],
-      accessMode: "grant-required",
+      identityGate: "existing-identity",
       forceReauthentication: true,
       sessionMaximumAgeSeconds: 60,
     });
 
-    expect(publicPolicy.registrationMode).toBe(DEFAULT_LOGIN_POLICY.registrationMode);
+    expect(publicPolicy.registrationMode).toBe(DEFAULT_AUTH_POLICY.registrationMode);
     expect(publicPolicy).not.toHaveProperty("allowedEmails");
     expect(publicPolicy).not.toHaveProperty("allowedEmailDomains");
-    expect(publicPolicy).not.toHaveProperty("accessMode");
+    expect(publicPolicy).not.toHaveProperty("identityGate");
     expect(publicPolicy).not.toHaveProperty("forceReauthentication");
     expect(publicPolicy).not.toHaveProperty("sessionMaximumAgeSeconds");
+  });
+
+  it("classifies which identity gates require a client access grant", () => {
+    expect(identityGateRequiresClientGrant("public")).toBe(false);
+    expect(identityGateRequiresClientGrant("email-allowlist")).toBe(false);
+    expect(identityGateRequiresClientGrant("domain-allowlist")).toBe(false);
+    expect(identityGateRequiresClientGrant("invitation")).toBe(true);
+    expect(identityGateRequiresClientGrant("existing-identity")).toBe(true);
+    expect(identityGateRequiresClientGrant("org-membership")).toBe(true);
+    expect(identityGateRequiresClientGrant("custom")).toBe(true);
   });
 
   it("normalizes only absolute http client home URLs", () => {

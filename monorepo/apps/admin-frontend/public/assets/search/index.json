@@ -24,14 +24,14 @@
     "url": "/authentication/brands"
   },
   {
-    "title": "Login Policies",
-    "description": "Manage authentication methods, AAL, session freshness, and access gates",
-    "keywords": ["authentication", "auth", "policy", "policies", "aal", "totp", "passkey"],
-    "url": "/authentication/login-policies"
+    "title": "Authentication Policies",
+    "description": "Manage sign-in methods, identity gates, AAL, session freshness, and registration",
+    "keywords": ["authentication", "auth", "policy", "policies", "aal", "totp", "passkey", "identity gate"],
+    "url": "/authentication/policies"
   },
   {
     "title": "Client Mappings",
-    "description": "Assign OAuth clients to authentication brands, login policies, and consent behavior",
+    "description": "Assign OAuth clients to authentication brands, authentication policies, and consent behavior",
     "keywords": ["authentication", "auth", "client", "mappings", "brands", "policies", "consent"],
     "url": "/authentication/client-mappings"
   },

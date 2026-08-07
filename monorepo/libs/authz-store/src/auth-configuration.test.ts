@@ -1,4 +1,4 @@
-import { DEFAULT_LOGIN_POLICY_NAME } from "@idnest/shared-types";
+import { DEFAULT_AUTH_POLICY_NAME } from "@idnest/shared-types";
 import { describe, expect, it } from "vitest";
 import type { Db } from "./db";
 import {
@@ -34,14 +34,14 @@ const brand = {
 };
 
 const policy = {
-  name: "Open Google sign-in",
+  name: "Public Google",
   passwordEnabled: false,
   passkeyEnabled: false,
   allowedOidcProviders: ["google"],
   totpEnabled: false,
   minimumAal: "aal1" as const,
   registrationMode: "enabled" as const,
-  accessMode: "open" as const,
+  identityGate: "public" as const,
   allowedEmailDomains: [],
   allowedEmails: [],
   requireVerifiedEmail: true,
@@ -60,9 +60,9 @@ function resolvedRow(clientId = "daybook-web") {
     brand_status: "active",
     brand_version: 2,
     brand_definition: brand,
-    login_policy_id: "00000000-0000-4000-8000-000000000002",
+    authentication_policy_id: "00000000-0000-4000-8000-000000000002",
     policy_status: "active",
-    login_policy_version: 4,
+    authentication_policy_version: 4,
     policy_definition: policy,
   };
 }
@@ -96,7 +96,7 @@ describe("authentication configuration repository", () => {
 
     expect(resolved.usedFallback).toBe(true);
     expect(resolved.client.hydraClientId).toBe("unknown-client");
-    expect(values[1]).toEqual(["unknown-client", DEFAULT_LOGIN_POLICY_NAME]);
+    expect(values[1]).toEqual(["unknown-client", DEFAULT_AUTH_POLICY_NAME]);
   });
 });
 

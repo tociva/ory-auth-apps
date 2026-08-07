@@ -3,7 +3,7 @@
  * directly to the browser.
  */
 import { getKratosAdminUrl } from "./config";
-import type { LoginPolicyDefinition } from "@idnest/shared-types";
+import type { AuthPolicyDefinition } from "@idnest/shared-types";
 
 export type Aal2Capability = "available" | "missing" | "unknown";
 
@@ -13,12 +13,12 @@ interface KratosAdminIdentity {
 }
 
 /**
- * Whether the identity already has a second-factor credential that this login
- * policy can use for AAL2 step-up.
+ * Whether the identity already has a second-factor credential that this
+ * authentication policy can use for AAL2 step-up.
  */
 export async function identityAal2Capability(
   identityId: string,
-  policy: LoginPolicyDefinition,
+  policy: AuthPolicyDefinition,
 ): Promise<Aal2Capability> {
   const base = getKratosAdminUrl().replace(/\/+$/, "");
   if (!base || !identityId) return "unknown";

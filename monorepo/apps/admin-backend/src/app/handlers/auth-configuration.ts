@@ -1,28 +1,29 @@
 import {
   archiveOAuthClientAuthConfig,
   createAuthBrand,
-  createLoginPolicy,
+  createAuthPolicy,
   getAuthBrand,
   getAuthzPool,
-  getLoginPolicy,
+  getAuthPolicy,
   listAuthBrands,
   listAuthBrandVersions,
-  listLoginPolicies,
-  listLoginPolicyVersions,
+  listAuthPolicies,
+  listAuthPolicyVersions,
   listOAuthClientAuthConfigs,
   listOAuthClientAuthConfigVersions,
   recordAuthAuditEvent,
   updateAuthBrand,
-  updateLoginPolicy,
+  updateAuthPolicy,
   upsertOAuthClientAuthConfig,
 } from "@idnest/authz-store";
 import {
-  DEFAULT_LOGIN_POLICY_NAME,
+  DEFAULT_AUTH_POLICY_NAME,
   type AuthBrandDefinition,
   type AuthBrandStatus,
   type AuthClientConfigStatus,
+  type AuthPolicyDefinition,
   type ConsentMode,
-  type LoginPolicyDefinition,
+  type IdentityGate,
 } from "@idnest/shared-types";
 import {
   getAuthAssetAllowedOrigins,
@@ -229,7 +230,17 @@ function parseBrandDefinition(input: unknown, status: AuthBrandStatus): AuthBran
   return definition;
 }
 
-function parsePolicyDefinition(input: unknown): LoginPolicyDefinition {
+const IDENTITY_GATES = new Set<IdentityGate>([
+  "public",
+  "invitation",
+  "existing-identity",
+  "email-allowlist",
+  "domain-allowlist",
+  "org-membership",
+  "custom",
+]);
+
+function parseAuthPolicyDefinition(input: unknown): AuthPolicyDefinition {
   if (!isObject(input)) throw new Error("definition must be an object");
   const name = text(input, "name", { required: true, max: 100 }) as string;
   const providers = stringList(input, "allowedOidcProviders", 20);
@@ -264,14 +275,32 @@ function parsePolicyDefinition(input: unknown): LoginPolicyDefinition {
   ) {
     throw new Error("registrationMode is invalid");
   }
-  const accessMode = text(input, "accessMode", { required: true, max: 20 });
-  if (accessMode !== "open" && accessMode !== "grant-required") {
-    throw new Error("accessMode is invalid");
+  const identityGate = text(input, "identityGate", { required: true, max: 32 }) as IdentityGate;
+  if (!IDENTITY_GATES.has(identityGate)) {
+    throw new Error("identityGate is invalid");
   }
-  if (registrationMode !== "enabled" && accessMode !== "grant-required") {
-    throw new Error(
-      "disabled and invitation-only registration require grant-required client access",
-    );
+  if (identityGate === "public" && registrationMode !== "enabled") {
+    throw new Error("public identity gate requires registrationMode enabled");
+  }
+  if (identityGate === "public" && (emails.length > 0 || domains.length > 0)) {
+    throw new Error("public identity gate cannot include email or domain allowlists");
+  }
+  if (identityGate === "invitation" && registrationMode !== "invitation-only") {
+    throw new Error("invitation identity gate requires registrationMode invitation-only");
+  }
+  if (
+    (identityGate === "existing-identity" ||
+      identityGate === "org-membership" ||
+      identityGate === "custom") &&
+    registrationMode !== "disabled"
+  ) {
+    throw new Error(`${identityGate} identity gate requires registrationMode disabled`);
+  }
+  if (identityGate === "email-allowlist" && emails.length === 0) {
+    throw new Error("email-allowlist identity gate requires at least one allowed email");
+  }
+  if (identityGate === "domain-allowlist" && domains.length === 0) {
+    throw new Error("domain-allowlist identity gate requires at least one allowed domain");
   }
   const maximumAge = input["sessionMaximumAgeSeconds"];
   if (
@@ -290,7 +319,7 @@ function parsePolicyDefinition(input: unknown): LoginPolicyDefinition {
     totpEnabled: bool(input, "totpEnabled"),
     minimumAal,
     registrationMode,
-    accessMode,
+    identityGate,
     allowedEmailDomains: domains,
     allowedEmails: emails,
     requireVerifiedEmail: bool(input, "requireVerifiedEmail"),
@@ -334,7 +363,7 @@ async function audit(
   eventType: string,
   actor: string | null | undefined,
   metadata: Record<string, unknown>,
-  links: { clientId?: string; brandId?: string; policyId?: string } = {},
+  links: { clientId?: string; brandId?: string; authenticationPolicyId?: string } = {},
 ): Promise<void> {
   const db = database();
   if (!db) return;
@@ -342,7 +371,7 @@ async function audit(
     eventType,
     hydraClientId: links.clientId,
     brandId: links.brandId,
-    loginPolicyId: links.policyId,
+    authenticationPolicyId: links.authenticationPolicyId,
     result: "success",
     metadata: { actor: actor ?? "unknown", ...metadata },
   });
@@ -476,7 +505,7 @@ export async function listPolicyConfigurations(): Promise<HandlerResult> {
   const db = database();
   if (!db) return { status: 503, body: { error: "AUTHZ_DATABASE_URL is not configured" } };
   try {
-    return { status: 200, body: await listLoginPolicies(db) };
+    return { status: 200, body: await listAuthPolicies(db) };
   } catch (err) {
     return conflictAware(err);
   }
@@ -487,7 +516,7 @@ export async function getPolicyConfiguration(input: ResourceInput): Promise<Hand
   if (!db) return { status: 503, body: { error: "AUTHZ_DATABASE_URL is not configured" } };
   if (!input.id || !UUID.test(input.id)) return { status: 400, body: { error: "Invalid policy id" } };
   try {
-    const policy = await getLoginPolicy(db, input.id);
+    const policy = await getAuthPolicy(db, input.id);
     return policy
       ? { status: 200, body: policy }
       : { status: 404, body: { error: "Policy not found" } };
@@ -501,10 +530,10 @@ export async function listPolicyConfigurationHistory(input: ResourceInput): Prom
   if (!db) return { status: 503, body: { error: "AUTHZ_DATABASE_URL is not configured" } };
   if (!input.id || !UUID.test(input.id)) return { status: 400, body: { error: "Invalid policy id" } };
   try {
-    if (!(await getLoginPolicy(db, input.id))) {
+    if (!(await getAuthPolicy(db, input.id))) {
       return { status: 404, body: { error: "Policy not found" } };
     }
-    return { status: 200, body: await listLoginPolicyVersions(db, input.id) };
+    return { status: 200, body: await listAuthPolicyVersions(db, input.id) };
   } catch (err) {
     return conflictAware(err);
   }
@@ -517,14 +546,14 @@ export async function createPolicyConfiguration(input: ResourceInput): Promise<H
     const body = input.body ?? {};
     const status = parseStatus(body, BRAND_STATUSES, "draft");
     if (status === "archived") throw new Error("A new policy cannot be archived");
-    const policy = await createLoginPolicy(db, {
+    const policy = await createAuthPolicy(db, {
       status,
-      definition: parsePolicyDefinition(body["definition"]),
+      definition: parseAuthPolicyDefinition(body["definition"]),
       actor: input.actor,
       reason: text(body, "reason", { max: 500 }),
     });
-    await audit("auth.login-policy.created", input.actor, { version: policy.version }, {
-      policyId: policy.id,
+    await audit("auth.authentication-policy.created", input.actor, { version: policy.version }, {
+      authenticationPolicyId: policy.id,
     });
     return { status: 201, body: policy };
   } catch (err) {
@@ -539,14 +568,14 @@ export async function updatePolicyConfiguration(input: ResourceInput): Promise<H
   if (!input.id || !UUID.test(input.id)) return { status: 400, body: { error: "Invalid policy id" } };
   try {
     const body = input.body ?? {};
-    const current = await getLoginPolicy(db, input.id);
+    const current = await getAuthPolicy(db, input.id);
     if (!current) return { status: 404, body: { error: "Policy not found" } };
     const status = parseStatus(body, BRAND_STATUSES, current.status);
-    const definition = parsePolicyDefinition(body["definition"] ?? current.definition);
+    const definition = parseAuthPolicyDefinition(body["definition"] ?? current.definition);
     if (definition.name !== current.name) {
       return { status: 400, body: { error: "Policy names are immutable" } };
     }
-    const policy = await updateLoginPolicy(db, input.id, expectedVersion(body), {
+    const policy = await updateAuthPolicy(db, input.id, expectedVersion(body), {
       status,
       definition,
       actor: input.actor,
@@ -555,8 +584,8 @@ export async function updatePolicyConfiguration(input: ResourceInput): Promise<H
     if (!policy) {
       return { status: 409, body: { error: "Policy changed; reload before saving again" } };
     }
-    await audit("auth.login-policy.updated", input.actor, { version: policy.version }, {
-      policyId: policy.id,
+    await audit("auth.authentication-policy.updated", input.actor, { version: policy.version }, {
+      authenticationPolicyId: policy.id,
     });
     return { status: 200, body: policy };
   } catch (err) {
@@ -570,15 +599,16 @@ export async function archivePolicyConfiguration(input: ResourceInput): Promise<
   if (!db) return { status: 503, body: { error: "AUTHZ_DATABASE_URL is not configured" } };
   if (!input.id || !UUID.test(input.id)) return { status: 400, body: { error: "Invalid policy id" } };
   try {
-    const current = await getLoginPolicy(db, input.id);
+    const current = await getAuthPolicy(db, input.id);
     if (!current) return { status: 404, body: { error: "Policy not found" } };
-    if (current.name === DEFAULT_LOGIN_POLICY_NAME) {
+    if (current.name === DEFAULT_AUTH_POLICY_NAME) {
       return { status: 403, body: { error: "The fallback policy cannot be archived" } };
     }
     const mappings = await listOAuthClientAuthConfigs(db);
     if (
       mappings.some(
-        (mapping) => mapping.login_policy_id === input.id && mapping.status === "active",
+        (mapping) =>
+          mapping.authentication_policy_id === input.id && mapping.status === "active",
       )
     ) {
       return {
@@ -586,14 +616,19 @@ export async function archivePolicyConfiguration(input: ResourceInput): Promise<
         body: { error: "Disable or remap active OAuth clients before archiving this policy" },
       };
     }
-    const updated = await updateLoginPolicy(db, input.id, current.version, {
+    const updated = await updateAuthPolicy(db, input.id, current.version, {
       status: "archived",
       definition: current.definition,
       actor: input.actor,
       reason: "Archived from the administration console",
     });
     if (!updated) return { status: 409, body: { error: "Policy changed; reload and retry" } };
-    await audit("auth.login-policy.archived", input.actor, {}, { policyId: input.id });
+    await audit(
+      "auth.authentication-policy.archived",
+      input.actor,
+      {},
+      { authenticationPolicyId: input.id },
+    );
     return { status: 200, body: { archived: true, id: input.id } };
   } catch (err) {
     return conflictAware(err);
@@ -666,9 +701,9 @@ export async function putClientAuthConfiguration(input: MappingInput): Promise<H
   try {
     const body = input.body ?? {};
     const brandId = text(body, "brandId", { required: true, max: 36 }) as string;
-    const loginPolicyId = text(body, "loginPolicyId", { required: true, max: 36 }) as string;
-    if (!UUID.test(brandId) || !UUID.test(loginPolicyId)) {
-      return { status: 400, body: { error: "brandId and loginPolicyId must be valid UUIDs" } };
+    const authPolicyId = text(body, "authPolicyId", { required: true, max: 36 }) as string;
+    if (!UUID.test(brandId) || !UUID.test(authPolicyId)) {
+      return { status: 400, body: { error: "brandId and authPolicyId must be valid UUIDs" } };
     }
     const existence = await hydraClientExists(clientId);
     if (existence === false) return { status: 404, body: { error: "Hydra client not found" } };
@@ -685,15 +720,18 @@ export async function putClientAuthConfiguration(input: MappingInput): Promise<H
     }
     const [brand, policy] = await Promise.all([
       getAuthBrand(db, brandId),
-      getLoginPolicy(db, loginPolicyId),
+      getAuthPolicy(db, authPolicyId),
     ]);
     if (!brand || !policy) {
-      return { status: 400, body: { error: "The selected brand or login policy does not exist" } };
+      return {
+        status: 400,
+        body: { error: "The selected brand or authentication policy does not exist" },
+      };
     }
     if (status === "active" && (brand.status !== "active" || policy.status !== "active")) {
       return {
         status: 400,
-        body: { error: "Active mappings require an active brand and login policy" },
+        body: { error: "Active mappings require an active brand and authentication policy" },
       };
     }
     const isFirstParty = bool(body, "isFirstParty");
@@ -706,7 +744,7 @@ export async function putClientAuthConfiguration(input: MappingInput): Promise<H
     const config = await upsertOAuthClientAuthConfig(db, {
       hydraClientId: clientId,
       brandId,
-      loginPolicyId,
+      authPolicyId,
       status,
       isFirstParty,
       consentMode: consentMode as ConsentMode,
@@ -716,7 +754,7 @@ export async function putClientAuthConfiguration(input: MappingInput): Promise<H
     await audit("auth.client-brand.changed", input.actor, { version: config.version }, {
       clientId,
       brandId,
-      policyId: loginPolicyId,
+      authenticationPolicyId: authPolicyId,
     });
     return { status: 200, body: config };
   } catch (err) {

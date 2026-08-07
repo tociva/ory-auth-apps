@@ -1,20 +1,20 @@
-import type { KratosSession, LoginPolicyDefinition } from "@idnest/shared-types";
+import type { AuthPolicyDefinition, KratosSession } from "@idnest/shared-types";
 import { describe, expect, it } from "vitest";
 import {
-  evaluateLoginPolicy,
+  evaluateAuthenticationPolicy,
   requestedKratosAal,
   shouldRequireFreshLogin,
-} from "../login-policy";
+} from "../authentication-policy";
 
-const policy: LoginPolicyDefinition = {
-  name: "Daybook",
+const policy: AuthPolicyDefinition = {
+  name: "Public Google",
   passwordEnabled: false,
   passkeyEnabled: false,
   allowedOidcProviders: ["google"],
   totpEnabled: false,
   minimumAal: "aal1",
   registrationMode: "enabled",
-  accessMode: "open",
+  identityGate: "public",
   allowedEmailDomains: [],
   allowedEmails: [],
   requireVerifiedEmail: true,
@@ -48,9 +48,9 @@ function session(overrides: Partial<KratosSession> = {}): KratosSession {
   };
 }
 
-describe("evaluateLoginPolicy", () => {
+describe("evaluateAuthenticationPolicy", () => {
   it("accepts an active, verified, fresh Google session", () => {
-    const decision = evaluateLoginPolicy(session(), policy, {
+    const decision = evaluateAuthenticationPolicy(session(), policy, {
       now: Date.parse("2026-01-01T00:10:00.000Z"),
     });
     expect(decision).toEqual({
@@ -70,9 +70,9 @@ describe("evaluateLoginPolicy", () => {
         ],
       },
     });
-    expect(evaluateLoginPolicy(unverified, policy).code).toBe("email_not_verified");
+    expect(evaluateAuthenticationPolicy(unverified, policy).code).toBe("email_not_verified");
     expect(
-      evaluateLoginPolicy(session(), policy, {
+      evaluateAuthenticationPolicy(session(), policy, {
         now: Date.parse("2026-01-01T02:00:00.000Z"),
       }).code,
     ).toBe("reauthentication_required");
@@ -81,24 +81,24 @@ describe("evaluateLoginPolicy", () => {
   it("enforces subject, provider, domain, and AAL policy", () => {
     const now = Date.parse("2026-01-01T00:10:00.000Z");
     expect(
-      evaluateLoginPolicy(session(), policy, { expectedSubject: "identity-2", now }).code,
+      evaluateAuthenticationPolicy(session(), policy, { expectedSubject: "identity-2", now }).code,
     ).toBe("subject_mismatch");
     expect(
-      evaluateLoginPolicy(
+      evaluateAuthenticationPolicy(
         session(),
         { ...policy, allowedOidcProviders: ["apple"] },
         { now },
       ).code,
     ).toBe("authentication_method_not_allowed");
     expect(
-      evaluateLoginPolicy(
+      evaluateAuthenticationPolicy(
         session(),
         { ...policy, allowedEmailDomains: ["company.test"] },
         { now },
       ).code,
     ).toBe("email_domain_not_allowed");
     expect(
-      evaluateLoginPolicy(session(), { ...policy, minimumAal: "aal2" }, { now }).code,
+      evaluateAuthenticationPolicy(session(), { ...policy, minimumAal: "aal2" }, { now }).code,
     ).toBe("aal2_required");
   });
 });

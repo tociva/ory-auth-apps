@@ -2,7 +2,14 @@ export type AuthBrandStatus = "draft" | "active" | "disabled" | "archived";
 export type AuthClientConfigStatus = "active" | "disabled" | "archived";
 export type ConsentMode = "always-show" | "skip-for-first-party" | "follow-hydra";
 export type RegistrationMode = "enabled" | "disabled" | "invitation-only";
-export type ClientAccessMode = "open" | "grant-required";
+export type IdentityGate =
+  | "public"
+  | "invitation"
+  | "existing-identity"
+  | "email-allowlist"
+  | "domain-allowlist"
+  | "org-membership"
+  | "custom";
 export type AuthenticatorAssuranceLevel = "aal1" | "aal2";
 
 export interface AuthBrandDefinition {
@@ -36,7 +43,7 @@ export interface AuthBrandDefinition {
   defaultLocale: string;
 }
 
-export interface LoginPolicyDefinition {
+export interface AuthPolicyDefinition {
   name: string;
   passwordEnabled: boolean;
   passkeyEnabled: boolean;
@@ -44,7 +51,7 @@ export interface LoginPolicyDefinition {
   totpEnabled: boolean;
   minimumAal: AuthenticatorAssuranceLevel;
   registrationMode: RegistrationMode;
-  accessMode: ClientAccessMode;
+  identityGate: IdentityGate;
   allowedEmailDomains: string[];
   allowedEmails: string[];
   requireVerifiedEmail: boolean;
@@ -61,15 +68,15 @@ export interface OAuthClientAuthConfigSnapshot {
   consentMode: ConsentMode;
   brandId: string;
   brandVersion: number;
-  loginPolicyId: string;
-  loginPolicyVersion: number;
+  authPolicyId: string;
+  authPolicyVersion: number;
   mappingVersion: number;
 }
 
 export interface ResolvedAuthConfiguration {
   client: OAuthClientAuthConfigSnapshot;
   brand: AuthBrandDefinition;
-  policy: LoginPolicyDefinition;
+  policy: AuthPolicyDefinition;
   usedFallback: boolean;
 }
 
@@ -139,17 +146,17 @@ export const DEFAULT_IDNEST_BRAND: AuthBrandDefinition = {
   defaultLocale: "en",
 };
 
-export const DEFAULT_LOGIN_POLICY_NAME = "Open social sign-in";
+export const DEFAULT_AUTH_POLICY_NAME = "Public Social";
 
-export const DEFAULT_LOGIN_POLICY: LoginPolicyDefinition = {
-  name: DEFAULT_LOGIN_POLICY_NAME,
+export const DEFAULT_AUTH_POLICY: AuthPolicyDefinition = {
+  name: DEFAULT_AUTH_POLICY_NAME,
   passwordEnabled: false,
   passkeyEnabled: false,
   allowedOidcProviders: ["google", "apple"],
   totpEnabled: false,
   minimumAal: "aal1",
   registrationMode: "enabled",
-  accessMode: "open",
+  identityGate: "public",
   allowedEmailDomains: [],
   allowedEmails: [],
   requireVerifiedEmail: true,
@@ -157,7 +164,12 @@ export const DEFAULT_LOGIN_POLICY: LoginPolicyDefinition = {
   sessionMaximumAgeSeconds: 3600,
 };
 
-export function toPublicPolicy(policy: LoginPolicyDefinition): PublicAuthPolicy {
+/** Gates that require an explicit client_access_grants row before access is allowed. */
+export function identityGateRequiresClientGrant(gate: IdentityGate): boolean {
+  return gate !== "public" && gate !== "email-allowlist" && gate !== "domain-allowlist";
+}
+
+export function toPublicPolicy(policy: AuthPolicyDefinition): PublicAuthPolicy {
   return {
     passwordEnabled: policy.passwordEnabled,
     passkeyEnabled: policy.passkeyEnabled,

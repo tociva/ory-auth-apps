@@ -22,8 +22,8 @@ import { AdminApiService, describeError } from "../../../core/admin-api.service"
 import type {
   AuthBrandRecord,
   AuthConfigurationVersion,
+  AuthPolicyRecord,
   HydraClient,
-  LoginPolicyRecord,
 } from "../../../core/admin-types";
 import { ToastService } from "../../../core/toast/toast.service";
 import {
@@ -39,7 +39,7 @@ import {
 const emptyMapping = (): MappingDraft => ({
   clientId: "",
   brandId: "",
-  loginPolicyId: "",
+  authPolicyId: "",
   status: "active",
   isFirstParty: false,
   consentMode: "follow-hydra",
@@ -81,7 +81,7 @@ export class AuthClientMappingDetailComponent implements OnInit {
   private mappedClientIds = new Set<string>();
 
   brands: AuthBrandRecord[] = [];
-  policies: LoginPolicyRecord[] = [];
+  policies: AuthPolicyRecord[] = [];
   clients: HydraClient[] = [];
   history: AuthConfigurationVersion<Record<string, unknown>>[] = [];
   form = emptyMapping();
@@ -143,7 +143,7 @@ export class AuthClientMappingDetailComponent implements OnInit {
   canSave(): boolean {
     return (
       !this.busy &&
-      Boolean(this.form.clientId && this.form.brandId && this.form.loginPolicyId)
+      Boolean(this.form.clientId && this.form.brandId && this.form.authPolicyId)
     );
   }
 
@@ -160,7 +160,7 @@ export class AuthClientMappingDetailComponent implements OnInit {
   }
 
   onPolicyChange(value: unknown): void {
-    if (typeof value === "string") this.form.loginPolicyId = value;
+    if (typeof value === "string") this.form.authPolicyId = value;
   }
 
   onStatusChange(value: unknown): void {
@@ -189,7 +189,8 @@ export class AuthClientMappingDetailComponent implements OnInit {
     const value = version.value ?? {};
     const status = this.stringValue(value, "status");
     const brandId = this.stringValue(value, "brandId");
-    const policyId = this.stringValue(value, "loginPolicyId");
+    const policyId =
+      this.stringValue(value, "authPolicyId") || this.stringValue(value, "loginPolicyId");
     return [status, brandId, policyId].filter(Boolean).join(" / ") || "Mapping updated";
   }
 
@@ -203,7 +204,7 @@ export class AuthClientMappingDetailComponent implements OnInit {
     await this.run(async () => {
       const saved = await this.api.saveClientAuthConfig(this.form.clientId, {
         brandId: this.form.brandId,
-        loginPolicyId: this.form.loginPolicyId,
+        authPolicyId: this.form.authPolicyId,
         status: this.form.status,
         isFirstParty: this.form.isFirstParty,
         consentMode: this.form.consentMode,
@@ -248,7 +249,7 @@ export class AuthClientMappingDetailComponent implements OnInit {
       if (this.createMode) {
         const [brands, policies, clients, mappings] = await Promise.all([
           this.api.listAuthBrands(),
-          this.api.listLoginPolicies(),
+          this.api.listAuthPolicies(),
           this.api.listClients(),
           this.api.listClientAuthConfigs(),
         ]);
@@ -261,14 +262,14 @@ export class AuthClientMappingDetailComponent implements OnInit {
           ...emptyMapping(),
           clientId: this.clientSelectOptions()[0]?.value ?? "",
           brandId: brands[0]?.id ?? "",
-          loginPolicyId: policies[0]?.id ?? "",
+          authPolicyId: policies[0]?.id ?? "",
         };
         return;
       }
 
       const [brands, policies, clients, mapping] = await Promise.all([
         this.api.listAuthBrands(),
-        this.api.listLoginPolicies(),
+        this.api.listAuthPolicies(),
         this.api.listClients(),
         this.api.getClientAuthConfig(this.clientId),
       ]);

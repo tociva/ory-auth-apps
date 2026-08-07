@@ -75,10 +75,10 @@
           </tng-form-field>
 
           <tng-form-field>
-            <tng-label>Login policy</tng-label>
+            <tng-label>Authentication policy</tng-label>
             <tng-select
               [options]="policySelectOptions()"
-              [value]="form.loginPolicyId"
+              [value]="form.authPolicyId"
               (valueChange)="onPolicyChange($event)"
               [getOptionValue]="getSelectValue"
               [getOptionLabel]="getSelectLabel"

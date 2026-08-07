@@ -13,15 +13,15 @@ import type {
   ClientFormValue,
   HydraClient,
   KratosSession,
-  LoginPolicyRecord,
+  AuthPolicyRecord,
   OAuthClientAuthConfigRecord,
 } from "./admin-types";
 import type {
   AuthBrandDefinition,
   AuthBrandStatus,
   AuthClientConfigStatus,
+  AuthPolicyDefinition,
   ConsentMode,
-  LoginPolicyDefinition,
 } from "@idnest/shared-types";
 
 /** Client for admin-backend. BFF auth uses an HttpOnly session cookie + CSRF. */
@@ -227,32 +227,36 @@ export class AdminApiService {
     return this.delete(`/auth-brands/${encodeURIComponent(id)}`);
   }
 
-  listLoginPolicies(): Promise<LoginPolicyRecord[]> {
-    return this.get<LoginPolicyRecord[]>("/login-policies");
+  listAuthPolicies(): Promise<AuthPolicyRecord[]> {
+    return this.get<AuthPolicyRecord[]>("/authentication-policies");
   }
 
-  listLoginPolicyHistory(
+  listAuthPolicyHistory(
     id: string,
-  ): Promise<AuthConfigurationVersion<LoginPolicyDefinition>[]> {
-    return this.get(`/login-policies/${encodeURIComponent(id)}/history`);
+  ): Promise<AuthConfigurationVersion<AuthPolicyDefinition>[]> {
+    return this.get(`/authentication-policies/${encodeURIComponent(id)}/history`);
   }
 
-  createLoginPolicy(
+  createAuthPolicy(
     status: AuthBrandStatus,
-    definition: LoginPolicyDefinition,
+    definition: AuthPolicyDefinition,
     reason?: string,
-  ): Promise<LoginPolicyRecord> {
-    return this.post<LoginPolicyRecord>("/login-policies", { status, definition, reason });
+  ): Promise<AuthPolicyRecord> {
+    return this.post<AuthPolicyRecord>("/authentication-policies", {
+      status,
+      definition,
+      reason,
+    });
   }
 
-  updateLoginPolicy(
+  updateAuthPolicy(
     id: string,
     expectedVersion: number,
     status: AuthBrandStatus,
-    definition: LoginPolicyDefinition,
+    definition: AuthPolicyDefinition,
     reason?: string,
-  ): Promise<LoginPolicyRecord> {
-    return this.patch<LoginPolicyRecord>(`/login-policies/${encodeURIComponent(id)}`, {
+  ): Promise<AuthPolicyRecord> {
+    return this.patch<AuthPolicyRecord>(`/authentication-policies/${encodeURIComponent(id)}`, {
       expectedVersion,
       status,
       definition,
@@ -260,8 +264,8 @@ export class AdminApiService {
     });
   }
 
-  archiveLoginPolicy(id: string): Promise<{ archived: boolean; id: string }> {
-    return this.delete(`/login-policies/${encodeURIComponent(id)}`);
+  archiveAuthPolicy(id: string): Promise<{ archived: boolean; id: string }> {
+    return this.delete(`/authentication-policies/${encodeURIComponent(id)}`);
   }
 
   listClientAuthConfigs(): Promise<OAuthClientAuthConfigRecord[]> {
@@ -284,7 +288,7 @@ export class AdminApiService {
     clientId: string,
     value: {
       brandId: string;
-      loginPolicyId: string;
+      authPolicyId: string;
       status: AuthClientConfigStatus;
       isFirstParty: boolean;
       consentMode: ConsentMode;

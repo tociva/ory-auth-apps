@@ -69,25 +69,25 @@ export const routes: Routes = [
           ),
       },
       {
-        path: "authentication/login-policies",
+        path: "authentication/policies",
         loadComponent: () =>
           import(
-            "./pages/authentication/login-policies/auth-login-policies/auth-login-policies.component"
-          ).then((m) => m.AuthLoginPoliciesComponent),
+            "./pages/authentication/policies/auth-policies/auth-policies.component"
+          ).then((m) => m.AuthPoliciesComponent),
       },
       {
-        path: "authentication/login-policies/new",
+        path: "authentication/policies/new",
         loadComponent: () =>
           import(
-            "./pages/authentication/login-policies/auth-login-policy-detail/auth-login-policy-detail.component"
-          ).then((m) => m.AuthLoginPolicyDetailComponent),
+            "./pages/authentication/policies/auth-policy-detail/auth-policy-detail.component"
+          ).then((m) => m.AuthPolicyDetailComponent),
       },
       {
-        path: "authentication/login-policies/:id",
+        path: "authentication/policies/:id",
         loadComponent: () =>
           import(
-            "./pages/authentication/login-policies/auth-login-policy-detail/auth-login-policy-detail.component"
-          ).then((m) => m.AuthLoginPolicyDetailComponent),
+            "./pages/authentication/policies/auth-policy-detail/auth-policy-detail.component"
+          ).then((m) => m.AuthPolicyDetailComponent),
       },
       {
         path: "authentication/client-mappings",

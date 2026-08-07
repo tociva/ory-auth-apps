@@ -20,17 +20,18 @@ import {
   type AuthTransactionRecord,
 } from "@idnest/authz-store";
 import {
+  DEFAULT_AUTH_POLICY,
   DEFAULT_IDNEST_BRAND,
-  DEFAULT_LOGIN_POLICY,
+  identityGateRequiresClientGrant,
   normalizeClientHomeUrl,
   publicAuthRecoveryForClient,
   toPublicPolicy,
   toUserClaims,
+  type AuthPolicyDefinition,
   type HydraConsentRequest,
   type HydraLoginRequest,
   type KratosFlow,
   type KratosSession,
-  type LoginPolicyDefinition,
   type PublicAuthRecovery,
   type ResolvedAuthConfiguration,
 } from "@idnest/shared-types";
@@ -59,10 +60,10 @@ import {
 import * as kratos from "./kratos-public";
 import { identityAal2Capability } from "./kratos-admin";
 import {
-  evaluateLoginPolicy,
+  evaluateAuthenticationPolicy,
   requestedKratosAal,
   shouldRequireFreshLogin,
-} from "./login-policy";
+} from "./authentication-policy";
 import {
   isSettingsPrivilegedReauthFlow,
   settingsResumeUrlFromFlow,
@@ -184,7 +185,7 @@ async function audit(
     eventType,
     hydraClientId: resolved.client.hydraClientId,
     brandId: resolved.client.brandId,
-    loginPolicyId: resolved.client.loginPolicyId,
+    authenticationPolicyId: resolved.client.authPolicyId,
     identityId: extra.identityId,
     result: extra.result,
     failureCode: extra.failureCode,
@@ -197,10 +198,10 @@ async function audit(
 
 async function accessAllowed(
   session: KratosSession,
-  policy: LoginPolicyDefinition,
+  policy: AuthPolicyDefinition,
   clientId: string,
 ): Promise<boolean> {
-  if (policy.accessMode === "open") return true;
+  if (!identityGateRequiresClientGrant(policy.identityGate)) return true;
   const email = String(session.identity.traits?.email ?? "").trim().toLowerCase();
   if (clientId === getAdminOidcClientId() && getAdminBootstrapEmails().includes(email)) {
     await bootstrapFirstSystemAdmin(database(), {
@@ -266,8 +267,8 @@ function isAal2StepUpFlow(flow: KratosFlow): boolean {
 }
 
 /** Permissive policy for privileged settings re-auth (OIDC + any enrolled factors). */
-const SETTINGS_REAUTH_POLICY: LoginPolicyDefinition = {
-  ...DEFAULT_LOGIN_POLICY,
+const SETTINGS_REAUTH_POLICY: AuthPolicyDefinition = {
+  ...DEFAULT_AUTH_POLICY,
   totpEnabled: true,
   passkeyEnabled: true,
   allowedOidcProviders: ["google", "apple"],
@@ -298,7 +299,7 @@ function settingsReauthContext(flow: KratosFlow) {
   };
 }
 
-function allowedGroup(group: string, policy: LoginPolicyDefinition): boolean {
+function allowedGroup(group: string, policy: AuthPolicyDefinition): boolean {
   if (group === "default" || group === "profile") return true;
   if (group === "password") return policy.passwordEnabled;
   if (group === "oidc") return policy.allowedOidcProviders.length > 0;
@@ -307,7 +308,7 @@ function allowedGroup(group: string, policy: LoginPolicyDefinition): boolean {
   return false;
 }
 
-function publicFlow(flow: KratosFlow, policy: LoginPolicyDefinition): KratosFlow {
+function publicFlow(flow: KratosFlow, policy: AuthPolicyDefinition): KratosFlow {
   const kratosOrigin = new URL(getKratosPublicUrl()).origin;
   const action = new URL(flow.ui.action);
   if (action.origin !== kratosOrigin || !action.pathname.startsWith("/self-service/")) {
@@ -354,7 +355,7 @@ async function completeLoginWithSession(
   session: KratosSession,
 ): Promise<LoginCompletionResult> {
   const resolved = resolvedFromAuthTransaction(transaction);
-  const decision = evaluateLoginPolicy(session, resolved.policy, {
+  const decision = evaluateAuthenticationPolicy(session, resolved.policy, {
     expectedSubject: request.skip ? request.subject : undefined,
     maximumAgeSeconds: requestedMaximumAge(request),
   });
@@ -570,7 +571,7 @@ export function createOrchestratorRouter(): Router {
       }
       if (getAuthBrandingMode() === "observe") {
         resolved.brand = DEFAULT_IDNEST_BRAND;
-        resolved.policy = DEFAULT_LOGIN_POLICY;
+        resolved.policy = DEFAULT_AUTH_POLICY;
       }
 
       const token = createOpaqueToken();
@@ -581,8 +582,8 @@ export function createOrchestratorRouter(): Router {
         hydraClientId: clientId,
         brandId: resolved.client.brandId,
         brandVersion: resolved.client.brandVersion,
-        loginPolicyId: resolved.client.loginPolicyId,
-        loginPolicyVersion: resolved.client.loginPolicyVersion,
+        authPolicyId: resolved.client.authPolicyId,
+        authPolicyVersion: resolved.client.authPolicyVersion,
         mappingVersion: resolved.client.mappingVersion,
         clientConfigSnapshot: resolved.client,
         brandSnapshot: resolved.brand,
@@ -617,7 +618,7 @@ export function createOrchestratorRouter(): Router {
 
       if (hydraRequest.skip && !requireFresh && existingSession) {
         try {
-          const decision = evaluateLoginPolicy(existingSession, resolved.policy, {
+          const decision = evaluateAuthenticationPolicy(existingSession, resolved.policy, {
             expectedSubject: hydraRequest.subject,
             maximumAgeSeconds: requestedMaximumAge(hydraRequest),
           });
@@ -952,7 +953,7 @@ export function createOrchestratorRouter(): Router {
       }
       if (getAuthBrandingMode() === "observe") {
         resolved.brand = DEFAULT_IDNEST_BRAND;
-        resolved.policy = DEFAULT_LOGIN_POLICY;
+        resolved.policy = DEFAULT_AUTH_POLICY;
       }
       if (resolved.client.status === "disabled") {
         const redirectTo = await rejectHydraConsent(challenge, "This client is disabled.");
@@ -960,7 +961,7 @@ export function createOrchestratorRouter(): Router {
         return;
       }
       const session = await sessionForConsent(req, hydraRequest);
-      const policyDecision = evaluateLoginPolicy(session, resolved.policy, {
+      const policyDecision = evaluateAuthenticationPolicy(session, resolved.policy, {
         expectedSubject: hydraRequest.subject,
       });
       const hasAccess =
@@ -1094,7 +1095,7 @@ export function createOrchestratorRouter(): Router {
       const resolved = resolvedFromConsentTransaction(transaction);
       let redirectTo: string;
       if (action === "accept") {
-        const policyDecision = evaluateLoginPolicy(session, resolved.policy, {
+        const policyDecision = evaluateAuthenticationPolicy(session, resolved.policy, {
           expectedSubject: transaction.subject,
         });
         if (

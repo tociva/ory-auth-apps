@@ -181,7 +181,7 @@ export function createAdminRouter(): Router {
     adapt(deleteClient, (req) => ({ client_id: req.params.clientId })),
   );
 
-  // --- Authentication branding and login policy ---
+  // --- Authentication branding and authentication policies ---
   router.get("/auth-brands", adapt(listBrandConfigurations, () => ({})));
   router.get("/auth-brands/:id", adapt(getBrandConfiguration, idFromParams));
   router.get(
@@ -211,19 +211,19 @@ export function createAdminRouter(): Router {
     })),
   );
 
-  router.get("/login-policies", adapt(listPolicyConfigurations, () => ({})));
-  router.get("/login-policies/:id", adapt(getPolicyConfiguration, idFromParams));
+  router.get("/authentication-policies", adapt(listPolicyConfigurations, () => ({})));
+  router.get("/authentication-policies/:id", adapt(getPolicyConfiguration, idFromParams));
   router.get(
-    "/login-policies/:id/history",
+    "/authentication-policies/:id/history",
     adapt(listPolicyConfigurationHistory, (req) => ({ id: req.params.id })),
   );
   router.post(
-    "/login-policies",
+    "/authentication-policies",
     configurationRateLimit,
     adapt(createPolicyConfiguration, (req) => ({ body: fromBody(req), actor: actorFrom(req) })),
   );
   router.patch(
-    "/login-policies/:id",
+    "/authentication-policies/:id",
     configurationRateLimit,
     adapt(updatePolicyConfiguration, (req) => ({
       id: req.params.id,
@@ -232,7 +232,7 @@ export function createAdminRouter(): Router {
     })),
   );
   router.delete(
-    "/login-policies/:id",
+    "/authentication-policies/:id",
     configurationRateLimit,
     adapt(archivePolicyConfiguration, (req) => ({
       id: req.params.id,

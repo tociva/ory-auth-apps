@@ -9,6 +9,97 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
   applied_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Rename login_policy* → authentication_policy* for existing databases.
+-- Uses search_path-aware to_regclass() because Authz tables live in a
+-- dedicated schema (e.g. authz), not necessarily public.
+-- Fresh installs skip this block because the old names never existed.
+DO $$
+DECLARE
+  oauth_still_on_login_policy boolean := false;
+BEGIN
+  oauth_still_on_login_policy :=
+    to_regclass('oauth_client_auth_configs') IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM pg_attribute
+      WHERE attrelid = to_regclass('oauth_client_auth_configs')
+        AND attname = 'login_policy_id'
+        AND NOT attisdropped
+    );
+
+  -- Recover from a prior failed migrate that created empty/seeded
+  -- authentication_* shells while live data remained on login_*.
+  IF to_regclass('login_policies') IS NOT NULL
+     AND to_regclass('authentication_policies') IS NOT NULL
+     AND oauth_still_on_login_policy THEN
+    DROP TABLE IF EXISTS authentication_policy_versions;
+    DROP TABLE authentication_policies;
+  END IF;
+
+  IF to_regclass('login_policies') IS NOT NULL
+     AND to_regclass('authentication_policies') IS NULL THEN
+    ALTER TABLE login_policies RENAME TO authentication_policies;
+  END IF;
+
+  IF to_regclass('login_policy_versions') IS NOT NULL
+     AND to_regclass('authentication_policy_versions') IS NULL THEN
+    ALTER TABLE login_policy_versions RENAME TO authentication_policy_versions;
+  END IF;
+
+  IF to_regclass('authentication_policy_versions') IS NOT NULL
+     AND EXISTS (
+       SELECT 1
+       FROM pg_attribute
+       WHERE attrelid = to_regclass('authentication_policy_versions')
+         AND attname = 'login_policy_id'
+         AND NOT attisdropped
+     ) THEN
+    ALTER TABLE authentication_policy_versions
+      RENAME COLUMN login_policy_id TO authentication_policy_id;
+  END IF;
+
+  IF oauth_still_on_login_policy THEN
+    ALTER TABLE oauth_client_auth_configs
+      RENAME COLUMN login_policy_id TO authentication_policy_id;
+  END IF;
+
+  IF to_regclass('auth_transactions') IS NOT NULL
+     AND EXISTS (
+       SELECT 1
+       FROM pg_attribute
+       WHERE attrelid = to_regclass('auth_transactions')
+         AND attname = 'login_policy_id'
+         AND NOT attisdropped
+     ) THEN
+    ALTER TABLE auth_transactions
+      RENAME COLUMN login_policy_id TO authentication_policy_id;
+  END IF;
+
+  IF to_regclass('auth_transactions') IS NOT NULL
+     AND EXISTS (
+       SELECT 1
+       FROM pg_attribute
+       WHERE attrelid = to_regclass('auth_transactions')
+         AND attname = 'login_policy_version'
+         AND NOT attisdropped
+     ) THEN
+    ALTER TABLE auth_transactions
+      RENAME COLUMN login_policy_version TO authentication_policy_version;
+  END IF;
+
+  IF to_regclass('auth_audit_events') IS NOT NULL
+     AND EXISTS (
+       SELECT 1
+       FROM pg_attribute
+       WHERE attrelid = to_regclass('auth_audit_events')
+         AND attname = 'login_policy_id'
+         AND NOT attisdropped
+     ) THEN
+    ALTER TABLE auth_audit_events
+      RENAME COLUMN login_policy_id TO authentication_policy_id;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS client_access_grants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   identity_id text NOT NULL,
@@ -139,7 +230,7 @@ CREATE TABLE IF NOT EXISTS auth_brand_versions (
   UNIQUE (brand_id, version)
 );
 
-CREATE TABLE IF NOT EXISTS login_policies (
+CREATE TABLE IF NOT EXISTS authentication_policies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL UNIQUE,
   status text NOT NULL DEFAULT 'draft'
@@ -149,21 +240,21 @@ CREATE TABLE IF NOT EXISTS login_policies (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS login_policy_versions (
+CREATE TABLE IF NOT EXISTS authentication_policy_versions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  login_policy_id uuid NOT NULL REFERENCES login_policies(id),
+  authentication_policy_id uuid NOT NULL REFERENCES authentication_policies(id),
   version integer NOT NULL,
   definition jsonb NOT NULL,
   created_by text,
   reason text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (login_policy_id, version)
+  UNIQUE (authentication_policy_id, version)
 );
 
 CREATE TABLE IF NOT EXISTS oauth_client_auth_configs (
   hydra_client_id text PRIMARY KEY,
   brand_id uuid NOT NULL REFERENCES auth_brands(id),
-  login_policy_id uuid NOT NULL REFERENCES login_policies(id),
+  authentication_policy_id uuid NOT NULL REFERENCES authentication_policies(id),
   status text NOT NULL DEFAULT 'active'
     CHECK (status IN ('active', 'disabled', 'archived')),
   is_first_party boolean NOT NULL DEFAULT false,
@@ -193,8 +284,8 @@ CREATE TABLE IF NOT EXISTS auth_transactions (
   hydra_client_id text NOT NULL,
   brand_id uuid NOT NULL REFERENCES auth_brands(id),
   brand_version integer NOT NULL,
-  login_policy_id uuid NOT NULL REFERENCES login_policies(id),
-  login_policy_version integer NOT NULL,
+  authentication_policy_id uuid NOT NULL REFERENCES authentication_policies(id),
+  authentication_policy_version integer NOT NULL,
   mapping_version integer NOT NULL,
   client_config_snapshot jsonb NOT NULL,
   brand_snapshot jsonb NOT NULL,
@@ -257,7 +348,7 @@ CREATE TABLE IF NOT EXISTS auth_audit_events (
   event_type text NOT NULL,
   hydra_client_id text,
   brand_id uuid,
-  login_policy_id uuid,
+  authentication_policy_id uuid,
   identity_id text,
   result text,
   failure_code text,
@@ -346,99 +437,160 @@ FROM (
 JOIN auth_brands b ON b.key = seed.key
 ON CONFLICT (brand_id, version) DO NOTHING;
 
-WITH policy_renames(old_name, new_name) AS (
+-- One-time: rename purpose-based policy display names and migrate definition
+-- shape from accessMode → identityGate (schema_migrations version 5).
+WITH policy_renames(old_name, new_name, identity_gate) AS (
   VALUES
-    ('default-public', 'Open social sign-in'),
-    ('daybook-public', 'Open Google sign-in'),
-    ('daybook-admin', 'Restricted Google sign-in'),
-    ('taskmesh-console', 'Invitation-only Google sign-in'),
-    ('idnest-admin', 'Restricted Google + TOTP sign-in')
+    ('Open social sign-in', 'Public Social', 'public'),
+    ('Open Google sign-in', 'Public Google', 'public'),
+    ('Restricted Google sign-in', 'Approved Google', 'existing-identity'),
+    ('Invitation-only Google sign-in', 'Invite-only Google', 'invitation'),
+    ('Restricted Google + TOTP sign-in', 'Staff MFA', 'existing-identity'),
+    -- Also cover pre-v3 slug names if a DB somehow skipped that rename.
+    ('default-public', 'Public Social', 'public'),
+    ('daybook-public', 'Public Google', 'public'),
+    ('daybook-admin', 'Approved Google', 'existing-identity'),
+    ('taskmesh-console', 'Invite-only Google', 'invitation'),
+    ('idnest-admin', 'Staff MFA', 'existing-identity')
 ), current_definitions AS (
-  SELECT p.id, p.current_version, pv.definition, renames.new_name
-  FROM login_policies p
+  SELECT p.id, p.current_version, pv.definition, renames.new_name, renames.identity_gate
+  FROM authentication_policies p
   JOIN policy_renames renames ON renames.old_name = p.name
-  JOIN login_policy_versions pv
-    ON pv.login_policy_id = p.id AND pv.version = p.current_version
+  JOIN authentication_policy_versions pv
+    ON pv.authentication_policy_id = p.id AND pv.version = p.current_version
+  WHERE NOT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 5)
 ), renamed_policies AS (
-  UPDATE login_policies p
+  UPDATE authentication_policies p
   SET name = current_definitions.new_name,
       current_version = p.current_version + 1,
       updated_at = now()
   FROM current_definitions
   WHERE p.id = current_definitions.id
   RETURNING p.id, p.current_version, current_definitions.definition,
-            current_definitions.new_name
+            current_definitions.new_name, current_definitions.identity_gate
 )
-INSERT INTO login_policy_versions(
-  login_policy_id, version, definition, created_by, reason
+INSERT INTO authentication_policy_versions(
+  authentication_policy_id, version, definition, created_by, reason
 )
 SELECT id, current_version,
-       jsonb_set(definition, '{name}', to_jsonb(new_name), true),
-       'system', 'Renamed seeded policy by authentication behavior'
+       (jsonb_set(
+          jsonb_set(definition, '{name}', to_jsonb(new_name), true),
+          '{identityGate}', to_jsonb(identity_gate), true
+        ) - 'accessMode'),
+       'system', 'Renamed to authentication policy with identity gate'
 FROM renamed_policies;
 
-INSERT INTO login_policies(name, status)
+-- Backfill identityGate on any remaining policies that still have accessMode
+-- but were not renamed above (e.g. admin-created policies).
+WITH stale AS (
+  SELECT p.id, p.current_version, pv.definition,
+         CASE
+           WHEN COALESCE(pv.definition->>'accessMode', '') = 'grant-required'
+             AND COALESCE(pv.definition->>'registrationMode', '') = 'invitation-only'
+             THEN 'invitation'
+           WHEN COALESCE(pv.definition->>'accessMode', '') = 'grant-required'
+             THEN 'existing-identity'
+           WHEN jsonb_array_length(COALESCE(pv.definition->'allowedEmails', '[]'::jsonb)) > 0
+             THEN 'email-allowlist'
+           WHEN jsonb_array_length(COALESCE(pv.definition->'allowedEmailDomains', '[]'::jsonb)) > 0
+             THEN 'domain-allowlist'
+           ELSE 'public'
+         END AS identity_gate
+  FROM authentication_policies p
+  JOIN authentication_policy_versions pv
+    ON pv.authentication_policy_id = p.id AND pv.version = p.current_version
+  WHERE pv.definition ? 'accessMode'
+    AND NOT (pv.definition ? 'identityGate')
+    AND NOT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 5)
+), bumped AS (
+  UPDATE authentication_policies p
+  SET current_version = p.current_version + 1, updated_at = now()
+  FROM stale
+  WHERE p.id = stale.id
+  RETURNING p.id, p.current_version, stale.definition, stale.identity_gate
+)
+INSERT INTO authentication_policy_versions(
+  authentication_policy_id, version, definition, created_by, reason
+)
+SELECT id, current_version,
+       (jsonb_set(definition, '{identityGate}', to_jsonb(identity_gate), true) - 'accessMode'),
+       'system', 'Migrated accessMode to identityGate'
+FROM bumped;
+
+-- Rewrite oauth_client_auth_config_versions snapshots: loginPolicyId → authPolicyId
+UPDATE oauth_client_auth_config_versions
+SET snapshot = (snapshot - 'loginPolicyId' - 'loginPolicyVersion')
+  || jsonb_build_object(
+       'authPolicyId', snapshot->'loginPolicyId',
+       'authPolicyVersion', COALESCE(snapshot->'loginPolicyVersion', '0'::jsonb)
+     )
+WHERE snapshot ? 'loginPolicyId'
+  AND NOT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 5);
+
+INSERT INTO authentication_policies(name, status)
 VALUES
-  ('Open social sign-in', 'active'),
-  ('Open Google sign-in', 'active'),
-  ('Restricted Google sign-in', 'active'),
-  ('Invitation-only Google sign-in', 'active'),
-  ('Restricted Google + TOTP sign-in', 'active')
+  ('Public Social', 'active'),
+  ('Public Google', 'active'),
+  ('Approved Google', 'active'),
+  ('Invite-only Google', 'active'),
+  ('Staff MFA', 'active')
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO login_policy_versions(login_policy_id, version, definition, created_by, reason)
-SELECT p.id, 1, seed.definition, 'system', 'Initial login policy seed'
+INSERT INTO authentication_policy_versions(
+  authentication_policy_id, version, definition, created_by, reason
+)
+SELECT p.id, 1, seed.definition, 'system', 'Initial authentication policy seed'
 FROM (
   VALUES
-    ('Open social sign-in', '{
-      "name":"Open social sign-in","passwordEnabled":false,"passkeyEnabled":false,
+    ('Public Social', '{
+      "name":"Public Social","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google","apple"],"totpEnabled":false,"minimumAal":"aal1",
-      "registrationMode":"enabled","accessMode":"open","allowedEmailDomains":[],
+      "registrationMode":"enabled","identityGate":"public","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('Open Google sign-in', '{
-      "name":"Open Google sign-in","passwordEnabled":false,"passkeyEnabled":false,
+    ('Public Google', '{
+      "name":"Public Google","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
-      "registrationMode":"enabled","accessMode":"open","allowedEmailDomains":[],
+      "registrationMode":"enabled","identityGate":"public","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('Restricted Google sign-in', '{
-      "name":"Restricted Google sign-in","passwordEnabled":false,"passkeyEnabled":false,
+    ('Approved Google', '{
+      "name":"Approved Google","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
-      "registrationMode":"disabled","accessMode":"grant-required","allowedEmailDomains":[],
+      "registrationMode":"disabled","identityGate":"existing-identity","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":1800
     }'::jsonb),
-    ('Invitation-only Google sign-in', '{
-      "name":"Invitation-only Google sign-in","passwordEnabled":false,"passkeyEnabled":false,
+    ('Invite-only Google', '{
+      "name":"Invite-only Google","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
-      "registrationMode":"invitation-only","accessMode":"grant-required","allowedEmailDomains":[],
+      "registrationMode":"invitation-only","identityGate":"invitation","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('Restricted Google + TOTP sign-in', '{
-      "name":"Restricted Google + TOTP sign-in","passwordEnabled":false,"passkeyEnabled":false,
+    ('Staff MFA', '{
+      "name":"Staff MFA","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":true,"minimumAal":"aal2",
-      "registrationMode":"disabled","accessMode":"grant-required","allowedEmailDomains":[],
+      "registrationMode":"disabled","identityGate":"existing-identity","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":900
     }'::jsonb)
 ) AS seed(name, definition)
-JOIN login_policies p ON p.name = seed.name
-ON CONFLICT (login_policy_id, version) DO NOTHING;
+JOIN authentication_policies p ON p.name = seed.name
+ON CONFLICT (authentication_policy_id, version) DO NOTHING;
 
 INSERT INTO oauth_client_auth_configs(
-  hydra_client_id, brand_id, login_policy_id, status, is_first_party, consent_mode
+  hydra_client_id, brand_id, authentication_policy_id, status, is_first_party, consent_mode
 )
 SELECT seed.client_id, b.id, p.id, 'active', true, seed.consent_mode
 FROM (
   VALUES
-    ('idnest-admin-client', 'idnest-admin', 'Restricted Google + TOTP sign-in', 'skip-for-first-party')
+    ('idnest-admin-client', 'idnest-admin', 'Staff MFA', 'skip-for-first-party')
 ) AS seed(client_id, brand_key, policy_name, consent_mode)
 JOIN auth_brands b ON b.key = seed.brand_key
-JOIN login_policies p ON p.name = seed.policy_name
+JOIN authentication_policies p ON p.name = seed.policy_name
 ON CONFLICT (hydra_client_id) DO NOTHING;
 
 INSERT INTO oauth_client_auth_config_versions(
@@ -448,7 +600,7 @@ SELECT c.hydra_client_id, c.version,
   jsonb_build_object(
     'hydraClientId', c.hydra_client_id,
     'brandId', c.brand_id,
-    'loginPolicyId', c.login_policy_id,
+    'authPolicyId', c.authentication_policy_id,
     'status', c.status,
     'isFirstParty', c.is_first_party,
     'consentMode', c.consent_mode,
@@ -479,7 +631,8 @@ VALUES
   (1, 'auth platform base'),
   (2, 'client-specific branded authentication'),
   (3, 'behavior-based login policy names'),
-  (4, 'seed only idnest-admin-client mapping')
+  (4, 'seed only idnest-admin-client mapping'),
+  (5, 'rename login policy to authentication policy')
 ON CONFLICT (version) DO NOTHING;
 `;
 

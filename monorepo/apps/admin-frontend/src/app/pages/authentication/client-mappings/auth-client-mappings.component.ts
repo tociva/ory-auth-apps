@@ -22,8 +22,8 @@ import { TngIcon } from "@tailng-ui/icons";
 import { AdminApiService, describeError } from "../../../core/admin-api.service";
 import type {
   AuthBrandRecord,
+  AuthPolicyRecord,
   HydraClient,
-  LoginPolicyRecord,
   OAuthClientAuthConfigRecord,
 } from "../../../core/admin-types";
 import { ToastService } from "../../../core/toast/toast.service";
@@ -122,7 +122,7 @@ export class AuthClientMappingsComponent implements OnInit {
     try {
       const [brands, policies, clients, mappings] = await Promise.all([
         this.api.listAuthBrands(),
-        this.api.listLoginPolicies(),
+        this.api.listAuthPolicies(),
         this.api.listClients(),
         this.api.listClientAuthConfigs(),
       ]);
@@ -182,7 +182,7 @@ export class AuthClientMappingsComponent implements OnInit {
     mappings: OAuthClientAuthConfigRecord[],
     clients: HydraClient[],
     brands: AuthBrandRecord[],
-    policies: LoginPolicyRecord[],
+    policies: AuthPolicyRecord[],
   ): MappingRow[] {
     const clientsById = new Map(clients.map((client) => [client.client_id, client]));
     const brandsById = new Map(brands.map((brand) => [brand.id, brand]));
@@ -192,12 +192,17 @@ export class AuthClientMappingsComponent implements OnInit {
       .map((mapping) => {
         const client = clientsById.get(mapping.hydra_client_id);
         const brand = brandsById.get(mapping.brand_id);
-        const policy = policiesById.get(mapping.login_policy_id);
+        const policy = policiesById.get(mapping.authentication_policy_id);
         const clientName = client?.client_name?.trim() ?? "";
         const brandLabel = brand?.definition.productName || mapping.brand_key || mapping.brand_id;
         const brandMeta = brand?.key || mapping.brand_key || mapping.brand_id;
-        const policyLabel = policy?.definition.name || mapping.login_policy_name || mapping.login_policy_id;
-        const policyMeta = policy?.status ? `${policy.status} policy` : mapping.login_policy_name;
+        const policyLabel =
+          policy?.definition.name ||
+          mapping.authentication_policy_name ||
+          mapping.authentication_policy_id;
+        const policyMeta = policy?.status
+          ? `${policy.status} policy`
+          : mapping.authentication_policy_name;
         const statusLabel = this.statusLabel(mapping.status);
         const consentLabel = this.consentModeLabel(mapping.consent_mode);
 
