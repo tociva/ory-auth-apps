@@ -191,6 +191,30 @@
   grid-column: 1 / -1;
 }
 
+.form-subsection {
+  margin-top: 1.25rem;
+}
+
+.form-subsection-title {
+  color: var(--tng-semantic-foreground-secondary, #334155);
+  font-size: 0.9rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+.form-subsection-copy {
+  margin: 0.25rem 0 0;
+}
+
+.form-subsection .check-grid {
+  margin-top: 0.65rem;
+}
+
+.form-subsection .additional-providers {
+  display: block;
+  margin-top: 0.85rem;
+}
+
 .color-grid {
   grid-template-columns: repeat(6, minmax(80px, 1fr));
 }

@@ -320,7 +320,7 @@ UI after the first administrator signs in.
 ### Product access policy
 
 Taskmesh remains invitation-only until subscription provisioning is available.
-Its authentication policy (`Invite-only Google`) uses
+Its authentication policy (`Invite Only`) uses
 `registrationMode: invitation-only` and `identityGate: invitation`, so Google
 sign-in alone does not grant Taskmesh access. An Idnest administrator must
 grant each approved identity access to `taskmesh-console` from
@@ -588,8 +588,10 @@ The trusted flow is:
 
 Authentication brands, authentication policies, and OAuth client mappings are
 managed from the admin console's **Authentication** page. Policy names describe
-intent (for example `Public Google` or `Staff MFA`); structured fields describe
-methods, identity gate, assurance, registration, and session requirements.
+who may authenticate and why (for example `Approved Users`, `Public Access`, or
+`Staff MFA`); structured fields describe methods, external identity providers,
+identity gate, assurance, registration, and session requirements. Providers such
+as Google belong in configuration, not in the policy name.
 Definitions have immutable version history and optimistic concurrency; new
 transactions use the current active versions while in-flight transactions keep
 their frozen snapshots.

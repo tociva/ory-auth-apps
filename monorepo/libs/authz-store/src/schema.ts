@@ -442,15 +442,15 @@ ON CONFLICT (brand_id, version) DO NOTHING;
 WITH policy_renames(old_name, new_name, identity_gate) AS (
   VALUES
     ('Open social sign-in', 'Public Social', 'public'),
-    ('Open Google sign-in', 'Public Google', 'public'),
-    ('Restricted Google sign-in', 'Approved Google', 'existing-identity'),
-    ('Invitation-only Google sign-in', 'Invite-only Google', 'invitation'),
+    ('Open Google sign-in', 'Public Access', 'public'),
+    ('Restricted Google sign-in', 'Approved Users', 'existing-identity'),
+    ('Invitation-only Google sign-in', 'Invite Only', 'invitation'),
     ('Restricted Google + TOTP sign-in', 'Staff MFA', 'existing-identity'),
     -- Also cover pre-v3 slug names if a DB somehow skipped that rename.
     ('default-public', 'Public Social', 'public'),
-    ('daybook-public', 'Public Google', 'public'),
-    ('daybook-admin', 'Approved Google', 'existing-identity'),
-    ('taskmesh-console', 'Invite-only Google', 'invitation'),
+    ('daybook-public', 'Public Access', 'public'),
+    ('daybook-admin', 'Approved Users', 'existing-identity'),
+    ('taskmesh-console', 'Invite Only', 'invitation'),
     ('idnest-admin', 'Staff MFA', 'existing-identity')
 ), current_definitions AS (
   SELECT p.id, p.current_version, pv.definition, renames.new_name, renames.identity_gate
@@ -527,12 +527,45 @@ SET snapshot = (snapshot - 'loginPolicyId' - 'loginPolicyVersion')
 WHERE snapshot ? 'loginPolicyId'
   AND NOT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 5);
 
+-- One-time: drop IdP names from policy identity (schema_migrations version 6).
+-- Runs before seed inserts so existing Google-named rows are renamed before
+-- intent-named seeds are inserted with ON CONFLICT DO NOTHING.
+WITH policy_renames(old_name, new_name) AS (
+  VALUES
+    ('Public Google', 'Public Access'),
+    ('Approved Google', 'Approved Users'),
+    ('Invite-only Google', 'Invite Only')
+), current_definitions AS (
+  SELECT p.id, p.current_version, pv.definition, renames.new_name
+  FROM authentication_policies p
+  JOIN policy_renames renames ON renames.old_name = p.name
+  JOIN authentication_policy_versions pv
+    ON pv.authentication_policy_id = p.id AND pv.version = p.current_version
+  WHERE NOT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 6)
+), renamed_policies AS (
+  UPDATE authentication_policies p
+  SET name = current_definitions.new_name,
+      current_version = p.current_version + 1,
+      updated_at = now()
+  FROM current_definitions
+  WHERE p.id = current_definitions.id
+  RETURNING p.id, p.current_version, current_definitions.definition,
+            current_definitions.new_name
+)
+INSERT INTO authentication_policy_versions(
+  authentication_policy_id, version, definition, created_by, reason
+)
+SELECT id, current_version,
+       jsonb_set(definition, '{name}', to_jsonb(new_name), true),
+       'system', 'Renamed policy to intent-based name without IdP identity'
+FROM renamed_policies;
+
 INSERT INTO authentication_policies(name, status)
 VALUES
   ('Public Social', 'active'),
-  ('Public Google', 'active'),
-  ('Approved Google', 'active'),
-  ('Invite-only Google', 'active'),
+  ('Public Access', 'active'),
+  ('Approved Users', 'active'),
+  ('Invite Only', 'active'),
   ('Staff MFA', 'active')
 ON CONFLICT (name) DO NOTHING;
 
@@ -549,22 +582,22 @@ FROM (
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('Public Google', '{
-      "name":"Public Google","passwordEnabled":false,"passkeyEnabled":false,
+    ('Public Access', '{
+      "name":"Public Access","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
       "registrationMode":"enabled","identityGate":"public","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":3600
     }'::jsonb),
-    ('Approved Google', '{
-      "name":"Approved Google","passwordEnabled":false,"passkeyEnabled":false,
+    ('Approved Users', '{
+      "name":"Approved Users","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
       "registrationMode":"disabled","identityGate":"existing-identity","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
       "sessionMaximumAgeSeconds":1800
     }'::jsonb),
-    ('Invite-only Google', '{
-      "name":"Invite-only Google","passwordEnabled":false,"passkeyEnabled":false,
+    ('Invite Only', '{
+      "name":"Invite Only","passwordEnabled":false,"passkeyEnabled":false,
       "allowedOidcProviders":["google"],"totpEnabled":false,"minimumAal":"aal1",
       "registrationMode":"invitation-only","identityGate":"invitation","allowedEmailDomains":[],
       "allowedEmails":[],"requireVerifiedEmail":true,"forceReauthentication":false,
@@ -632,7 +665,8 @@ VALUES
   (2, 'client-specific branded authentication'),
   (3, 'behavior-based login policy names'),
   (4, 'seed only idnest-admin-client mapping'),
-  (5, 'rename login policy to authentication policy')
+  (5, 'rename login policy to authentication policy'),
+  (6, 'intent-based authentication policy names without IdP identity')
 ON CONFLICT (version) DO NOTHING;
 `;
 

@@ -34,7 +34,7 @@ const brand = {
 };
 
 const policy = {
-  name: "Public Google",
+  name: "Public Access",
   passwordEnabled: false,
   passkeyEnabled: false,
   allowedOidcProviders: ["google"],

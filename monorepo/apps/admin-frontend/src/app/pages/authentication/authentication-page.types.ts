@@ -11,9 +11,26 @@ import type {
 import type { OAuthClientAuthConfigRecord } from "../../core/admin-types";
 
 export interface PolicyDraft extends AuthPolicyDefinition {
+  /** Custom OIDC provider ids beyond the known social/external set (one per line). */
   providersText: string;
   domainsText: string;
   emailsText: string;
+}
+
+export const KNOWN_OIDC_PROVIDERS: ReadonlyArray<SelectOption> = [
+  { value: "google", label: "Google" },
+  { value: "apple", label: "Apple" },
+  { value: "microsoft", label: "Microsoft" },
+  { value: "github", label: "GitHub" },
+];
+
+const KNOWN_OIDC_PROVIDER_IDS = new Set(KNOWN_OIDC_PROVIDERS.map((provider) => provider.value));
+
+function splitLines(value: string): string[] {
+  return value
+    .split(/[\n,]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 export interface MappingDraft {
@@ -125,28 +142,45 @@ export function toMappingDraft(record: OAuthClientAuthConfigRecord): MappingDraf
 }
 
 export function toPolicyDraft(definition: AuthPolicyDefinition): PolicyDraft {
+  const customProviders = definition.allowedOidcProviders.filter(
+    (provider) => !KNOWN_OIDC_PROVIDER_IDS.has(provider),
+  );
   return {
     ...structuredClone(definition),
-    providersText: definition.allowedOidcProviders.join("\n"),
+    providersText: customProviders.join("\n"),
     domainsText: definition.allowedEmailDomains.join("\n"),
     emailsText: definition.allowedEmails.join("\n"),
   };
 }
 
 export function fromPolicyDraft(draft: PolicyDraft): AuthPolicyDefinition {
-  const lines = (value: string): string[] =>
-    value
-      .split(/[\n,]/)
-      .map((entry) => entry.trim())
-      .filter(Boolean);
   const { providersText, domainsText, emailsText, ...definition } = draft;
+  const knownProviders = definition.allowedOidcProviders.filter((provider) =>
+    KNOWN_OIDC_PROVIDER_IDS.has(provider),
+  );
+  const customProviders = splitLines(providersText).filter(
+    (provider) => !KNOWN_OIDC_PROVIDER_IDS.has(provider),
+  );
   return {
     ...definition,
     sessionMaximumAgeSeconds: Number(definition.sessionMaximumAgeSeconds) || 3600,
-    allowedOidcProviders: lines(providersText),
-    allowedEmailDomains: lines(domainsText),
-    allowedEmails: lines(emailsText),
+    allowedOidcProviders: [...knownProviders, ...customProviders],
+    allowedEmailDomains: splitLines(domainsText),
+    allowedEmails: splitLines(emailsText),
   };
+}
+
+export function isKnownOidcProviderEnabled(draft: PolicyDraft, providerId: string): boolean {
+  return draft.allowedOidcProviders.includes(providerId);
+}
+
+export function setKnownOidcProviderEnabled(
+  draft: PolicyDraft,
+  providerId: string,
+  enabled: boolean,
+): void {
+  const without = draft.allowedOidcProviders.filter((provider) => provider !== providerId);
+  draft.allowedOidcProviders = enabled ? [...without, providerId] : without;
 }
 
 export function policyMethodsLabel(definition: AuthPolicyDefinition): string {

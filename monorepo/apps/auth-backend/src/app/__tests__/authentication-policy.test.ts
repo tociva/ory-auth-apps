@@ -7,7 +7,7 @@ import {
 } from "../authentication-policy";
 
 const policy: AuthPolicyDefinition = {
-  name: "Public Google",
+  name: "Public Access",
   passwordEnabled: false,
   passkeyEnabled: false,
   allowedOidcProviders: ["google"],

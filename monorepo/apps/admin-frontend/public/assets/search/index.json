@@ -25,8 +25,8 @@
   },
   {
     "title": "Authentication Policies",
-    "description": "Manage sign-in methods, identity gates, AAL, session freshness, and registration",
-    "keywords": ["authentication", "auth", "policy", "policies", "aal", "totp", "passkey", "identity gate"],
+    "description": "Manage who may authenticate, methods, external identity providers, identity gates, AAL, and registration",
+    "keywords": ["authentication", "auth", "policy", "policies", "aal", "totp", "passkey", "identity gate", "oidc", "providers"],
     "url": "/authentication/policies"
   },
   {

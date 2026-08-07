@@ -5,8 +5,8 @@
     <p class="muted">
       {{
         createMode
-          ? "Create an authentication policy for sign-in methods, identity gates, and registration behavior."
-          : "Edit sign-in methods, identity gates, assurance, session freshness, and registration behavior."
+          ? "Create an authentication policy for who may authenticate, how, and under what assurance."
+          : "Edit who may authenticate, registration rules, methods, and assurance."
       }}
     </p>
   </div>
@@ -32,7 +32,7 @@
           <div>
             <tng-card-title>{{ createMode ? "Create policy" : "Policy details" }}</tng-card-title>
             <tng-card-description>
-              Sign-in methods, identity gate, assurance, session freshness, and registration.
+              Policy name describes who and why. Methods and providers describe how they authenticate.
             </tng-card-description>
           </div>
           @if (!createMode) {
@@ -105,15 +105,6 @@
               [getOptionLabel]="getSelectLabel"
             />
           </tng-form-field>
-          <tng-form-field class="wide">
-            <tng-label>OIDC providers (one per line)</tng-label>
-            <tng-textarea
-              name="policy_providers"
-              [rows]="3"
-              [value]="policy.providersText"
-              (valueChange)="policy.providersText = $event ?? ''"
-            />
-          </tng-form-field>
           @if (showDomainAllowlist()) {
             <tng-form-field>
               <tng-label>Allowed domains</tng-label>
@@ -138,35 +129,66 @@
           }
         </div>
 
-        <div class="check-grid">
-          <div class="check-row">
-            <tng-checkbox tngAngularForms name="policy_password" [(ngModel)]="policy.passwordEnabled" />
-            <span>Password</span>
+        <div class="form-subsection">
+          <h4 class="form-subsection-title">Authentication methods</h4>
+          <p class="muted form-subsection-copy">Password, passkey, and second-factor options.</p>
+          <div class="check-grid">
+            <div class="check-row">
+              <tng-checkbox tngAngularForms name="policy_password" [(ngModel)]="policy.passwordEnabled" />
+              <span>Password</span>
+            </div>
+            <div class="check-row">
+              <tng-checkbox tngAngularForms name="policy_passkey" [(ngModel)]="policy.passkeyEnabled" />
+              <span>Passkey</span>
+            </div>
+            <div class="check-row">
+              <tng-checkbox tngAngularForms name="policy_totp" [(ngModel)]="policy.totpEnabled" />
+              <span>TOTP</span>
+            </div>
+            <div class="check-row">
+              <tng-checkbox
+                tngAngularForms
+                name="policy_verified_email"
+                [(ngModel)]="policy.requireVerifiedEmail"
+              />
+              <span>Verified email</span>
+            </div>
+            <div class="check-row">
+              <tng-checkbox
+                tngAngularForms
+                name="policy_force_reauth"
+                [(ngModel)]="policy.forceReauthentication"
+              />
+              <span>Force reauthentication</span>
+            </div>
           </div>
-          <div class="check-row">
-            <tng-checkbox tngAngularForms name="policy_passkey" [(ngModel)]="policy.passkeyEnabled" />
-            <span>Passkey</span>
+        </div>
+
+        <div class="form-subsection">
+          <h4 class="form-subsection-title">External identity providers</h4>
+          <p class="muted form-subsection-copy">
+            Social / external sign-in. Providers verify identity; they are not part of the policy name.
+          </p>
+          <div class="check-grid">
+            @for (provider of knownOidcProviders; track provider.value) {
+              <div class="check-row">
+                <tng-checkbox
+                  [checked]="isProviderEnabled(provider.value)"
+                  (checkedChange)="onProviderEnabledChange(provider.value, $event)"
+                />
+                <span>{{ provider.label }}</span>
+              </div>
+            }
           </div>
-          <div class="check-row">
-            <tng-checkbox tngAngularForms name="policy_totp" [(ngModel)]="policy.totpEnabled" />
-            <span>TOTP</span>
-          </div>
-          <div class="check-row">
-            <tng-checkbox
-              tngAngularForms
-              name="policy_verified_email"
-              [(ngModel)]="policy.requireVerifiedEmail"
+          <tng-form-field class="additional-providers">
+            <tng-label>Additional provider ids (optional, one per line)</tng-label>
+            <tng-textarea
+              name="policy_providers"
+              [rows]="2"
+              [value]="policy.providersText"
+              (valueChange)="policy.providersText = $event ?? ''"
             />
-            <span>Verified email</span>
-          </div>
-          <div class="check-row">
-            <tng-checkbox
-              tngAngularForms
-              name="policy_force_reauth"
-              [(ngModel)]="policy.forceReauthentication"
-            />
-            <span>Force reauthentication</span>
-          </div>
+          </tng-form-field>
         </div>
 
         <div class="editor-actions">

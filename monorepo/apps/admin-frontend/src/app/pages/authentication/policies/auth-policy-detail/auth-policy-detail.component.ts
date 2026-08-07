@@ -27,12 +27,15 @@ import { ToastService } from "../../../../core/toast/toast.service";
 import {
   AAL_OPTIONS,
   IDENTITY_GATE_OPTIONS,
+  KNOWN_OIDC_PROVIDERS,
   NEW_POLICY,
   REGISTRATION_MODE_OPTIONS,
   STATUS_OPTIONS,
   fromPolicyDraft,
   getSelectLabel,
   getSelectValue,
+  isKnownOidcProviderEnabled,
+  setKnownOidcProviderEnabled,
   toPolicyDraft,
   type PolicyDraft,
 } from "../../authentication-page.types";
@@ -87,6 +90,7 @@ export class AuthPolicyDetailComponent implements OnInit {
   readonly aalOptions = AAL_OPTIONS;
   readonly registrationModeOptions = REGISTRATION_MODE_OPTIONS;
   readonly identityGateOptions = IDENTITY_GATE_OPTIONS;
+  readonly knownOidcProviders = KNOWN_OIDC_PROVIDERS;
   readonly getSelectValue = getSelectValue;
   readonly getSelectLabel = getSelectLabel;
 
@@ -112,6 +116,14 @@ export class AuthPolicyDetailComponent implements OnInit {
 
   showDomainAllowlist(): boolean {
     return this.policy.identityGate === "domain-allowlist";
+  }
+
+  isProviderEnabled(providerId: string): boolean {
+    return isKnownOidcProviderEnabled(this.policy, providerId);
+  }
+
+  onProviderEnabledChange(providerId: string, enabled: boolean): void {
+    setKnownOidcProviderEnabled(this.policy, providerId, enabled);
   }
 
   async savePolicy(): Promise<void> {
